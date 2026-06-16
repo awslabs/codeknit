@@ -14,6 +14,39 @@ C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, TypeScript
 
 ## Installation
 
+### From prebuilt binaries
+
+Prebuilt binaries are available on the [releases page](https://github.com/awslabs/codeknit/releases) for Linux, macOS, and Windows (amd64 and arm64).
+
+Download the archive for your platform, extract it, and move the binary onto your `PATH`:
+
+```bash
+# macOS (Apple Silicon) — adjust OS/arch and version as needed
+VERSION=0.1.0
+OS=darwin   # darwin, linux, or windows
+ARCH=arm64  # arm64 or amd64
+
+curl -sSL -o codeknit.tar.gz \
+  "https://github.com/awslabs/codeknit/releases/download/v${VERSION}/codeknit_${VERSION}_${OS}_${ARCH}.tar.gz"
+tar -xzf codeknit.tar.gz
+sudo mv codeknit /usr/local/bin/
+```
+
+On Windows, download the `..._windows_amd64.zip` archive from the releases page, extract it, and move `codeknit.exe` to a directory on your `PATH`.
+
+Verify the download against the published checksums:
+
+```bash
+curl -sSL -O "https://github.com/awslabs/codeknit/releases/download/v${VERSION}/checksums.txt"
+sha256sum --ignore-missing -c checksums.txt
+```
+
+Then confirm it runs:
+
+```bash
+codeknit --version
+```
+
 ### From source
 
 Requires Go 1.26+ and a C compiler (CGo is needed for tree-sitter).
