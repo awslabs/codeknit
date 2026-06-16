@@ -1,0 +1,82 @@
+[symbols]
+## include/shapes.hpp
+S1 module/namespace L3-L29 geometry
+S2 callable/method L7-L7 area {abstract, const, virtual, visibility=public}
+S3 callable/method L8-L8 draw {abstract, const, virtual, visibility=public}
+S4 callable/method L9-L9 ~Shape() {virtual, visibility=public}
+S5 type/class L5-L10 Shape {abstract}
+S6 type/struct L12-L15 Point
+S7 value/field L13-L13 x
+S8 value/field L14-L14 y
+S9 type/enum L17-L17 Color
+S10 value/field L22-L22 minVal {visibility=public}
+S11 value/field L23-L23 maxVal {visibility=public}
+S12 callable/method L24-L26 contains(value: S14) -> bool {visibility=public}
+S13 type/class L20-L27 BoundingBox
+S14 type/type_parameter L19-L19 T
+## include/utils.hpp
+S15 module/namespace L4-L15 utils
+S16 callable/function L7-L11 clamp(value: S17, lo: S17, hi: S17) -> S17
+S17 type/type_parameter L6-L6 T
+S18 callable/function_prototype L13-L13 distance
+S19 value/variable L17-L17 debugLevel {extern}
+## src/circle.cpp
+S20 module/namespace L4-L26 geometry
+S21 callable/method L8-L8 Circle(r: double) {visibility=public}
+S22 callable/method L10-L12 area() -> double {visibility=public}
+S23 callable/method L14-L14 draw() -> void {visibility=public}
+S24 callable/method L16-L16 getRadius() -> double {visibility=public}
+S25 value/field L19-L19 radius {visibility=private}
+S26 type/class L6-L20 Circle
+S27 callable/function L22-L24 createCircle(r: double) -> S26
+## src/main.cpp
+S28 value/variable L5-L5 debugLevel
+S29 type/enum L7-L11 AppMode
+S30 type/struct L13-L16 AppConfig
+S31 value/field L14-L14 maxShapes
+S32 value/field L15-L15 mode
+S33 callable/function L18-L20 printArea() -> void
+S34 callable/function L22-L28 main() -> int
+## src/rectangle.cpp
+S35 callable/method L7-L7 Rectangle(w: double, h: double) {visibility=public}
+S36 callable/method L9-L11 area() -> double {visibility=public}
+S37 callable/method L13-L13 draw() -> void {visibility=public}
+S38 value/field L16-L16 width {visibility=protected}
+S39 value/field L17-L17 height {visibility=protected}
+S40 type/class L5-L18 Rectangle
+S41 callable/method L22-L22 Square(side: double) {visibility=public}
+S42 type/class L20-L23 Square
+
+[edges]
+S5 --contains--> S2, S3, S4
+S6 --contains--> S7, S8
+S13 --contains--> S10, S11, S12, S14
+S14 --references--> S14
+S13 --references--> S14
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S16, S17, S18, S19
+S16 --contains--> S17
+S17 --references--> S14
+S16 --references--> S14
+S18 --references--> S6
+S15 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S16, S17, S18, S19
+S26 --inherits--> S5
+S26 --contains--> S21, S22, S23, S24, S25
+S22 --overrides--> S22
+S23 --overrides--> S23
+S27 --calls--> S26
+S26 --references--> S5
+S27 --references--> S26
+S20 --contains--> S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, S31, S32, S33, S34, S35, S36, S37, S38, S39, S40, S41, S42
+S30 --contains--> S31, S32
+S34 --calls--> S33
+S30 --references--> S29
+S33 --references--> S5
+S34 --references--> S30
+S40 --inherits--> S5
+S40 --contains--> S35, S36, S37, S38, S39
+S36 --overrides--> S36
+S37 --overrides--> S37
+S42 --inherits--> S40
+S42 --contains--> S41
+S40 --references--> S5
+S42 --references--> S40

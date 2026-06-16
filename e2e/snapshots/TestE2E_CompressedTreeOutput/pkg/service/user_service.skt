@@ -1,0 +1,13 @@
+[symbols]
+## pkg/service/user_service.go
+S29 d11 L5-L7 UserService {d4}
+S30 d0 L9-L11 NewUserService() -> *S29 {d4}
+S31 d1 L13-L17 Create(name: string) -> *models.S23 {d4, d8}
+S32 d1 L19-L26 FindByID(id: int) -> *models.S23 {d4, d8}
+
+[edges]
+S29 --d3--> S31, S32
+S29 --d9--> S23
+S30 --d9--> S29
+S31 --d9--> S29, S23
+S32 --d9--> S29, S23

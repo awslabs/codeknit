@@ -1,0 +1,49 @@
+Write a reference page for the .skt output format. Frontmatter:
+---
+title: Output Format Reference
+description: Complete reference for the .skt output format used by codeknit.
+---
+
+This is a detailed reference. Cover all sections:
+
+1. Overview: .skt files contain structural information in a compact text format with sections
+
+2. [symbols] section:
+   - Symbols grouped by source file (## file/path.go headers)
+   - Each line: ShortID category/kind Lstart-Lend signature {properties}
+   - ShortID: sequential (S1, S2, S3, ...)
+   - Categories and kinds table:
+     | Category | Kinds | Examples |
+     | callable | function, method, constructor | callable/function, callable/method |
+     | type | class, interface, struct, enum | type/class, type/interface |
+     | value | variable, constant, field | value/variable, value/constant |
+     | module | package, namespace | module/package |
+     | meta | type parameters, metadata | meta/type_parameter |
+   - Signature formats: name, name(params), name(params) -> returnType
+   - Parameters: name (untyped) or name: type (typed)
+   - Type references replaced with short IDs when known
+   - Properties: async, exported, static, visibility=public, receiver=*Type
+
+3. [edges] section:
+   - Format: FromID --kind--> ToID1, ToID2
+   - Edge kinds table:
+     | Kind | Meaning |
+     | calls | function/method invocation |
+     | contains | class contains method, module contains function |
+     | inherits | class extends another |
+     | implements | class implements interface |
+     | overrides | method overrides parent |
+     | references | symbol references another |
+     | imports | module imports another |
+     | decorates | decorator applied to symbol |
+
+4. [errors] section:
+   - Files with parse errors
+   - Format: - path/to/file.go: error message
+
+5. [dict] section (minified output only):
+   - Maps short codes (d0, d1, ...) to repeated tokens
+   - Used with --minify flag
+   - Show a minified example
+
+6. Full example showing all sections together

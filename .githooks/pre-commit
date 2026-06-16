@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+# Auto-format staged Go files
+STAGED_GO_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+
+if [ -n "$STAGED_GO_FILES" ]; then
+  echo "Formatting staged Go files..."
+  golangci-lint fmt $STAGED_GO_FILES
+  git add $STAGED_GO_FILES
+fi
+
+make lint
+
+make test
+
+echo "All checks passed."

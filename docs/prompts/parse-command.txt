@@ -1,0 +1,42 @@
+Write a guide for the codeknit parse command. Frontmatter:
+---
+title: Parse Command
+description: Extract structural information from source code into .skt files.
+---
+
+Cover:
+
+1. Basic usage: `codeknit parse <input-path> [output-dir]`
+   - Default output to ./skeleton/
+   - Custom output directory as second argument
+
+2. Output modes (--output-mode):
+   - directory-flat (default): chunked map_001.skt, map_002.skt files
+   - directory-tree: mirrors source tree, one .skt per source file
+   - inline: dumps to stdout, only for single files or piping
+
+3. All flags in a table:
+   | Flag | Default | Description |
+   --output-mode, directory-flat
+   --max-lines, 500, max lines per output file
+   --collect-test, false, include test files
+   --minify, false, dictionary-based compression
+   --edges, false, include the [edges] section in output (off by default to save tokens)
+   --clean, false, remove stale .skt files before writing
+   --workers, NumCPU, max concurrent goroutines
+   --verbose, false, print progress info
+
+4. Common patterns:
+   - First run: codeknit parse ./src
+   - Re-run: codeknit parse ./src --clean
+   - Single file: codeknit parse ./src/main.go --output-mode inline
+   - Minified: codeknit parse ./src --minify
+   - With edges: codeknit parse ./src --edges
+   - Tree layout: codeknit parse ./src --output-mode directory-tree
+
+5. Stale output protection: explain that codeknit refuses to write if .skt files exist, use --clean
+
+6. Tips:
+   - Default to directory-flat for most projects
+   - Use --minify for large codebases to save tokens
+   - By default the [edges] section is omitted; pass --edges when you need relationship data

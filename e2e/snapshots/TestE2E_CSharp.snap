@@ -1,0 +1,54 @@
+[symbols]
+## Models/Entity.cs
+S1 module/namespace L1-L19 MyApp.Models
+S2 type/class L2-L11 Entity {abstract, visibility=public}
+S3 value/field L3-L3 id {visibility=private}
+S4 value/property L4-L4 Name {visibility=public}
+S5 callable/method L6-L6 Validate() -> void {abstract, visibility=public}
+S6 callable/method L8-L10 Display() -> string {virtual, visibility=public}
+S7 type/interface L13-L16 IRepository {visibility=public}
+S8 callable/method L14-L14 Save(name: string) -> void
+S9 callable/method L15-L15 Delete(id: int) -> void
+S10 type/enum L18-L18 Status {visibility=public}
+## Models/Point.cs
+S11 type/struct L2-L9 Point {visibility=public}
+S12 value/field L3-L3 X {visibility=public}
+S13 value/field L4-L4 Y {visibility=public}
+S14 callable/method L6-L8 Reset() -> void {visibility=public}
+## Models/User.cs
+S15 type/class L2-L17 User {visibility=public}
+S16 value/field L3-L3 email {visibility=private}
+S17 value/property L4-L4 Age {visibility=public}
+S18 callable/method L6-L8 Validate() -> void {override, visibility=public}
+S19 callable/method L10-L11 CheckEmail(addr: string) -> void {visibility=private}
+S20 callable/method L13-L16 Register(name: string, email: string) -> void {static, visibility=public}
+S21 type/delegate L19-L19 UserChangedHandler {visibility=public}
+## Services/UserService.cs
+S22 module/namespace L1-L28 MyApp.Services
+S23 type/class L2-L19 UserService {visibility=public}
+S24 value/field L3-L3 maxUsers {visibility=private}
+S25 callable/method L5-L8 Process(name: string) -> void {visibility=public}
+S26 callable/method L10-L12 CreateUser(name: string) -> string {visibility=private}
+S27 callable/method L14-L15 NotifyRegistered(user: string) -> void {visibility=private}
+S28 callable/method L17-L18 SyncAll() -> void {async, visibility=public}
+S29 type/interface L21-L23 INotifier {visibility=public}
+S30 callable/method L22-L22 Send(message: string) -> void
+S31 type/interface L25-L27 ILogger {visibility=public}
+S32 callable/method L26-L26 Log(level: string, message: string) -> void
+
+[edges]
+S2 --contains--> S3, S4, S5, S6
+S7 --contains--> S8, S9
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20, S21
+S11 --contains--> S12, S13, S14
+S15 --inherits--> S2
+S15 --contains--> S16, S17, S18, S19, S20
+S18 --overrides--> S18
+S18 --calls--> S19
+S20 --calls--> S5
+S23 --contains--> S24, S25, S26, S27, S28
+S29 --contains--> S30
+S31 --inherits--> S29
+S31 --contains--> S32
+S25 --calls--> S26, S27
+S22 --contains--> S23, S24, S25, S26, S27, S28, S29, S30, S31, S32

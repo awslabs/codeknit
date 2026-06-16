@@ -1,0 +1,11 @@
+[symbols]
+## pkg/api/router.ts
+S16 d10 L4-L22 Router {d4}
+S17 d12 L5-L5 userHandler: S12 {d13}
+S18 d12 L6-L6 orderHandler: S5 {d13}
+S19 d1 L13-L21 route(path: string, body: unknown) -> unknown
+
+[edges]
+S16 --d5--> S16
+S16 --d3--> S17, S18, S19
+S16 --d9--> S12, S5

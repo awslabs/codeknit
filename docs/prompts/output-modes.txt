@@ -1,0 +1,47 @@
+Write a guide explaining codeknit output modes. Frontmatter:
+---
+title: Output Modes
+description: Choose the right output mode for your project size and workflow.
+---
+
+Cover:
+
+1. Overview: codeknit supports three output modes via --output-mode
+
+2. directory-flat (default, recommended):
+   - Writes chunked .skt files: map_001.skt, map_002.skt, etc.
+   - Default output directory: ./skeleton/
+   - Files are split at --max-lines boundary (default 500)
+   - Best for most projects — read only the files you need
+   - With --minify, also produces a dict.skt dictionary file
+
+3. directory-tree:
+   - Mirrors the source tree structure
+   - One .skt file per source file
+   - Output at ./skeleton/<mirrored-path>.skt
+   - Best when you want to look up a specific file's structure quickly
+
+4. inline:
+   - Dumps everything to stdout
+   - No output directory created
+   - Only use for single files or very small projects (< 5 files)
+   - Useful for piping to other tools
+
+5. Decision table:
+   | Mode | Best for | Output |
+   | directory-flat | Most projects (default) | ./skeleton/map_001.skt, map_002.skt, ... |
+   | directory-tree | Navigating alongside source | ./skeleton/<mirrored path>.skt |
+   | inline | Single file, piping | stdout |
+
+6. Rules of thumb:
+   - When unsure → use directory-flat (the default)
+   - Single file → inline is fine
+   - Anything beyond a few files → directory-flat or directory-tree
+   - Add --minify for large codebases
+   - Add --clean when re-running
+
+7. Minification:
+   - --minify enables dictionary-based compression
+   - Repeated tokens get short codes (d0, d1, ...)
+   - Dictionary stored in dict.skt
+   - Significant token savings for large codebases

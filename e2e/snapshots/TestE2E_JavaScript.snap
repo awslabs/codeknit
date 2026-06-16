@@ -1,0 +1,44 @@
+[symbols]
+## src/config.jsx
+S1 value/exported_constant L1-L1 DEFAULT_OPTIONS {exported}
+S2 value/exported_constant L3-L3 FEATURE_FLAGS {exported}
+S3 callable/function L5-L8 createApp(config) {exported}
+S4 callable/function L10-L12 initializeApp(config)
+S5 value/variable L14-L14 appInstance
+S6 callable/function L16-L18 getApp() {exported}
+## src/models/animal.js
+S7 type/class L1-L14 Animal {exported}
+S8 callable/method L7-L9 speak()
+S9 callable/method L11-L13 describe()
+S10 type/class L16-L29 Dog {exported}
+S11 callable/method L22-L24 speak()
+S12 callable/method L26-L28 fetch(item)
+S13 type/class L31-L35 Cat {exported}
+S14 callable/method L32-L34 speak()
+## src/services/math.js
+S15 callable/function L1-L3 add(a, b) {exported}
+S16 callable/function L5-L7 multiply(a, b) {exported}
+S17 callable/function L9-L11 subtract(a, b) {exported}
+S18 callable/function L13-L17 compute(x, y) {exported}
+S19 value/variable L19-L19 accumulator
+S20 callable/function L21-L24 accumulate(value) {exported}
+S21 callable/function L26-L28 resetAccumulator() {exported}
+## src/utils/helpers.js
+S22 callable/arrow_function L1-L3 format(value) {exported}
+S23 callable/arrow_function L5-L7 compose(f, g) {exported}
+S24 value/variable L9-L9 count
+S25 callable/function L11-L14 increment() {exported}
+S26 callable/function L16-L19 decrement() {exported}
+S27 callable/function L21-L23 getCount() {exported}
+
+[edges]
+S3 --calls--> S4
+S7 --contains--> S8, S9
+S10 --inherits--> S7
+S10 --contains--> S11, S12
+S13 --inherits--> S7
+S13 --contains--> S14
+S9 --calls--> S8
+S17 --calls--> S15, S16
+S18 --calls--> S16, S15, S17
+S20 --calls--> S15

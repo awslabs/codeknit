@@ -1,0 +1,46 @@
+Write a landing page (index.mdx) for the codeknit documentation site. This is the homepage.
+
+Start with this exact frontmatter:
+---
+title: codeknit
+description: A static code structure extractor for LLM-powered refactoring.
+template: splash
+hero:
+  tagline: Parse source code into compact structural maps that LLMs can actually use.
+  actions:
+    - text: Get Started
+      link: /codeknit/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/awslabs/codeknit
+      variant: minimal
+      icon: github
+---
+
+IMPORTANT: the site is deployed under a base path of `/codeknit`. Hero action links MUST start with `/codeknit/...`. For root-locale pages use `/codeknit/<page>/`; for translated pages use `/codeknit/<lang>/<page>/` (e.g. `/codeknit/fr/getting-started/`).
+
+After the frontmatter, add a brief "Features" section using Starlight's card grid component:
+
+```mdx
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="12 Languages" icon="translate">...</Card>
+  <Card title="Compact Output" icon="document">...</Card>
+  <Card title="Graph Analysis" icon="random">...</Card>
+  <Card title="Duplicate Detection" icon="magnifier">...</Card>
+  <Card title="AI-Ready" icon="rocket">...</Card>
+</CardGrid>
+```
+
+Supported languages: C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, TypeScript.
+
+Key features to highlight:
+- Extracts functions, classes, methods, variables, and their relationships
+- Compact .skt output format designed for LLM context windows
+- Graph analysis with 17+ algorithms (cycles, hubs, dead code, god classes, bottlenecks)
+- Interactive HTML graph visualization
+- Fuzzy duplicate and near-duplicate detection with CTPH fingerprinting (cross-file, cross-language)
+- Multiple output modes (inline, directory-flat, directory-tree)
+- Dictionary-based minification for token savings
+- Built-in AI assistant skills for Kiro and Claude Code (codeknit-parse, codeknit-fingerprint)

@@ -1,0 +1,27 @@
+[symbols]
+## lib/utils.py
+S1 type/class L1-L6 Calculator
+S2 callable/method L2-L3 add(a, b)
+S3 callable/method L5-L6 multiply(a, b)
+S4 callable/function L8-L9 create_calculator()
+## pkg/models.go
+S5 module/package L1-L1 pkg
+S6 type/interface L3-L5 Animal {exported}
+S7 type/struct L7-L9 Dog {exported}
+S8 callable/method L11-L13 Speak() -> string {exported, receiver=*Dog}
+S9 callable/function L15-L17 NewDog(name: string) -> *S7 {exported}
+## pkg/service.go
+S10 type/struct L3-L5 Service {exported}
+S11 callable/function L7-L9 NewService(name: string) -> *S10 {exported}
+S12 callable/method L11-L13 Run() -> string {exported, receiver=*Service}
+
+[edges]
+S1 --contains--> S2, S3
+S4 --calls--> S1
+S7 --contains--> S8
+S8 --references--> S7
+S9 --references--> S7
+S5 --contains--> S6, S7, S8, S9, S10, S11, S12
+S10 --contains--> S12
+S11 --references--> S10
+S12 --references--> S10

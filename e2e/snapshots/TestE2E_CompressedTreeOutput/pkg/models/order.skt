@@ -1,0 +1,9 @@
+[symbols]
+## pkg/models/order.go
+S20 d6 L1-L1 models
+S21 d11 L3-L7 Order {d4}
+S22 d0 L9-L11 NewOrder(userID: int, total: float64) -> *S21 {d4}
+
+[edges]
+S22 --d9--> S21
+S20 --d3--> S21, S22, S23, S24

@@ -1,0 +1,27 @@
+[symbols]
+## pkg/store/product_store.go
+S17 module/package L1-L1 store
+S18 type/struct L5-L7 ProductStore {exported}
+S19 callable/function L9-L11 NewProductStore() -> *S18 {exported}
+S20 callable/method L13-L15 Add(p: *models.S2) {exported, receiver=*ProductStore}
+S21 callable/method L17-L24 FindByID(id: int) -> *models.S2 {exported, receiver=*ProductStore}
+## pkg/store/user_store.go
+S22 type/struct L5-L7 UserStore {exported}
+S23 callable/function L9-L11 NewUserStore() -> *S22 {exported}
+S24 callable/method L13-L15 Add(u: *models.S4) {exported, receiver=*UserStore}
+S25 callable/method L17-L24 FindByID(id: int) -> *models.S4 {exported, receiver=*UserStore}
+S26 callable/method L26-L28 Count() -> int {exported, receiver=*UserStore}
+
+[edges]
+S18 --contains--> S20, S21
+S18 --references--> S2
+S19 --references--> S18
+S20 --references--> S18, S2
+S21 --references--> S18, S2
+S17 --contains--> S18, S19, S20, S21, S22, S23, S24, S25, S26
+S22 --contains--> S24, S25, S26
+S22 --references--> S4
+S23 --references--> S22
+S24 --references--> S22, S4
+S25 --references--> S22, S4
+S26 --references--> S22

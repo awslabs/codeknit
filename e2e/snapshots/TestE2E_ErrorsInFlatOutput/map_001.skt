@@ -1,0 +1,15 @@
+[symbols]
+## pkg/models/broken.go
+S1 module/package L1-L1 models
+## pkg/models/user.go
+S2 type/struct L3-L6 User {exported}
+S3 callable/function L8-L10 NewUser(name: string) -> *S2 {exported}
+## pkg/service/handler.py
+S4 type/class L1-L6 Handler
+S5 callable/method L2-L3 __init__()
+S6 callable/method L5-L6 handle(request)
+
+[edges]
+S1 --contains--> S2, S3
+S3 --references--> S2
+S4 --contains--> S5, S6

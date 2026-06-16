@@ -1,0 +1,54 @@
+[symbols]
+## lib/models/animal.rb
+S1 type/class L1-L20 Animal
+S2 callable/method L2-L5 initialize(name, sound)
+S3 callable/method L7-L9 speak()
+S4 callable/method L11-L13 describe()
+S5 callable/method L17-L19 validate() {visibility=private}
+S6 type/class L22-L34 Dog
+S7 callable/method L23-L25 initialize(name)
+S8 callable/method L27-L29 speak()
+S9 callable/method L31-L33 fetch(item)
+S10 type/class L36-L40 Cat
+S11 callable/method L37-L39 speak()
+## lib/models/user.rb
+S12 type/class L1-L20 User
+S13 callable/method L2-L5 initialize(name, email)
+S14 callable/method L7-L9 display()
+S15 callable/method L11-L13 from_hash(data) {static}
+S16 callable/method L17-L19 format_name(name) {visibility=protected}
+S17 value/constant L22-L22 MAX_USERS
+S18 value/constant L23-L23 ADMIN_EMAIL
+## lib/services/auth_service.rb
+S19 type/class L1-L21 AuthService
+S20 callable/method L4-L6 initialize(secret)
+S21 callable/method L8-L10 authenticate(token)
+S22 callable/method L12-L14 default_service() {static}
+S23 callable/method L18-L20 verify_token(token) {visibility=private}
+S24 value/constant L23-L23 TOKEN_TTL
+## lib/services/greeter.rb
+S25 module/module L1-L9 Greeter
+S26 callable/method L2-L4 greet(name) {static}
+S27 callable/method L6-L8 format_greeting(name) {static}
+S28 module/module L11-L15 Formatter
+S29 callable/method L12-L14 format(value)
+S30 callable/function L17-L19 standalone_helper(x)
+S31 value/constant L21-L21 GREETING_PREFIX
+
+[edges]
+S1 --contains--> S2, S3, S4, S5
+S6 --inherits--> S1
+S6 --contains--> S7, S8, S9
+S10 --inherits--> S1
+S10 --contains--> S11
+S4 --calls--> S3
+S6 --references--> S1
+S10 --references--> S1
+S12 --contains--> S13, S14, S15, S16
+S14 --calls--> S16
+S19 --contains--> S20, S21, S22, S23
+S21 --calls--> S23
+S19 --references--> S28
+S25 --contains--> S26, S27, S19, S20, S21, S22, S23, S24, S26, S27, S29, S30, S31
+S28 --contains--> S29, S19, S20, S21, S22, S23, S24, S26, S27, S29, S30, S31
+S26 --calls--> S27

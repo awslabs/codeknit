@@ -1,0 +1,58 @@
+Write a guide for the codeknit fingerprint command. Frontmatter:
+---
+title: Fingerprint Command
+description: Detect duplicate and near-duplicate code across files and languages using fuzzy hashing.
+---
+
+Cover:
+
+1. What it does
+   - Computes a Context-Triggered Piecewise Hash (CTPH) over normalized body tokens for every function, method, variable, and type
+   - Similar code produces similar fingerprints, so near-duplicates are found even across files and across programming languages
+   - Variable names, string literals, and type annotations are normalized away before hashing, so renamed copy-paste is still detected
+
+2. Basic usage
+   `codeknit fingerprint <input-path>`
+   Default output: ./skeleton/fingerprints.skt
+   Default similarity range: 65%-95%
+
+3. All flags in a table:
+   | Flag | Default | Description |
+   -o, --output, ./skeleton/fingerprints.skt, output .skt file path
+   --min-similarity, 65, minimum similarity percentage to report (0-100)
+   --max-similarity, 95, maximum similarity percentage to report (0-100)
+   --show-all, false, also emit the [fingerprints] section with raw token data
+   --rerank, false, rerank CTPH candidates with semantic embeddings via Ollama to eliminate false positives (requires: ollama serve && ollama pull qwen3-embedding:0.6b)
+   --model, qwen3-embedding:0.6b, Ollama embedding model to use with --rerank
+   --collect-test, false, include test files in analysis
+   --workers, NumCPU, max concurrent parsing goroutines
+   --verbose, false, print progress info
+
+4. Output format
+   - [duplicates] section is always present. Lines look like:
+     similarity:96%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+   - With --show-all, a [fingerprints] section is added. Lines look like:
+     validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+
+5. Common patterns
+   - Default scan: codeknit fingerprint ./src
+   - Exact duplicates only: codeknit fingerprint ./src --min-similarity 100
+   - Moderately similar code: codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
+   - Semantic reranking: codeknit fingerprint ./src --rerank
+   - Semantic reranking with custom model: codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
+   - Full fingerprint listing: codeknit fingerprint ./src --show-all
+   - Custom output: codeknit fingerprint ./src -o duplicates.skt
+
+6. Choosing a similarity range (short table with guidance)
+   - 96-100%: exact or near-exact structural duplicates, clear copy-paste
+   - 85-95%: near-duplicates, usually copy-paste with trivial edits
+   - 65-84%: default range, strong structural similarity, often refactor candidates
+   - 50-64%: moderate, same algorithmic shape with different details
+   - Below 50%: usually noise
+
+7. Tips
+   - Fingerprints measure structural shape, not identifier names or semantic intent
+   - A match is a signal to investigate, not a proof of duplication — always read both symbols
+   - Use --rerank to filter false positives when CTPH results are noisy (requires Ollama with qwen3-embedding:0.6b)
+   - Symbols with very short bodies (fewer than 4 normalized tokens) are skipped
+   - Cross-language matches work for equivalent constructs but can produce spurious low-similarity matches for language-specific features

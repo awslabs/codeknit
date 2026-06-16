@@ -1,0 +1,18 @@
+[symbols]
+## pkg/api/handler/user_handler.py
+S8 d10 L3-L6 UserRequest
+S9 d1 L4-L6 __init__(name, email)
+S10 d10 L8-L11 UserResponse
+S11 d1 L9-L11 __init__(user_id, name)
+S12 d10 L13-L25 UserHandler
+S13 d1 L14-L15 __init__()
+S14 d1 L17-L19 create(request)
+S15 d1 L21-L25 get(user_id)
+
+[edges]
+S8 --d3--> S9
+S10 --d3--> S11
+S12 --d3--> S13, S14, S15
+S13 --d2--> S29
+S14 --d2--> S14, S10
+S15 --d2--> S10

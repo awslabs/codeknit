@@ -1,0 +1,75 @@
+Write a guide for the codeknit graph commands. Frontmatter:
+---
+title: Graph Commands
+description: Visualize and analyze your codebase structure with graph algorithms.
+---
+
+Cover two subcommands:
+
+## graph show
+
+Generates an interactive HTML graph visualization.
+
+Usage: `codeknit graph show <input-path>`
+
+- Parses the codebase and produces a self-contained HTML file
+- Symbols (functions, classes, types) as nodes, relationships (calls, contains, implements) as edges
+- Opens automatically in the default browser
+
+Flags:
+- -o, --output: output HTML file path (default: ./skeleton/codeknit-graph.html)
+- --collect-test: include test files
+- --workers: max concurrent goroutines (0 = NumCPU)
+- --verbose: print progress info
+
+Examples:
+```bash
+codeknit graph show ./myproject
+codeknit graph show ./myproject -o graph.html
+codeknit graph show ./src --collect-test
+```
+
+## graph analyze
+
+Runs structural graph algorithms and emits an LLM-readable .skt report.
+
+Usage: `codeknit graph analyze <input-path>`
+
+Algorithms (list all 17):
+- Cyclic dependencies (Tarjan's SCC)
+- Hub detection (high fan-in/fan-out coupling)
+- Orphan detection (dead code candidates)
+- God class/function detection (excessive children)
+- Instability metric (Robert C. Martin's Ce/(Ca+Ce))
+- Deep inheritance chains
+- Betweenness centrality (bottleneck detection)
+- Articulation points (single points of failure)
+- PageRank (recursive importance)
+- Transitive fan-in (blast radius)
+- Change propagation simulation
+- Circular package dependencies
+- Layer violation detection
+- Reachability from entry points
+- Weakly connected components
+- Dependency weight (package coupling strength)
+- Distance from Main Sequence (A+I balance)
+
+Flags table:
+- -o, --output: output .skt file (default: ./skeleton/graph_analysis.skt)
+- --collect-test: include test files
+- --workers: max concurrent goroutines
+- --verbose: print progress
+- --fan-threshold (default 10): min fan-in/out to flag hub
+- --god-threshold (default 15): min contains-edges for god class
+- --max-inheritance-depth (default 5): flag deep chains
+- --top-n (default 30): cap ranked sections, 0 = no limit
+- --betweenness-threshold (default 0.001): min centrality to report
+- --propagation-cutoff (default 0.05): min probability for change propagation
+
+Examples:
+```bash
+codeknit graph analyze ./myproject
+codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
+codeknit graph analyze ./myproject --top-n 50
+codeknit graph analyze ./src --collect-test
+```

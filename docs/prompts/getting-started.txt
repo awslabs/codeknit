@@ -1,0 +1,32 @@
+Write a "Getting Started" guide for codeknit. Frontmatter:
+---
+title: Getting Started
+description: Get up and running with codeknit in under 5 minutes.
+---
+
+Cover these topics in order:
+
+1. Prerequisites: Go 1.26+, a C compiler (CGo needed for tree-sitter)
+2. Installation from source:
+   ```bash
+   git clone https://github.com/awslabs/codeknit.git
+   cd codeknit
+   make build
+   # Binary is at ./bin/codeknit
+   ```
+3. Add to PATH (bash/zsh/fish examples)
+4. Verify: `codeknit --version`
+5. First parse — run `codeknit parse ./myproject` and explain what happens (writes .skt files to ./skeleton/)
+6. Reading the output — briefly explain the .skt format sections ([symbols], [edges]) with a small example
+7. Next steps — link to the parse command guide, graph commands guide, and output format reference.
+
+Use slug-relative markdown links that resolve correctly under Starlight's base path and locale routing:
+- Parse command guide: `../guides/parse-command/`
+- Graph commands guide: `../guides/graph-commands/`
+- Fingerprint command guide: `../guides/fingerprint-command/`
+- Output format reference: `../reference/output-format/`
+- CLI flags reference: `../reference/cli-flags/`
+
+Do NOT write absolute paths like `/commands/parse` or `/output-format` — those routes do not exist. Always use the slug-relative `../<section>/<slug>/` form.
+
+Keep it practical and quick. A developer should be able to go from zero to their first parse in under 5 minutes.

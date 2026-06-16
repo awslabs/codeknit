@@ -1,0 +1,41 @@
+---
+title: codeknit
+description: Uno strumento di estrazione statica della struttura del codice per il refactoring potenziato dagli LLM.
+template: splash
+hero:
+  tagline: Analizza il codice sorgente in mappe strutturali compatte che gli LLM possono effettivamente utilizzare.
+  actions:
+    - text: Inizia
+      link: /codeknit/it/getting-started/
+      icon: right-arrow
+    - text: Visualizza su GitHub
+      link: https://github.com/awslabs/codeknit
+      variant: minimal
+      icon: github
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="12 Linguaggi" icon="translate">
+    Supporta C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala e
+    TypeScript.
+  </Card>
+  <Card title="Output Compatto" icon="document">
+    Genera file `.skt` con minificazione e multiple modalità di output (inline,
+    flat, tree) per un utilizzo ottimale del contesto LLM.
+  </Card>
+  <Card title="Analisi del Grafo" icon="random">
+    Rileva cicli, hub, dead code, god class, colli di bottiglia e altro
+    utilizzando oltre 17 algoritmi strutturali.
+  </Card>
+  <Card title="Rilevamento Duplicati" icon="magnifier">
+    Trova codice duplicato e quasi duplicato tra file e linguaggi utilizzando il
+    fingerprinting CTPH.
+  </Card>
+  <Card title="Pronto per l'AI" icon="rocket">
+    Include skill integrate per Kiro e Claude Code per consentire agli
+    assistenti AI di analizzare e comprendere autonomamente la struttura del
+    codice.
+  </Card>
+</CardGrid>

@@ -1,0 +1,29 @@
+[symbols]
+## pkg/api/router.ts
+S1 d8 L4-L22 Router {d4}
+S2 d10 L5-L5 userService: S15 {d11}
+S3 d10 L6-L6 orderService: S11 {d11}
+S4 d1 L13-L21 handle(path: string, body: unknown) -> unknown
+## pkg/models/order.go
+S5 d6 L1-L1 models
+S6 d9 L3-L7 Order {d4}
+S7 d0 L9-L11 NewOrder(userID: int, total: float64) -> *S6 {d4}
+## pkg/models/user.go
+S8 d9 L3-L7 User {d4}
+S9 d0 L9-L11 NewUser(name: string) -> *S8 {d4}
+S10 d0 L13-L15 ValidateUser(u: *S8) -> bool {d4}
+## pkg/service/order_service.py
+S11 d8 L1-L14 OrderService
+S12 d1 L2-L3 __init__()
+S13 d1 L5-L8 place(user_id, total)
+S14 d1 L10-L14 get(order_id)
+
+[edges]
+S1 --d5--> S1
+S1 --d3--> S2, S3, S4
+S1 --d7--> S15, S11
+S7 --d7--> S6
+S5 --d3--> S6, S7, S8, S9, S10
+S9 --d7--> S8
+S10 --d7--> S8
+S11 --d3--> S12, S13, S14

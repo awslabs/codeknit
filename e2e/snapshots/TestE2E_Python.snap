@@ -1,0 +1,53 @@
+[symbols]
+## models/animal.py
+S1 type/class L1-L10 Animal
+S2 callable/method L2-L4 __init__(name, sound)
+S3 callable/method L6-L7 speak()
+S4 callable/method L9-L10 describe()
+S5 type/class L12-L20 Dog
+S6 callable/method L13-L14 __init__(name)
+S7 callable/method L16-L17 speak()
+S8 callable/method L19-L20 fetch(item)
+S9 type/class L22-L24 Cat
+S10 callable/method L23-L24 speak()
+## models/user.py
+S11 type/class L1-L10 User
+S12 callable/method L2-L4 __init__(name, email)
+S13 callable/method L6-L7 display()
+S14 callable/method L9-L10 validate()
+S15 callable/function L12-L13 format_name(name)
+S16 callable/function L15-L16 validate_email(email)
+S17 value/variable L18-L18 MAX_USERS
+S18 value/variable L19-L19 ADMIN_EMAIL
+## services/greeter.py
+S19 callable/function L1-L3 greet(name)
+S20 callable/function L5-L7 format_greeting(name)
+S21 callable/function L9-L10 get_prefix()
+S22 callable/function L12-L13 fetch_user(user_id) {async}
+S23 callable/function L15-L20 fetch_users(ids) {async}
+## utils/helpers.py
+S24 value/variable L1-L1 TIMEOUT
+S25 value/variable L2-L2 MAX_RETRIES
+S26 callable/function L4-L5 validate(value)
+S27 callable/function L7-L12 clamp(value, low, high)
+S28 type/class L14-L27 Validator
+S29 callable/method L16-L17 check(value) {static}
+S30 callable/method L20-L21 from_config(config) {classmethod}
+S31 callable/method L23-L27 run(data)
+
+[edges]
+S1 --contains--> S2, S3, S4
+S5 --inherits--> S1
+S5 --contains--> S6, S7, S8
+S9 --inherits--> S1
+S9 --contains--> S10
+S4 --calls--> S3
+S11 --contains--> S12, S13, S14
+S13 --calls--> S15
+S14 --calls--> S16
+S19 --calls--> S20
+S20 --calls--> S21
+S23 --calls--> S22
+S28 --contains--> S29, S30, S31
+S29 --calls--> S26
+S31 --calls--> S29

@@ -1,0 +1,58 @@
+Write a guide on using codeknit with AI coding assistants. Frontmatter:
+---
+title: Using with AI Assistants
+description: Set up codeknit as a skill for Kiro, Claude Code, and other AI coding assistants.
+---
+
+Cover:
+
+1. Overview: codeknit ships with two ready-made skills that teach AI assistants how to use it:
+   - codeknit-parse: code structure extraction and graph analysis
+   - codeknit-fingerprint: fuzzy duplicate and near-duplicate detection
+
+2. Installation:
+   Each skill is a directory. Copy whichever ones you want:
+
+   For Kiro:
+   cp -r skills/codeknit-parse ~/.kiro/skills/codeknit-parse
+   cp -r skills/codeknit-fingerprint ~/.kiro/skills/codeknit-fingerprint
+
+   For Claude Code:
+   cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
+   cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
+
+   Each skill directory contains a SKILL.md that the assistant reads on demand.
+
+3. What each skill teaches the assistant:
+
+   codeknit-parse:
+   - How to invoke codeknit parse with the right flags
+   - How to pick the right output mode (inline, directory-flat, directory-tree)
+   - How to read .skt files and understand the format
+   - How to use structural data for refactoring and code review tasks
+   - How to run codeknit graph analyze for deeper code quality analysis
+
+   codeknit-fingerprint:
+   - When to use fingerprinting (duplicate detection, DRY audits, refactor candidates)
+   - How to choose the right similarity range
+   - How to read the [duplicates] and [fingerprints] sections
+   - Caveats: fingerprints measure structural shape, not semantic intent
+
+4. Workflow examples:
+
+   Structural analysis:
+   - Ask the assistant to analyze your codebase structure
+   - It runs codeknit parse and reads the .skt output
+   - It can then answer structural questions: dependencies, call chains, dead code
+   - For deeper analysis, it can run codeknit graph analyze
+
+   Duplicate detection:
+   - Ask the assistant to find duplicated code
+   - It runs codeknit fingerprint and reads the [duplicates] section
+   - It investigates flagged pairs and proposes refactors
+
+5. Tips:
+   - The assistant should read .skt files, not raw source, for structural questions
+   - Use graph analyze for code quality insights
+   - Use fingerprint before a large refactor to spot copy-paste that should be consolidated
+   - The .skt format is designed to be token-efficient for LLM context windows

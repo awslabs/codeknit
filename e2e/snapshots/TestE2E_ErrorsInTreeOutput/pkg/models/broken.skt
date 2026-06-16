@@ -1,0 +1,6 @@
+[symbols]
+## pkg/models/broken.go
+S1 module/package L1-L1 models
+
+[edges]
+S1 --contains--> S2, S3

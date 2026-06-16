@@ -1,0 +1,50 @@
+[symbols]
+## pkg/models/role.go
+S1 module/package L1-L1 models
+S2 type/interface L3-L6 Role {exported}
+S3 type/struct L8-L10 AdminRole {exported}
+S4 callable/method L12-L14 Permissions() -> []string {exported, receiver=*AdminRole}
+S5 callable/method L16-L23 HasPermission(perm: string) -> bool {exported, receiver=*AdminRole}
+S6 type/struct L25-L25 ReadOnlyRole {exported}
+S7 callable/method L27-L29 Permissions() -> []string {exported, receiver=*ReadOnlyRole}
+S8 callable/method L31-L33 HasPermission(perm: string) -> bool {exported, receiver=*ReadOnlyRole}
+## pkg/models/user.go
+S9 type/struct L3-L7 User {exported}
+S10 callable/function L9-L15 NewUser(name: string, age: int) -> *S9 {exported}
+S11 callable/function L17-L22 validateEmail(email: string) -> error
+S12 value/variable L24-L24 DefaultUser {exported}
+## pkg/services/auth.go
+S13 module/package L1-L1 services
+S14 type/struct L5-L8 AuthService {exported}
+S15 callable/function L10-L12 NewAuthService(secret: string, ttl: int) -> *S14 {exported}
+S16 callable/method L14-L19 Authenticate(token: string) {exported, receiver=*AuthService}
+S17 callable/method L21-L27 Refresh(token: string) {exported, receiver=*AuthService}
+S18 callable/function L29-L31 verifyToken(token: string) -> bool
+S19 callable/function L33-L35 generateToken(secret: string, ttl: int) -> string
+S20 value/constant L37-L37 MaxTokenLength {exported}
+## pkg/services/math.go
+S21 value/constant L3-L3 MaxValue {exported}
+S22 callable/function L5-L7 Add(a: int) -> int {exported}
+S23 callable/function L9-L11 Multiply(a: int) -> int {exported}
+S24 callable/function L13-L19 Compute(x: int) -> int {exported}
+S25 value/variable L21-L21 DefaultPrecision {exported}
+
+[edges]
+S3 --contains--> S4, S5
+S6 --contains--> S7, S8
+S5 --calls--> S4
+S4 --references--> S3
+S5 --references--> S3
+S7 --references--> S6
+S8 --references--> S6
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12
+S10 --calls--> S11
+S10 --references--> S9
+S14 --contains--> S16, S17
+S16 --calls--> S18
+S17 --calls--> S16, S19
+S15 --references--> S14
+S16 --references--> S14
+S17 --references--> S14
+S13 --contains--> S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24, S25
+S24 --calls--> S22, S23

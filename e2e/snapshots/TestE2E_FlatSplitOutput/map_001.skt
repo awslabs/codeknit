@@ -1,0 +1,39 @@
+[symbols]
+## pkg/models/product.go
+S1 module/package L1-L1 models
+S2 type/struct L3-L7 Product {exported}
+S3 callable/function L9-L11 NewProduct(name: string, price: float64) -> *S2 {exported}
+## pkg/models/user.go
+S4 type/struct L3-L7 User {exported}
+S5 callable/function L9-L11 NewUser(name: string) -> *S4 {exported}
+S6 callable/function L13-L15 ValidateUser(u: *S4) -> bool {exported}
+## pkg/service/product_service.go
+S7 module/package L1-L1 service
+S8 type/struct L5-L7 ProductService {exported}
+S9 callable/function L9-L11 NewProductService() -> *S8 {exported}
+S10 callable/method L13-L16 Create(name: string, price: float64) -> *models.S2 {exported, receiver=*ProductService}
+S11 callable/method L18-L20 Get(id: int) -> *models.S2 {exported, receiver=*ProductService}
+## pkg/service/user_service.go
+S12 type/struct L5-L7 UserService {exported}
+S13 callable/function L9-L11 NewUserService() -> *S12 {exported}
+S14 callable/method L13-L16 Register(name: string) -> *models.S4 {exported, receiver=*UserService}
+S15 callable/method L18-L20 Lookup(id: int) -> *models.S4 {exported, receiver=*UserService}
+S16 callable/method L22-L24 Delete(id: int) -> bool {exported, receiver=*UserService}
+
+[edges]
+S3 --references--> S2
+S1 --contains--> S2, S3, S4, S5, S6
+S5 --references--> S4
+S6 --references--> S4
+S8 --contains--> S10, S11
+S8 --references--> S18
+S9 --references--> S8
+S10 --references--> S8, S2
+S11 --references--> S8, S2
+S7 --contains--> S8, S9, S10, S11, S12, S13, S14, S15, S16
+S12 --contains--> S14, S15, S16
+S12 --references--> S22
+S13 --references--> S12
+S14 --references--> S12, S4
+S15 --references--> S12, S4
+S16 --references--> S12

@@ -1,0 +1,67 @@
+[symbols]
+## Services.java
+S1 type/class L1-L10 UserService
+S2 callable/method L2-L5 save(name: String) -> void
+S3 callable/method L7-L7 validate(input: String) -> void
+S4 callable/method L9-L9 log(msg: String) -> void
+S5 type/class L12-L21 OrderService
+S6 callable/method L13-L16 save(orderId: int) -> void
+S7 callable/method L18-L18 validate(id: int) -> void
+S8 callable/method L20-L20 log(msg: String) -> void
+## controllers.ts
+S9 type/class L1-L9 UserController
+S10 callable/method L2-L4 handle() -> void
+S11 callable/method L6-L8 validate() -> boolean
+S12 type/class L11-L19 OrderController
+S13 callable/method L12-L14 handle() -> void
+S14 callable/method L16-L18 validate() -> boolean
+## handlers.go
+S15 module/package L1-L1 handlers
+S16 type/struct L3-L3 UserHandler {exported}
+S17 type/struct L4-L4 OrderHandler {exported}
+S18 callable/method L6-L8 Handle() {exported, receiver=*UserHandler}
+S19 callable/method L10-L12 Validate() -> bool {exported, receiver=*UserHandler}
+S20 callable/method L14-L16 Handle() {exported, receiver=*OrderHandler}
+S21 callable/method L18-L20 Validate() -> bool {exported, receiver=*OrderHandler}
+## models.py
+S22 type/class L1-L9 User
+S23 callable/method L2-L3 save()
+S24 callable/method L5-L6 validate()
+S25 callable/method L8-L9 delete()
+S26 type/class L11-L19 Order
+S27 callable/method L12-L13 save()
+S28 callable/method L15-L16 validate()
+S29 callable/method L18-L19 delete()
+S30 callable/function L21-L22 validate_email(email)
+S31 callable/function L24-L25 validate_total(total)
+## pipeline.py
+S32 callable/function L1-L2 transform(data)
+S33 callable/function L4-L5 filter_items(data)
+S34 callable/function L7-L8 process(data, fn)
+S35 callable/function L10-L12 run()
+
+[edges]
+S1 --contains--> S2, S3, S4
+S5 --contains--> S6, S7, S8
+S2 --calls--> S7, S8
+S6 --calls--> S7, S8
+S9 --inherits--> S9
+S9 --contains--> S10, S11
+S12 --inherits--> S12
+S12 --contains--> S13, S14
+S10 --calls--> S7
+S13 --calls--> S7
+S16 --contains--> S18, S19
+S17 --contains--> S20, S21
+S18 --calls--> S21
+S20 --calls--> S21
+S18 --references--> S16
+S19 --references--> S16
+S20 --references--> S17
+S21 --references--> S17
+S15 --contains--> S16, S17, S18, S19, S20, S21
+S22 --contains--> S23, S24, S25
+S26 --contains--> S27, S28, S29
+S23 --calls--> S30
+S27 --calls--> S31
+S35 --calls--> S32, S33, S34

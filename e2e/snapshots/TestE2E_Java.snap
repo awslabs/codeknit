@@ -1,0 +1,57 @@
+[symbols]
+## src/models/Animal.java
+S1 module/package L1-L1 com.example.models
+S2 type/class L3-L21 Animal {abstract, visibility=public}
+S3 value/field L4-L4 name {visibility=private}
+S4 value/field L5-L5 sound {visibility=protected}
+S5 callable/constructor L7-L10 Animal(name: String, sound: String) {visibility=public}
+S6 callable/method L12-L14 getName() -> String {visibility=public}
+S7 callable/method L16-L16 speak() -> String {abstract, visibility=public}
+S8 callable/method L18-L20 describe() -> String {visibility=public}
+## src/models/Dog.java
+S9 type/class L3-L24 Dog {visibility=public}
+S10 value/field L4-L4 age {visibility=private}
+S11 callable/constructor L6-L9 Dog(name: String, age: int) {visibility=public}
+S12 callable/method L11-L14 speak() -> String {visibility=public}
+S13 callable/method L16-L18 fetch(item: String) -> String {visibility=public}
+S14 callable/method L20-L23 compareTo(other: S9) -> int {visibility=public}
+## src/models/Status.java
+S15 type/enum L3-L7 Status {visibility=public}
+## src/services/AnimalService.java
+S16 module/package L1-L1 com.example.services
+S17 type/interface L3-L7 AnimalService {visibility=public}
+S18 callable/method L4-L4 register(name: String) -> void
+S19 callable/method L5-L5 find(name: String) -> String
+S20 callable/method L6-L6 remove(name: String) -> void
+## src/services/AnimalServiceImpl.java
+S21 type/class L6-L35 AnimalServiceImpl {visibility=public}
+S22 value/field L7-L7 registry {visibility=private}
+S23 callable/constructor L9-L10 AnimalServiceImpl() {visibility=public}
+S24 callable/method L12-L15 register(name: String) -> void {visibility=public}
+S25 callable/method L17-L25 find(name: String) -> String {visibility=public}
+S26 callable/method L27-L30 remove(name: String) -> void {visibility=public}
+S27 callable/method L32-L34 count() -> int {visibility=public}
+
+[edges]
+S2 --contains--> S3, S4, S5, S6, S7, S8
+S8 --calls--> S6, S7
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15
+S9 --inherits--> S2
+S9 --contains--> S10, S11, S12, S13, S14
+S12 --overrides--> S12
+S14 --overrides--> S14
+S12 --calls--> S6
+S13 --calls--> S6
+S9 --references--> S2
+S14 --references--> S9
+S17 --contains--> S18, S19, S20
+S16 --contains--> S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27
+S21 --implements--> S17
+S21 --contains--> S22, S23, S24, S25, S26, S27
+S24 --overrides--> S24
+S25 --overrides--> S25
+S26 --overrides--> S26
+S24 --calls--> S22
+S26 --calls--> S22
+S27 --calls--> S22
+S21 --references--> S17

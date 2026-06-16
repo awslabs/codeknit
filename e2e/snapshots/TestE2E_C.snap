@@ -1,0 +1,47 @@
+[symbols]
+## include/config.h
+S1 value/macro L1-L2 MAX_BUFFER_SIZE
+S2 callable/macro_function L2-L3 CLAMP
+S3 type/typedef L4-L4 size_type
+S4 type/struct L6-L10 AppConfig
+S5 type/enum L12-L17 LogLevel
+S6 callable/function_prototype L19-L19 config_init
+S7 callable/function_prototype L20-L20 config_load
+S8 value/variable L22-L22 verbose_flag {extern}
+## include/utils.h
+S9 value/macro L3-L4 PI
+S10 callable/macro_function L4-L5 SQUARE
+S11 type/typedef L6-L6 int
+S12 type/union L8-L12 Value
+S13 callable/function_prototype L14-L14 string_length
+S14 callable/function_prototype L15-L15 string_copy
+## src/config.c
+S15 value/variable L5-L5 default_port {static}
+S16 value/variable L7-L7 verbose_flag
+S17 callable/function L9-L13 config_init() -> void
+S18 callable/function L15-L21 config_load() -> S11
+S19 callable/function L23-L26 config_reset() -> void {static}
+## src/main.c
+S20 value/macro L5-L6 EXIT_OK
+S21 type/enum L7-L10 Status
+S22 type/struct L12-L15 Context
+S23 callable/function L17-L19 print_banner() -> void {static}
+S24 callable/function L21-L27 main(argc: S11) -> S11
+## src/utils.c
+S25 value/macro L4-L5 INTERNAL_BUF
+S26 callable/function L8-L14 string_length() -> S11
+S27 callable/function L16-L21 string_copy() -> void
+S28 callable/function L23-L25 compare_int() -> S11 {static}
+
+[edges]
+S6 --references--> S4
+S7 --references--> S4
+S18 --calls--> S17, S26
+S19 --calls--> S17
+S17 --references--> S4
+S18 --references--> S4
+S19 --references--> S4
+S24 --calls--> S17, S23
+S22 --references--> S4, S21
+S24 --references--> S22
+S27 --calls--> S26

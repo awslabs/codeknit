@@ -1,0 +1,20 @@
+[symbols]
+## __tests__/helper.py
+S1 type/class L3-L5 TestHelper
+S2 callable/method L4-L5 test_something()
+## lib/core.py
+S3 type/class L1-L3 Core
+S4 callable/method L2-L3 run()
+## src/app.ts
+S5 type/class L1-L3 App {exported}
+S6 callable/method L2-L2 start() -> void
+## src/utils.js
+S7 callable/function L1-L3 helper()
+## src/utils.spec.js
+S8 value/variable L1-L1 helper
+
+[edges]
+S1 --contains--> S2
+S3 --contains--> S4
+S5 --inherits--> S5
+S5 --contains--> S6

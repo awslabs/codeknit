@@ -1,0 +1,64 @@
+[symbols]
+## src/models/config.ts
+S1 type/type_alias L1-L5 AppConfig {exported}
+S2 type/type_alias L7-L10 DatabaseConfig {exported}
+S3 type/enum L12-L16 Environment {exported}
+S4 type/enum L18-L23 LogLevel {exported}
+S5 value/exported_constant L25-L29 DEFAULT_CONFIG {exported}
+S6 value/exported_constant L31-L34 DB_CONFIG {exported}
+S7 value/variable L36-L36 currentEnv: S3
+S8 callable/function L38-L40 setEnvironment(env: S3) -> void {exported}
+S9 callable/function L42-L44 getEnvironment() -> S3 {exported}
+## src/models/user.ts
+S10 type/interface L1-L4 IUser {exported}
+S11 type/interface L6-L8 IAdmin {exported}
+S12 type/class L10-L24 User {exported}
+S13 callable/method L13-L15 getName() -> string
+S14 callable/method L17-L19 getEmail() -> string
+S15 callable/method L21-L23 toJSON() -> string
+S16 type/class L26-L34 AdminUser {exported}
+S17 callable/method L31-L33 getRole() -> string
+S18 type/class L36-L40 SuperAdmin {exported}
+S19 callable/method L37-L39 getRole() -> string {override}
+## src/services/greeter.ts
+S20 callable/function L1-L3 greet(name: string) -> string {exported}
+S21 callable/function L5-L8 formatMessage(name: string) -> string
+S22 callable/function L10-L12 getPrefix() -> string
+S23 callable/arrow_function L14-L16 createGreeter(prefix: string) {exported}
+S24 callable/function L18-L21 fetchGreeting(userId: number) -> Promise<string> {async, exported}
+S25 callable/function L23-L25 fetchName(userId: number) -> Promise<string> {async}
+## src/utils/helpers.ts
+S26 value/variable L1-L1 counter
+S27 callable/function L3-L6 increment() -> number {exported}
+S28 callable/function L8-L11 decrement() -> number {exported}
+S29 callable/function L13-L15 reset() -> void {exported}
+S30 callable/function L17-L19 identity(value: S33) -> S33 {exported}
+S31 type/type_parameter L17-L17 T
+S32 callable/function L21-L23 map(arr: S33[], fn: (item: S33) => U) -> S34[] {exported}
+S33 type/type_parameter L21-L21 T
+S34 type/type_parameter L21-L21 U
+S35 callable/arrow_function L25-L29 clamp(value: number, low: number, high: number) -> number {exported}
+
+[edges]
+S8 --references--> S3
+S9 --references--> S3
+S10 --implements--> S10
+S11 --implements--> S11, S10
+S12 --inherits--> S10
+S12 --contains--> S13, S14, S15
+S16 --inherits--> S12
+S16 --contains--> S17
+S18 --inherits--> S16
+S18 --contains--> S19
+S19 --overrides--> S19
+S15 --calls--> S13, S14
+S11 --references--> S10
+S12 --references--> S10
+S20 --calls--> S21
+S21 --calls--> S22
+S24 --calls--> S25, S20
+S30 --contains--> S31
+S32 --contains--> S33, S34
+S32 --calls--> S32
+S31 --references--> S31
+S34 --references--> S31, S34

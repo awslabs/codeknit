@@ -1,0 +1,63 @@
+[symbols]
+## src/lib.rs
+S1 module/module L1-L1 models {pub}
+S2 module/module L2-L2 services {pub}
+S3 type/trait L4-L6 Describable {pub}
+S4 callable/method L5-L5 describe() -> String
+S5 callable/function L8-L10 greet(name: &str) -> String {pub}
+S6 callable/macro L12-L16 log_msg
+S7 value/constant L18-L18 VERSION {pub}
+## src/models/animal.rs
+S8 type/trait L1-L4 Animal {pub}
+S9 callable/method L2-L2 speak() -> String
+S10 callable/method L3-L3 name() -> &str
+S11 type/struct L6-L9 Dog {pub}
+S12 type/impl L11-L19 Dog
+S13 callable/method L12-L14 new(name: String, age: u32) -> Self {pub}
+S14 callable/method L16-L18 validate() -> bool
+S15 type/impl L21-L29 Dog
+S16 callable/method L22-L24 speak() -> String
+S17 callable/method L26-L28 name() -> &str
+S18 type/struct L31-L33 Cat {pub}
+S19 type/impl L35-L43 Cat
+S20 callable/method L36-L38 speak() -> String
+S21 callable/method L40-L42 name() -> &str
+S22 value/constant L45-L45 MAX_ANIMALS {pub}
+## src/models/config.rs
+S23 type/enum L1-L6 LogLevel {pub}
+S24 type/struct L8-L12 Config {pub}
+S25 type/impl L14-L27 Config
+S26 callable/method L15-L21 default_config() -> Self {pub}
+S27 callable/method L23-L26 with_port(port: u16) -> Self {pub}
+S28 type/type_alias L29-L29 PortNumber {pub}
+S29 value/constant L31-L31 DEFAULT_PORT {pub}
+S30 value/variable L32-L32 REQUEST_COUNT {mutable}
+## src/services/auth.rs
+S31 type/struct L3-L6 AuthService {pub}
+S32 type/impl L8-L24 AuthService
+S33 callable/method L9-L11 new(secret: String, ttl: u64) -> Self {pub}
+S34 callable/method L13-L15 authenticate(token: &str) -> bool {pub}
+S35 callable/method L17-L23 refresh(token: &str) -> Option<String> {pub}
+S36 callable/function L26-L28 verify_token(token: &str, secret: &str) -> bool
+S37 callable/function L30-L32 generate_token(secret: &str, ttl: u64) -> String
+S38 value/constant L34-L34 MAX_TOKEN_LEN {pub}
+
+[edges]
+S3 --contains--> S4
+S1 --contains--> S3, S4, S5, S6, S7
+S2 --contains--> S3, S4, S5, S6, S7
+S8 --contains--> S9, S10
+S11 --contains--> S17, S13, S14, S16, S17
+S11 --implements--> S8
+S18 --contains--> S21, S20, S21
+S18 --implements--> S8
+S13 --references--> S11
+S11 --references--> S8
+S18 --references--> S8
+S24 --contains--> S26, S27
+S24 --references--> S23
+S26 --references--> S24
+S31 --contains--> S33, S34, S35
+S34 --calls--> S36
+S35 --calls--> S34, S37
+S33 --references--> S31

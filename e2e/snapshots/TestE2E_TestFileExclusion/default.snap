@@ -1,0 +1,14 @@
+[symbols]
+## lib/core.py
+S1 type/class L1-L3 Core
+S2 callable/method L2-L3 run()
+## src/app.ts
+S3 type/class L1-L3 App {exported}
+S4 callable/method L2-L2 start() -> void
+## src/utils.js
+S5 callable/function L1-L3 helper()
+
+[edges]
+S1 --contains--> S2
+S3 --inherits--> S3
+S3 --contains--> S4

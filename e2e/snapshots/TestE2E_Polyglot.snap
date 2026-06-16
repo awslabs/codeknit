@@ -1,0 +1,104 @@
+[symbols]
+## analytics/Stats.scala
+S1 module/package L1-L1 analytics
+S2 type/trait L3-L5 Aggregator
+S3 callable/method L4-L4 aggregate(values: List[Double]) -> Double
+S4 type/class L7-L16 Stats
+S5 callable/method L8-L10 aggregate(values: List[Double]) -> Double
+S6 callable/method L12-L15 median(values: List[Double]) -> Double
+S7 type/object L18-L20 Stats
+S8 callable/method L19-L19 empty() -> S7
+## backend/server.go
+S9 module/package L1-L1 backend
+S10 type/struct L3-L6 Server {exported}
+S11 callable/function L8-L10 NewServer(host: string, port: int) -> *S10 {exported}
+## dotnet/Service.cs
+S12 module/namespace L1-L22 App.Services
+S13 type/interface L3-L6 IService {visibility=public}
+S14 callable/method L5-L5 Execute() -> string
+S15 type/class L8-L21 Service {visibility=public}
+S16 value/field L10-L10 name {visibility=private}
+S17 callable/constructor L12-L15 Service(name: string) {visibility=public}
+S18 callable/method L17-L20 Execute() -> string {visibility=public}
+## frontend/app.ts
+S19 type/interface L1-L4 AppProps {exported}
+S20 type/class L6-L12 App {exported}
+S21 callable/method L9-L11 getTitle() -> string
+## frontend/utils.js
+S22 callable/function L1-L3 formatDate(date)
+S23 type/class L5-L9 Logger
+S24 callable/method L6-L8 log(msg)
+S25 value/variable L11-L11 VERSION
+## native/config.rs
+S26 type/struct L1-L4 Config {pub}
+S27 type/impl L6-L10 Config
+S28 callable/method L7-L9 new(name: String, port: u16) -> Self {pub}
+S29 value/constant L12-L12 DEFAULT_PORT {pub}
+## native/math.c
+S30 callable/function L3-L5 add(a: int, b: int) -> int
+S31 callable/function L7-L9 multiply(a: int, b: int) -> int
+S32 callable/function L11-L13 square(x: int) -> int {static}
+## native/vector.cpp
+S33 module/namespace L3-L16 geometry
+S34 value/field L7-L7 x {visibility=public}
+S35 callable/method L9-L9 Vector(x: double, y: double) {visibility=public}
+S36 callable/method L11-L13 length() -> double {visibility=public}
+S37 type/class L5-L14 Vector
+## scripts/deploy.py
+S38 type/class L1-L6 Deployer
+S39 callable/method L2-L3 __init__(target)
+S40 callable/method L5-L6 run()
+S41 callable/function L8-L9 deploy_to(target)
+S42 value/variable L11-L11 MAX_RETRIES
+## scripts/task.rb
+S43 type/class L1-L15 Task
+S44 callable/method L2-L4 initialize(name)
+S45 callable/method L6-L8 run()
+S46 callable/method L12-L14 execute(name) {visibility=private}
+S47 value/constant L17-L17 DEFAULT_TIMEOUT
+## src/Main.java
+S48 module/package L1-L1 com.example
+S49 type/class L3-L17 Main {visibility=public}
+S50 value/field L4-L4 name {visibility=private}
+S51 callable/constructor L6-L8 Main(name: String) {visibility=public}
+S52 callable/method L10-L12 getName() -> String {visibility=public}
+S53 callable/method L14-L16 main(args: String[]) -> void {static, visibility=public}
+## web/index.php
+S54 type/class L3-L16 Router
+S55 value/property L4-L4 routes {visibility=private}
+S56 callable/method L6-L8 add(path, handler) {visibility=public}
+S57 callable/method L10-L15 dispatch(path) {visibility=public}
+S58 callable/function L18-L20 create_router()
+
+[edges]
+S2 --contains--> S3
+S4 --inherits--> S2
+S4 --contains--> S5, S6, S8
+S4 --references--> S2
+S8 --references--> S4
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8
+S11 --references--> S10
+S9 --contains--> S10, S11
+S13 --contains--> S14
+S15 --inherits--> S13
+S15 --contains--> S16, S17, S18
+S12 --contains--> S13, S14, S15, S16, S17, S18
+S19 --implements--> S19
+S20 --inherits--> S20
+S20 --contains--> S21
+S20 --references--> S19
+S23 --contains--> S24
+S24 --calls--> S24
+S26 --contains--> S28
+S28 --references--> S26
+S32 --calls--> S31
+S37 --contains--> S34, S35, S36
+S33 --contains--> S34, S35, S36, S37
+S38 --contains--> S39, S40
+S40 --calls--> S41
+S43 --contains--> S44, S45, S46
+S45 --calls--> S46
+S49 --contains--> S50, S51, S52, S53
+S53 --references--> S49
+S48 --contains--> S49, S50, S51, S52, S53
+S54 --contains--> S55, S56, S57

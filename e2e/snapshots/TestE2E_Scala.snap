@@ -1,0 +1,89 @@
+[symbols]
+## src/models/Animal.scala
+S1 module/package L1-L1 com.example.models
+S2 type/trait L3-L6 Animal
+S3 callable/method L4-L4 speak() -> String
+S4 callable/method L5-L5 name() -> String
+S5 type/class L8-L12 Dog
+S6 callable/method L9-L9 speak() -> String {override}
+S7 callable/method L11-L11 fetch(item: String) -> String
+S8 type/class L14-L16 Cat
+S9 callable/method L15-L15 speak() -> String {override}
+S10 type/class L18-L20 Bird {case}
+S11 callable/method L19-L19 speak() -> String {override}
+S12 value/val L22-L22 MAX_ANIMALS
+## src/models/User.scala
+S13 type/class L3-L6 Entity {abstract}
+S14 value/val L4-L4 id
+S15 callable/method L5-L5 validate() -> Boolean
+S16 type/class L8-L16 User
+S17 callable/method L9-L9 validate() -> Boolean {override}
+S18 callable/method L11-L11 checkEmail(addr: String) -> Boolean {visibility=private}
+S19 callable/method L13-L13 display() -> String
+S20 callable/method L15-L15 formatName(n: String) -> String {visibility=private}
+S21 type/object L18-L22 User
+S22 callable/method L19-L19 create(name: String, email: String) -> S21
+S23 value/val L21-L21 DEFAULT_NAME
+S24 value/variable L24-L24 userCount
+## src/services/AuthService.scala
+S25 module/package L1-L1 com.example.services
+S26 type/trait L3-L5 Authenticator
+S27 callable/method L4-L4 authenticate(token: String) -> Boolean
+S28 type/class L7-L18 AuthService
+S29 callable/method L8-L8 authenticate(token: String) -> Boolean {override}
+S30 callable/method L10-L10 verifyToken(token: String) -> Boolean {visibility=private}
+S31 callable/method L12-L15 refresh(token: String) -> Option[String]
+S32 callable/method L17-L17 generateToken() -> String {visibility=private}
+S33 type/object L20-L24 AuthService
+S34 callable/method L21-L21 default() -> S33
+S35 value/val L23-L23 MAX_TOKEN_LEN
+## src/utils/Helpers.scala
+S36 module/package L1-L1 com.example.utils
+S37 type/object L3-L14 Helpers
+S38 callable/method L4-L4 validate(value: Any) -> Boolean
+S39 callable/method L6-L10 clamp(value: Int, low: Int, high: Int) -> Int
+S40 value/val L12-L12 TIMEOUT
+S41 value/variable L13-L13 retryCount
+S42 type/type_alias L16-L16 StringAlias
+S43 type/trait L18-L18 Result {sealed}
+S44 type/class L19-L19 Success {case}
+S45 type/class L20-L20 Failure {case}
+
+[edges]
+S2 --contains--> S3, S4
+S5 --inherits--> S2
+S5 --contains--> S6, S7
+S6 --overrides--> S6
+S8 --inherits--> S2
+S8 --contains--> S9
+S9 --overrides--> S9
+S10 --inherits--> S2
+S10 --contains--> S11
+S11 --overrides--> S11
+S5 --references--> S2
+S8 --references--> S2
+S10 --references--> S2
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24
+S13 --contains--> S14, S15
+S16 --inherits--> S13
+S16 --contains--> S17, S18, S19, S20, S22, S23
+S17 --overrides--> S17
+S17 --calls--> S18
+S19 --calls--> S20
+S16 --references--> S13
+S22 --references--> S16
+S26 --contains--> S27
+S28 --inherits--> S26
+S28 --contains--> S29, S30, S31, S32, S34, S35
+S29 --overrides--> S29
+S29 --calls--> S30
+S31 --calls--> S29, S32
+S28 --references--> S26
+S34 --references--> S28
+S25 --contains--> S26, S27, S28, S29, S30, S31, S32, S33, S34, S35
+S37 --contains--> S38, S39, S40, S41
+S44 --inherits--> S43
+S45 --inherits--> S43
+S44 --references--> S43
+S45 --references--> S43
+S36 --contains--> S37, S38, S39, S40, S41, S42, S43, S44, S45

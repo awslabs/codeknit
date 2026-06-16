@@ -1,0 +1,31 @@
+Write an "Installation" page for codeknit. Frontmatter:
+---
+title: Installation
+description: How to install codeknit on your system.
+---
+
+Cover:
+
+1. From source (primary method):
+   - Requires Go 1.26+ and a C compiler (CGo needed for tree-sitter)
+   - git clone, cd, make build
+   - Binary at ./bin/codeknit
+
+2. Adding to PATH:
+   - bash (~/.bashrc): export PATH="$PATH:/path/to/codeknit"
+   - zsh (~/.zshrc): export PATH="$PATH:/path/to/codeknit"
+   - fish (~/.config/fish/config.fish): fish_add_path /path/to/codeknit
+   - Reload shell or source the config
+
+3. Shell completions:
+   - bash: codeknit completion bash >> ~/.bashrc
+   - zsh: codeknit completion zsh >> ~/.zshrc
+   - fish: codeknit completion fish > ~/.config/fish/completions/codeknit.fish
+   - PowerShell: codeknit completion powershell >> $PROFILE
+
+4. Verify: codeknit --version
+
+5. Development setup (for contributors):
+   - make deps to install tooling
+   - make setup to configure git hooks
+   - make test to run the test suite

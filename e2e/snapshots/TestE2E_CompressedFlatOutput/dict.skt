@@ -1,0 +1,13 @@
+[dict]
+- d0: callable/function
+- d1: callable/method
+- d2: calls
+- d3: contains
+- d4: exported
+- d5: inherits
+- d6: module/package
+- d7: references
+- d8: type/class
+- d9: type/struct
+- d10: value/field
+- d11: visibility=private

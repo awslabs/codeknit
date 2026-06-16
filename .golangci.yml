@@ -1,0 +1,63 @@
+version: "2"
+
+formatters:
+  enable:
+    - gofumpt
+  settings:
+    gofumpt:
+      module-path: codeknit
+
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - revive
+    - misspell
+    - prealloc
+    - gosec
+    - unconvert
+    - unparam
+    - errname
+    - goheader
+  settings:
+    goheader:
+      template: |-
+        Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+        SPDX-License-Identifier: Apache-2.0
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: increment-decrement
+        - name: var-naming
+        - name: package-comments
+    misspell:
+      locale: US
+    govet:
+      enable-all: true
+
+run:
+  timeout: 5m
+
+output:
+  formats:
+    text:
+      path: stdout
+  sort-order:
+    - linter
+    - severity
+    - file

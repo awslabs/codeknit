@@ -1,0 +1,70 @@
+[symbols]
+## src/Models/Entity.php
+S1 module/namespace L2-L2 App\Models
+S2 type/class L4-L13 Entity {abstract}
+S3 value/property L5-L5 id {visibility=protected}
+S4 value/property L6-L6 name {visibility=public}
+S5 callable/method L8-L8 validate() -> bool {abstract, visibility=public}
+S6 callable/method L10-L12 display() -> string {visibility=public}
+S7 type/interface L15-L19 Repository
+S8 callable/method L16-L16 find(id: int) -> mixed {visibility=public}
+S9 callable/method L17-L17 save(entity: mixed) -> void {visibility=public}
+S10 callable/method L18-L18 delete(id: int) -> void {visibility=public}
+S11 type/enum L21-L25 Status
+## src/Models/User.php
+S12 type/class L4-L34 User
+S13 value/property L5-L5 email {visibility=private}
+S14 value/property L6-L6 age {visibility=public}
+S15 callable/method L8-L11 __construct(name: string, email: string) {visibility=public}
+S16 callable/method L13-L15 validate() -> bool {visibility=public}
+S17 callable/method L17-L19 checkEmail(addr: string) -> bool {visibility=private}
+S18 callable/method L21-L23 create(name: string, email: string) -> self {static, visibility=public}
+S19 callable/method L25-L27 find(id: int) -> mixed {visibility=public}
+S20 callable/method L29-L30 save(entity: mixed) -> void {visibility=public}
+S21 callable/method L32-L33 delete(id: int) -> void {visibility=public}
+S22 value/constant L36-L36 MAX_USERS
+## src/Services/AuthService.php
+S23 module/namespace L2-L2 App\Services
+S24 type/trait L4-L8 Loggable
+S25 callable/method L5-L7 log(msg: string) -> void {visibility=public}
+S26 type/class L10-L30 AuthService
+S27 value/property L13-L13 secret {visibility=private}
+S28 callable/method L15-L17 __construct(secret: string) {visibility=public}
+S29 callable/method L19-L21 authenticate(token: string) -> bool {visibility=public}
+S30 callable/method L23-L25 verifyToken(token: string) -> bool {visibility=private}
+S31 callable/method L27-L29 defaultService() -> self {static, visibility=public}
+S32 type/interface L32-L34 Notifier
+S33 callable/method L33-L33 send(message: string) -> void {visibility=public}
+S34 type/interface L36-L38 Logger
+S35 callable/method L37-L37 logMessage(level: string, message: string) -> void {visibility=public}
+## src/Utils/helpers.php
+S36 module/namespace L2-L2 App\Utils
+S37 callable/function L4-L6 validate(value: mixed) -> bool
+S38 callable/function L8-L12 clamp(value: int, low: int, high: int) -> int
+S39 type/class L14-L32 Validator
+S40 value/property L15-L15 maxRetries {visibility=private}
+S41 callable/method L17-L19 __construct(maxRetries: int) {visibility=public}
+S42 callable/method L21-L23 check(value: mixed) -> bool {visibility=public}
+S43 callable/method L25-L31 run(data: array) -> array {visibility=public}
+S44 value/constant L34-L34 TIMEOUT
+S45 value/constant L35-L35 MAX_RETRIES
+
+[edges]
+S2 --contains--> S3, S4, S5, S6
+S7 --contains--> S8, S9, S10
+S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20, S21, S22
+S12 --inherits--> S2
+S12 --implements--> S7
+S12 --contains--> S13, S14, S15, S16, S17, S18, S19, S20, S21
+S16 --calls--> S17
+S24 --contains--> S25
+S26 --contains--> S27, S28, S29, S30, S31
+S32 --contains--> S33
+S34 --inherits--> S32
+S34 --contains--> S35
+S29 --calls--> S30
+S23 --contains--> S24, S25, S26, S27, S28, S29, S30, S31, S32, S33, S34, S35
+S39 --contains--> S40, S41, S42, S43
+S42 --calls--> S37
+S43 --calls--> S42
+S36 --contains--> S37, S38, S39, S40, S41, S42, S43, S44, S45

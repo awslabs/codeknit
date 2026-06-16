@@ -1,0 +1,8 @@
+[symbols]
+## pkg/service/handler.py
+S4 type/class L1-L6 Handler
+S5 callable/method L2-L3 __init__()
+S6 callable/method L5-L6 handle(request)
+
+[edges]
+S4 --contains--> S5, S6

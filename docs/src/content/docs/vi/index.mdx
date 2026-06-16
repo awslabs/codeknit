@@ -1,0 +1,40 @@
+---
+title: codeknit
+description: Công cụ trích xuất cấu trúc mã tĩnh cho tái cấu trúc được hỗ trợ bởi LLM.
+template: splash
+hero:
+  tagline: Phân tích mã nguồn thành các bản đồ cấu trúc nhỏ gọn mà LLM có thể thực sự sử dụng.
+  actions:
+    - text: Bắt đầu
+      link: /codeknit/vi/getting-started/
+      icon: right-arrow
+    - text: Xem trên GitHub
+      link: https://github.com/awslabs/codeknit
+      variant: minimal
+      icon: github
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="12 Ngôn ngữ" icon="translate">
+    Hỗ trợ C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala và
+    TypeScript.
+  </Card>
+  <Card title="Đầu ra nhỏ gọn" icon="document">
+    Tạo tệp `.skt` với tính năng rút gọn và nhiều chế độ đầu ra (inline, flat,
+    tree) để tối ưu hóa việc sử dụng ngữ cảnh LLM.
+  </Card>
+  <Card title="Phân tích đồ thị" icon="random">
+    Phát hiện chu trình, trung tâm, mã chết, god classes, nút thắt cổ chai và
+    nhiều hơn nữa bằng cách sử dụng hơn 17 thuật toán cấu trúc.
+  </Card>
+  <Card title="Phát hiện trùng lặp" icon="magnifier">
+    Tìm kiếm mã trùng lặp và gần trùng lặp trên các tệp và ngôn ngữ bằng cách sử
+    dụng fingerprinting CTPH.
+  </Card>
+  <Card title="Sẵn sàng cho AI" icon="rocket">
+    Bao gồm các kỹ năng tích hợp sẵn cho Kiro và Claude Code để cho phép trợ lý
+    AI phân tích và phân tích cấu trúc mã một cách tự động.
+  </Card>
+</CardGrid>

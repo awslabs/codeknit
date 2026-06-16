@@ -1,0 +1,38 @@
+# Build output
+/bin/
+/dist/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Rapid property-based testing failure replays
+**/testdata/rapid/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs (Astro build output)
+docs/node_modules/
+docs/dist/
+docs/.astro/
+docs/src/content/.translation-hashes.json
+
+# codeknit output file
+*.skt
+skeleton/*.html
+
+# but track snapshot .skt files used by e2e tests
+!e2e/snapshots/**/*.skt

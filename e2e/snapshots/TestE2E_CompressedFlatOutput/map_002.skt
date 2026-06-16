@@ -1,0 +1,10 @@
+[symbols]
+## pkg/service/user_service.py
+S15 d8 L1-L15 UserService
+S16 d1 L2-L3 __init__()
+S17 d1 L5-L6 create(name, email)
+S18 d1 L8-L12 find_by_id(user_id)
+S19 d1 L14-L15 delete(user_id)
+
+[edges]
+S15 --d3--> S16, S17, S18, S19

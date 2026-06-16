@@ -1,0 +1,16 @@
+[symbols]
+## pkg/api/handler/order_handler.py
+S1 d10 L3-L6 OrderRequest
+S2 d1 L4-L6 __init__(user_id, total)
+S3 d10 L8-L12 OrderResponse
+S4 d1 L9-L12 __init__(order_id, user_id, total)
+S5 d10 L14-L20 OrderHandler
+S6 d1 L15-L16 __init__()
+S7 d1 L18-L20 place(request)
+
+[edges]
+S1 --d3--> S2
+S3 --d3--> S4
+S5 --d3--> S6, S7
+S6 --d2--> S26
+S7 --d2--> S7, S3

@@ -1,0 +1,58 @@
+Write a CLI flags reference page for codeknit. Frontmatter:
+---
+title: CLI Reference
+description: Complete reference for all codeknit commands and flags.
+---
+
+Cover all commands and their flags:
+
+1. codeknit (no subcommand) — launches the interactive TUI
+
+2. codeknit parse <input-path> [output-dir]:
+   All flags:
+   --output-mode (string, default "directory-flat"): inline, directory-flat, directory-tree
+   --max-lines (int, default 500): max lines per output file
+   --collect-test (bool, default false): include test files
+   --minify (bool, default false): dictionary-based compression
+   --edges (bool, default false): include the [edges] section in output (off by default to save tokens)
+   --clean (bool, default false): remove stale .skt files before writing
+   --workers (int, default 0/NumCPU): max concurrent goroutines
+   --verbose (bool, default false): print progress info
+
+3. codeknit graph show <input-path>:
+   -o, --output (string, default "./skeleton/codeknit-graph.html"): output HTML file
+   --collect-test (bool, default false): include test files
+   --workers (int, default 0/NumCPU): max concurrent goroutines
+   --verbose (bool, default false): print progress info
+
+4. codeknit graph analyze <input-path>:
+   -o, --output (string, default "./skeleton/graph_analysis.skt"): output .skt file
+   --collect-test (bool, default false): include test files
+   --workers (int, default 0/NumCPU): max concurrent goroutines
+   --verbose (bool, default false): print progress info
+   --fan-threshold (int, default 10): min fan-in/out to flag hub
+   --god-threshold (int, default 15): min contains-edges for god class
+   --max-inheritance-depth (int, default 5): flag deep inheritance chains
+   --top-n (int, default 30): cap ranked sections, 0 = no limit
+   --betweenness-threshold (float, default 0.001): min centrality to report
+   --propagation-cutoff (float, default 0.05): min probability for change propagation
+
+5. codeknit fingerprint <input-path>:
+   -o, --output (string, default "./skeleton/fingerprints.skt"): output .skt file
+   --min-similarity (int, default 65): minimum similarity percentage to report (0-100)
+   --max-similarity (int, default 95): maximum similarity percentage to report (0-100)
+   --show-all (bool, default false): also emit the [fingerprints] section with raw token data
+   --rerank (bool, default false): rerank CTPH candidates with semantic embeddings via Ollama (requires: ollama serve && ollama pull qwen3-embedding:0.6b)
+   --model (string, default "qwen3-embedding:0.6b"): Ollama embedding model to use with --rerank
+   --collect-test (bool, default false): include test files
+   --workers (int, default 0/NumCPU): max concurrent goroutines
+   --verbose (bool, default false): print progress info
+
+6. codeknit completion <shell>:
+   Generates shell completion scripts. Supported: bash, zsh, fish, powershell
+
+7. Global flags:
+   --version: print version info
+   --help / -h: show help
+
+Present each command's flags in a table format.

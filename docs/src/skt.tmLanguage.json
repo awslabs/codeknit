@@ -1,0 +1,63 @@
+{
+  "name": "skt",
+  "scopeName": "source.skt",
+  "fileTypes": ["skt"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#section-header" },
+    { "include": "#file-header" },
+    { "include": "#edge-line" },
+    { "include": "#dict-entry" },
+    { "include": "#error-entry" },
+    { "include": "#symbol-line" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "^#(?!#).*$",
+      "name": "comment.line.skt"
+    },
+    "section-header": {
+      "match": "^\\[(symbols|edges|errors|dict)\\]\\s*$",
+      "name": "keyword.control.section.skt"
+    },
+    "file-header": {
+      "match": "^(##)\\s+(.+)$",
+      "captures": {
+        "1": { "name": "punctuation.definition.heading.skt" },
+        "2": { "name": "entity.name.filename.skt" }
+      }
+    },
+    "edge-line": {
+      "match": "^(S\\d+)\\s+(--[\\w.]+-->)\\s+(.+)$",
+      "captures": {
+        "1": { "name": "variable.other.symbol-id.skt" },
+        "2": { "name": "keyword.operator.edge.skt" },
+        "3": { "name": "variable.other.symbol-ref.skt" }
+      }
+    },
+    "dict-entry": {
+      "match": "^-\\s+(d\\d+):\\s+(.+)$",
+      "captures": {
+        "1": { "name": "constant.other.dict-key.skt" },
+        "2": { "name": "string.unquoted.dict-value.skt" }
+      }
+    },
+    "error-entry": {
+      "match": "^-\\s+(.+\\.\\w+):\\s+(.+)$",
+      "captures": {
+        "1": { "name": "entity.name.filename.skt" },
+        "2": { "name": "invalid.illegal.error-message.skt" }
+      }
+    },
+    "symbol-line": {
+      "match": "^(S\\d+)\\s+(\\S+/\\S+|d\\d+)\\s+(L\\d+-L\\d+)\\s+(.*?)\\s*(\\{[^}]*\\})?\\s*$",
+      "captures": {
+        "1": { "name": "variable.other.symbol-id.skt" },
+        "2": { "name": "support.type.category.skt" },
+        "3": { "name": "constant.numeric.line-span.skt" },
+        "4": { "name": "entity.name.function.skt" },
+        "5": { "name": "comment.block.properties.skt" }
+      }
+    }
+  }
+}

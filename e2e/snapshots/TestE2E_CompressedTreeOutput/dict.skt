@@ -1,0 +1,15 @@
+[dict]
+- d0: callable/function
+- d1: callable/method
+- d2: calls
+- d3: contains
+- d4: exported
+- d5: inherits
+- d6: module/package
+- d7: receiver=*OrderService
+- d8: receiver=*UserService
+- d9: references
+- d10: type/class
+- d11: type/struct
+- d12: value/field
+- d13: visibility=private

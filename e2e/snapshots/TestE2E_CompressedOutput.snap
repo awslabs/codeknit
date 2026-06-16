@@ -1,0 +1,34 @@
+[dict]
+- d0: callable/function
+- d1: callable/method
+- d2: calls
+- d3: contains
+- d4: exported
+- d5: module/package
+- d6: receiver=*Service
+- d7: references
+- d8: type/class
+- d9: type/struct
+[symbols]
+## src/handler.py
+S1 d8 L1-L6 Handler
+S2 d1 L2-L3 __init__(name)
+S3 d1 L5-L6 handle(request)
+S4 d0 L8-L9 process(request)
+## src/models.go
+S5 d5 L1-L1 src
+S6 d9 L3-L6 User {d4}
+S7 d0 L8-L10 NewUser(name: string) -> *S6 {d4}
+## src/service.go
+S8 d9 L3-L5 Service {d4}
+S9 d0 L7-L9 NewService(name: string) -> *S8 {d4}
+S10 d1 L11-L13 Run() -> string {d4, d6}
+
+[edges]
+S1 --d3--> S2, S3
+S3 --d2--> S4
+S7 --d7--> S6
+S5 --d3--> S6, S7, S8, S9, S10
+S8 --d3--> S10
+S9 --d7--> S8
+S10 --d7--> S8
