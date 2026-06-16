@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - 2026-04-17
+## [Unreleased]
+
+## [0.1.0] - 2026-06-16
 
 ### Added
 
@@ -68,3 +70,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Generated documentation pipeline (`docs/gen`) using Amazon Bedrock for English and translations into Spanish, French, Italian, German, Japanese, Korean, Vietnamese, and Simplified Chinese
 - Third-party license generation via `make third-party-licenses`
 - Cross-plugin property test enforcing uniform signature format across all supported languages
+
+[0.1.0]: https://github.com/awslabs/codeknit/releases/tag/v0.1.0
