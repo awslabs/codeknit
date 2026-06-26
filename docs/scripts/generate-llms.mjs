@@ -16,7 +16,16 @@ const siteBase = 'https://awslabs.github.io/codeknit';
 const siteTitle = 'codeknit';
 const siteDescription = 'Parse source code into compact structural maps that LLMs can actually use.';
 
-const localeDirs = ['fr', 'it', 'es', 'de', 'vi', 'zh-cn', 'ja', 'ko'];
+const locales = [
+	{ dir: 'fr', label: 'French' },
+	{ dir: 'it', label: 'Italian' },
+	{ dir: 'es', label: 'Spanish' },
+	{ dir: 'de', label: 'German' },
+	{ dir: 'vi', label: 'Vietnamese' },
+	{ dir: 'zh-cn', label: 'Simplified Chinese' },
+	{ dir: 'ja', label: 'Japanese' },
+	{ dir: 'ko', label: 'Korean' },
+];
 const pageOrder = [
 	'index.mdx',
 	'getting-started.md',
@@ -31,27 +40,35 @@ const pageOrder = [
 ];
 
 async function main() {
-	await removeStalePluginOutput();
-	const rootPages = await readPages(contentRoot);
+	await removeGeneratedOutput();
+	const rootPages = await readPages(contentRoot, 'en');
+	assertPageSet(rootPages, 'en');
 
 	await writeText('llms.txt', renderIndex());
 	await writeText('llms-full.txt', renderDocumentSet(rootPages, 'full', 'en'));
 	await writeText('llms-small.txt', renderDocumentSet(rootPages, 'small', 'en'));
 
-	for (const locale of localeDirs) {
-		const localeRoot = path.join(contentRoot, locale);
-		const pages = await readPages(localeRoot);
-		if (pages.length === 0) continue;
-		await writeText(path.join(locale, 'llms-full.txt'), renderDocumentSet(pages, 'full', locale));
-		await writeText(path.join(locale, 'llms-small.txt'), renderDocumentSet(pages, 'small', locale));
+	for (const locale of locales) {
+		const localeRoot = path.join(contentRoot, locale.dir);
+		const pages = await readPages(localeRoot, locale.dir);
+		assertPageSet(pages, locale.dir);
+		await writeText(path.join(locale.dir, 'llms-full.txt'), renderDocumentSet(pages, 'full', locale.dir));
+		await writeText(path.join(locale.dir, 'llms-small.txt'), renderDocumentSet(pages, 'small', locale.dir));
 	}
 }
 
-async function removeStalePluginOutput() {
+async function removeGeneratedOutput() {
 	await fs.rm(path.join(distRoot, '_llms-txt'), { recursive: true, force: true });
+	await fs.rm(path.join(distRoot, 'llms.txt'), { force: true });
+	await fs.rm(path.join(distRoot, 'llms-full.txt'), { force: true });
+	await fs.rm(path.join(distRoot, 'llms-small.txt'), { force: true });
+	for (const locale of locales) {
+		await fs.rm(path.join(distRoot, locale.dir, 'llms-full.txt'), { force: true });
+		await fs.rm(path.join(distRoot, locale.dir, 'llms-small.txt'), { force: true });
+	}
 }
 
-async function readPages(root) {
+async function readPages(root, locale) {
 	const pages = [];
 	for (const relativePath of pageOrder) {
 		const filePath = path.join(root, relativePath);
@@ -60,9 +77,21 @@ async function readPages(root) {
 			pages.push(parsePage(source, relativePath));
 		} catch (error) {
 			if (error.code !== 'ENOENT') throw error;
+			throw new Error(`missing ${locale} llms source page: ${path.relative(docsRoot, filePath)}`);
 		}
 	}
 	return pages;
+}
+
+function assertPageSet(pages, locale) {
+	if (pages.length !== pageOrder.length) {
+		throw new Error(`expected ${pageOrder.length} ${locale} llms pages, found ${pages.length}`);
+	}
+	for (const page of pages) {
+		if (!page.body.trim()) {
+			throw new Error(`empty llms page generated for ${locale}: ${page.relativePath}`);
+		}
+	}
 }
 
 function parsePage(source, relativePath) {
@@ -72,7 +101,7 @@ function parsePage(source, relativePath) {
 	const title = data.title || titleFromPath(relativePath);
 	const description = data.description || (relativePath === 'index.mdx' ? siteDescription : '');
 	const body = cleanMarkdown(rawBody, title, description);
-	return { title, description, body };
+	return { title, description, body, relativePath };
 }
 
 function parseFrontmatter(source) {
@@ -88,23 +117,61 @@ function parseFrontmatter(source) {
 }
 
 function cleanMarkdown(source, title, description) {
-	let body = source
+	let body = renderStarlightCards(source)
 		.replace(/^import\s+.*$/gm, '')
 		.replace(/<!--[\s\S]*?-->/g, '')
-		.replace(/<Card\s+title="([^"]+)"[^>]*>/g, '\n\n## $1\n')
 		.replace(/<\/?CardGrid>/g, '')
-		.replace(/<\/Card>/g, '')
 		.replace(/<[^>]+>/g, '')
 		.trim();
+
+	body = normalizeMarkdownWhitespace(body);
 
 	if (body.length === 0 && description) body = description;
 	if (!body.startsWith('# ')) body = `# ${title}\n\n${description ? `> ${description}\n\n` : ''}${body}`;
 	return body.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function renderStarlightCards(source) {
+	return source.replace(/<Card\s+([^>]*)>([\s\S]*?)<\/Card>/g, (_match, attrs, cardBody) => {
+		const title = readAttribute(attrs, 'title') || 'Card';
+		return `\n\n## ${title}\n\n${dedent(cardBody).trim()}\n\n`;
+	});
+}
+
+function readAttribute(attrs, name) {
+	const match = attrs.match(new RegExp(`${name}="([^"]+)"`));
+	return match ? match[1] : '';
+}
+
+function normalizeMarkdownWhitespace(source) {
+	const lines = source.split('\n');
+	let inFence = false;
+	const normalized = lines.map((line) => {
+		if (line.trim().startsWith('```')) {
+			inFence = !inFence;
+			return line.trimEnd();
+		}
+		return inFence ? line.trimEnd() : line.trim();
+	});
+	return normalized.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function dedent(source) {
+	const lines = source.replace(/^\n+|\n+$/g, '').split('\n');
+	const indents = lines
+		.filter((line) => line.trim() !== '')
+		.map((line) => line.match(/^\s*/)[0].length);
+	const minIndent = indents.length > 0 ? Math.min(...indents) : 0;
+	return lines.map((line) => line.slice(minIndent)).join('\n');
+}
+
 function renderIndex() {
 	const fullUrl = `${siteBase}/llms-full.txt`;
 	const smallUrl = `${siteBase}/llms-small.txt`;
+	const localeLinks = locales.flatMap((locale) => [
+		`- [${locale.label} abridged documentation](${siteBase}/${locale.dir}/llms-small.txt)`,
+		`- [${locale.label} complete documentation](${siteBase}/${locale.dir}/llms-full.txt)`,
+	]);
 	return [
 		`# ${siteTitle}`,
 		'',
@@ -114,6 +181,10 @@ function renderIndex() {
 		'',
 		`- [Abridged documentation](${smallUrl}): a compact version of the documentation for ${siteTitle}`,
 		`- [Complete documentation](${fullUrl}): the full documentation for ${siteTitle}`,
+		'',
+		'## Localized Documentation Sets',
+		'',
+		...localeLinks,
 		'',
 		'## Notes',
 		'',
