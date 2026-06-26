@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-26
+
+### Added
+
+- JSON output for `codeknit parse` via `--format json`, including CLI, TUI, docs, and skill documentation.
+
 ## [0.1.0] - 2026-06-16
 
 ### Added
@@ -71,4 +77,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Third-party license generation via `make third-party-licenses`
 - Cross-plugin property test enforcing uniform signature format across all supported languages
 
+[0.1.1]: https://github.com/awslabs/codeknit/releases/tag/v0.1.1
 [0.1.0]: https://github.com/awslabs/codeknit/releases/tag/v0.1.0
