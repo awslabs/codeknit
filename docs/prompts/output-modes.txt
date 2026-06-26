@@ -7,6 +7,9 @@ description: Choose the right output mode for your project size and workflow.
 Cover:
 
 1. Overview: codeknit supports three output modes via --output-mode
+   - Output mode is separate from output format
+   - Default format is skt; --format json emits machine-readable JSON
+   - In directory modes, JSON is written to codeknit.json; in inline mode, JSON is written to stdout
 
 2. directory-flat (default, recommended):
    - Writes chunked .skt files: map_001.skt, map_002.skt, etc.
@@ -32,6 +35,13 @@ Cover:
    | directory-flat | Most projects (default) | ./skeleton/map_001.skt, map_002.skt, ... |
    | directory-tree | Navigating alongside source | ./skeleton/<mirrored path>.skt |
    | inline | Single file, piping | stdout |
+
+   Also include a short format table:
+   | Format | Best for | Output |
+   | skt | LLM context and human inspection | .skt files or stdout |
+   | json | Scripts and structured integration | codeknit.json in directory modes, or stdout in inline mode |
+
+   In the JSON format section, include a compact JSON sample with files, symbols, and edges showing app.go::User and app.go::Save.
 
 6. Rules of thumb:
    - When unsure → use directory-flat (the default)

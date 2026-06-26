@@ -12,7 +12,7 @@ description: 5分以内にcodeknitを使い始めましょう。
 以下が必要です：
 
 - Go 1.26+
-- Cコンパイラ（tree-sitterにCGoが必要）
+- Cコンパイラ（tree-sitter用にCGoが必要）
 
 ## 2. ソースからのインストール
 
@@ -20,7 +20,7 @@ description: 5分以内にcodeknitを使い始めましょう。
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# バイナリは./bin/codeknitにあります
+# バイナリは ./bin/codeknit にあります
 ```
 
 ## 3. PATHへの追加
@@ -38,7 +38,7 @@ export PATH="$PATH:$(pwd)/bin"
 fish_add_path $(pwd)/bin
 ```
 
-変更を反映するには、シェルを再読み込みするか、`source ~/.bashrc`（または`~/.zshrc`）を実行します。
+変更を反映させるためにシェルを再読み込みするか、`source ~/.bashrc`（または`~/.zshrc`）を実行してください。
 
 ## 4. インストールの確認
 
@@ -87,15 +87,15 @@ S3 --returns--> S2
 
 主なセクション：
 
-- `[symbols]`：ファイルごとにグループ化された定義で、名前、行範囲、メタデータを表示します
+- `[symbols]`：ファイルごとにグループ化された定義。名前、行範囲、メタデータを表示
 - `[edges]`：`contains`、`calls`、`inherits`、`returns`などの関係性
 
 ## 7. 次のステップ
 
-最初のパースを実行したので、次に以下を試してみましょう：
+最初のパースを実行したので、次は：
 
-- パースコマンドの詳細：[パースコマンドガイド](/codeknit/ja/guides/parse-command/)
-- 構造分析の探索：[グラフコマンドガイド](/codeknit/ja/guides/graph-commands/)
-- 重複検出の理解：[フィンガープリントコマンドガイド](/codeknit/ja/guides/fingerprint-command/)
-- 出力フォーマットの詳細：[出力フォーマットリファレンス](/codeknit/ja/reference/output-format/)
-- 利用可能なすべてのフラグ：[CLIフラグリファレンス](/codeknit/ja/reference/cli-flags/)
+- パースコマンドについて詳しく学ぶ：[パースコマンドガイド](/codeknit/ja/guides/parse-command/)
+- 構造分析を探索する：[グラフコマンドガイド](/codeknit/ja/guides/graph-commands/)
+- 重複検出を理解する：[フィンガープリントコマンドガイド](/codeknit/ja/guides/fingerprint-command/)
+- 出力フォーマットの詳細を読む：[出力フォーマットリファレンス](/codeknit/ja/reference/output-format/)
+- 利用可能なすべてのフラグを見る：[CLIフラグリファレンス](/codeknit/ja/reference/cli-flags/)

@@ -1,6 +1,6 @@
 ---
-title: Comandos de Grafo
-description: Visualiza y analiza la estructura de tu base de código con algoritmos de grafos.
+title: Comandos de grafo
+description: Visualiza y analiza la estructura de tu base de código con algoritmos de grafo.
 ---
 
 codeknit proporciona dos potentes comandos de grafo para ayudarte a entender y mejorar la estructura de tu base de código: `graph show` para visualización interactiva y `graph analyze` para análisis estructural automatizado.
@@ -17,11 +17,11 @@ Este comando analiza tu base de código y produce un archivo HTML autónomo con 
 
 ### Flags
 
-| Flag             | Valor predeterminado             | Descripción                                              |
-| ---------------- | -------------------------------- | -------------------------------------------------------- |
-| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Ruta del archivo HTML de salida                          |
-| `--collect-test` | `false`                          | Incluir archivos de prueba en el análisis                |
-| `--workers`      | `NumCPU`                         | Máximo de goroutines de análisis concurrentes            |
+| Flag             | Default                          | Description                                  |
+| ---------------- | -------------------------------- | -------------------------------------------- |
+| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Ruta del archivo HTML de salida              |
+| `--collect-test` | `false`                          | Incluir archivos de prueba en el análisis    |
+| `--workers`      | `NumCPU`                         | Máximo de goroutines de análisis concurrentes|
 | `--verbose`      | `false`                          | Mostrar información de progreso durante el procesamiento |
 
 ### Ejemplos
@@ -54,7 +54,7 @@ El análisis incluye 17 algoritmos de grafo estructurales:
 - Dependencias cíclicas (SCC de Tarjan)
 - Detección de hubs (alto acoplamiento fan-in/fan-out)
 - Detección de huérfanos (candidatos a código muerto)
-- Detección de god class/function (excesivos hijos)
+- Detección de god class/function (exceso de hijos)
 - Métrica de inestabilidad (Ce/(Ca+Ce) de Robert C. Martin)
 - Cadenas de herencia profundas
 - Centralidad de intermediación (detección de cuellos de botella)
@@ -67,22 +67,22 @@ El análisis incluye 17 algoritmos de grafo estructurales:
 - Alcanzabilidad desde puntos de entrada
 - Componentes débilmente conectados
 - Peso de dependencia (fuerza de acoplamiento de paquetes)
-- Distancia de la Secuencia Principal (equilibrio A+I)
+- Distancia desde la Secuencia Principal (balance A+I)
 
 ### Flags
 
-| Flag                      | Valor predeterminado            | Descripción                                                                |
-| ------------------------- | ------------------------------- | -------------------------------------------------------------------------- |
-| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Ruta del archivo `.skt` de salida                                          |
-| `--collect-test`          | `false`                         | Incluir archivos de prueba en el análisis                                  |
-| `--workers`               | `NumCPU`                        | Máximo de goroutines de análisis concurrentes                              |
-| `--verbose`               | `false`                         | Mostrar información de progreso durante el procesamiento                   |
-| `--fan-threshold`         | `10`                            | Mínimo de fan-in o fan-out para marcar un símbolo hub                      |
-| `--god-threshold`         | `15`                            | Mínimo de relaciones de tipo "contiene" para marcar una god class/function |
-| `--max-inheritance-depth` | `5`                             | Marcar cadenas de herencia más profundas que este valor                    |
-| `--top-n`                 | `30`                            | Limitar secciones de salida clasificadas; 0 = sin límite                   |
-| `--betweenness-threshold` | `0.001`                         | Valor mínimo de centralidad de intermediación para reportar                |
-| `--propagation-cutoff`    | `0.05`                          | Probabilidad mínima para continuar la propagación de cambios               |
+| Flag                      | Default                         | Description                                              |
+| ------------------------- | ------------------------------- | -------------------------------------------------------- |
+| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Ruta del archivo `.skt` de salida                        |
+| `--collect-test`          | `false`                         | Incluir archivos de prueba en el análisis                |
+| `--workers`               | `NumCPU`                        | Máximo de goroutines de análisis concurrentes            |
+| `--verbose`               | `false`                         | Mostrar información de progreso durante el procesamiento |
+| `--fan-threshold`         | `10`                            | Mínimo fan-in o fan-out para marcar un símbolo hub       |
+| `--god-threshold`         | `15`                            | Mínimo conteo de relaciones contiene para marcar una god class/function |
+| `--max-inheritance-depth` | `5`                             | Marcar cadenas de herencia más profundas que esto        |
+| `--top-n`                 | `30`                            | Limitar secciones de salida clasificadas; 0 = sin límite |
+| `--betweenness-threshold` | `0.001`                         | Valor mínimo de centralidad de intermediación para reportar |
+| `--propagation-cutoff`    | `0.05`                          | Probabilidad mínima para continuar la propagación de cambios |
 
 ### Ejemplos
 

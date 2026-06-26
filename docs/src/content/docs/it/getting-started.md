@@ -1,11 +1,11 @@
 ---
-title: Iniziare
-description: Inizia a usare codeknit in meno di 5 minuti.
+title: Introduzione
+description: Inizia a utilizzare codeknit in meno di 5 minuti.
 ---
 
-# Iniziare
+# Introduzione
 
-Inizia a usare codeknit in meno di 5 minuti.
+Inizia a utilizzare codeknit in meno di 5 minuti.
 
 ## 1. Prerequisiti
 
@@ -23,7 +23,7 @@ make build
 # Il binario si trova in ./bin/codeknit
 ```
 
-## 3. Aggiungere al PATH
+## 3. Aggiungi al PATH
 
 Aggiungi il binario al PATH della tua shell:
 
@@ -58,11 +58,11 @@ codeknit parse ./myproject
 
 Questo comando:
 
-- Effettua il parsing di tutti i file sorgente in `./myproject`
+- Effettua il parse di tutti i file sorgente in `./myproject`
 - Estrae informazioni strutturali (funzioni, classi, relazioni)
 - Scrive file `.skt` suddivisi in `./skeleton/` (directory di output predefinita)
 
-Se esegui nuovamente questo comando, usa `--clean` per rimuovere l'output precedente:
+Se riesegui questo comando, usa `--clean` per rimuovere l'output precedente:
 
 ```bash
 codeknit parse ./myproject --clean
@@ -87,15 +87,15 @@ S3 --returns--> S2
 
 Sezioni chiave:
 
-- `[symbols]`: Definizioni raggruppate per file, che mostrano nome, **intervallo di righe** e metadati
+- `[symbols]`: Definizioni raggruppate per file, che mostrano nome, intervallo di righe e metadati
 - `[edges]`: Relazioni come `contains`, `calls`, `inherits` o `returns`
 
 ## 7. Passaggi successivi
 
 Ora che hai eseguito il tuo primo parse:
 
-- Approfondisci il comando di parsing: [Guida al comando parse](/codeknit/it/guides/parse-command/)
-- Esplora l'**analisi del grafo**: [Guida ai comandi del grafo](/codeknit/it/guides/graph-commands/)
-- Comprendi il rilevamento dei **duplicati**: [Guida al comando fingerprint](/codeknit/it/guides/fingerprint-command/)
+- Approfondisci il comando parse: [Guida al comando parse](/codeknit/it/guides/parse-command/)
+- Esplora l'analisi strutturale: [Guida ai comandi graph](/codeknit/it/guides/graph-commands/)
+- Comprendi il rilevamento dei duplicati: [Guida al comando fingerprint](/codeknit/it/guides/fingerprint-command/)
 - Leggi il formato di output completo: [Riferimento al formato di output](/codeknit/it/reference/output-format/)
-- Visualizza tutte le flag disponibili: [Riferimento alle flag CLI](/codeknit/it/reference/cli-flags/)
+- Visualizza tutti i flag disponibili: [Riferimento ai flag CLI](/codeknit/it/reference/cli-flags/)

@@ -7,12 +7,12 @@ codeknit puede instalarse desde el código fuente. Los siguientes pasos te guiar
 
 ## Desde el código fuente
 
-El método de instalación principal es compilar desde el código fuente. Necesitarás:
+El método de instalación principal es construir desde el código fuente. Necesitarás:
 
 - Go 1.26+
-- Un compilador C (requerido para tree-sitter a través de CGo)
+- Un compilador C (requerido para tree-sitter vía CGo)
 
-Clona el repositorio y compila el binario:
+Clona el repositorio y construye el binario:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -22,33 +22,33 @@ make build
 
 El binario compilado estará disponible en `./bin/codeknit`.
 
-## Añadir a PATH
+## Agregar a PATH
 
-Para ejecutar `codeknit` desde cualquier directorio, añade la ubicación del binario a la variable PATH de tu sistema.
+Para ejecutar `codeknit` desde cualquier directorio, agrega la ubicación del binario a la variable PATH de tu sistema.
 
 Para **bash** (`~/.bashrc`):
 
 ```bash
-export PATH="$PATH:/ruta/a/codeknit"
+export PATH="$PATH:/path/to/codeknit"
 ```
 
 Para **zsh** (`~/.zshrc`):
 
 ```bash
-export PATH="$PATH:/ruta/a/codeknit"
+export PATH="$PATH:/path/to/codeknit"
 ```
 
 Para **fish** (`~/.config/fish/config.fish`):
 
 ```fish
-fish_add_path /ruta/a/codeknit
+fish_add_path /path/to/codeknit
 ```
 
 Después de actualizar la configuración de tu shell, recárgala ejecutando `source ~/.bashrc` (o `~/.zshrc`) o reinicia tu terminal.
 
 ## Completado de shell
 
-codeknit soporta el autocompletado para shells populares. Instala los completados usando estos comandos:
+codeknit soporta autocompletado para shells populares. Instala los completados usando estos comandos:
 
 Para **bash**:
 

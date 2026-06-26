@@ -46,9 +46,9 @@ fish_add_path /path/to/codeknit
 
 更新 shell 配置后，通过运行 `source ~/.bashrc`（或 `~/.zshrc`）或重新启动终端来重新加载配置。
 
-## Shell 补全
+## Shell 自动补全
 
-codeknit 支持流行 shell 的自动补全功能。使用以下命令安装补全：
+codeknit 支持主流 shell 的自动补全功能。使用以下命令安装补全：
 
 对于 **bash**：
 

@@ -1,9 +1,9 @@
 ---
 title: 설치
-description: 시스템에 codeknit를 설치하는 방법.
+description: 시스템에 codeknit을 설치하는 방법.
 ---
 
-codeknit는 소스에서 설치할 수 있습니다. 다음 단계는 시스템에 codeknit를 설정하는 방법을 안내합니다.
+codeknit은 소스에서 설치할 수 있습니다. 다음 단계는 시스템에 codeknit을 설정하는 방법을 안내합니다.
 
 ## 소스에서 설치
 
@@ -24,7 +24,7 @@ make build
 
 ## PATH에 추가
 
-`codeknit`를 어느 디렉토리에서나 실행하려면 바이너리 위치를 시스템의 PATH에 추가하세요.
+`codeknit`을 어느 디렉토리에서나 실행하려면 바이너리 위치를 시스템의 PATH에 추가하세요.
 
 **bash**용 (`~/.bashrc`):
 
@@ -48,7 +48,7 @@ fish_add_path /path/to/codeknit
 
 ## 셸 자동 완성
 
-codeknit는 인기 있는 셸에 대한 자동 완성을 지원합니다. 다음 명령어를 사용하여 자동 완성을 설치하세요:
+codeknit은 인기 있는 셸에 대한 자동 완성을 지원합니다. 다음 명령어를 사용하여 자동 완성을 설치하세요:
 
 **bash**용:
 
@@ -76,7 +76,7 @@ codeknit completion powershell >> $PROFILE
 
 ## 설치 확인
 
-설치 후 codeknit가 올바르게 설정되었는지 확인하세요:
+설치 후 codeknit이 올바르게 설정되었는지 확인하세요:
 
 ```bash
 codeknit --version

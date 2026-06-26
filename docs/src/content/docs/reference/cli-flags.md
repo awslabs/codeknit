@@ -13,7 +13,7 @@ codeknit
 
 ## codeknit parse
 
-Extract structural information from source code into `.skt` files.
+Extract structural information from source code into `.skt` files or JSON.
 
 ```bash
 codeknit parse <input-path> [output-dir]
@@ -22,6 +22,7 @@ codeknit parse <input-path> [output-dir]
 | Flag             | Type   | Default          | Description                                                                            |
 | ---------------- | ------ | ---------------- | -------------------------------------------------------------------------------------- |
 | `--output-mode`  | string | `directory-flat` | Output mode: `inline`, `directory-flat`, or `directory-tree`                           |
+| `--format`       | string | `skt`            | Output format: `skt` or `json`                                                        |
 | `--max-lines`    | int    | `500`            | Maximum lines per output file (applies to `directory-flat` and `directory-tree` modes) |
 | `--collect-test` | bool   | `false`          | Include test files in analysis                                                         |
 | `--minify`       | bool   | `false`          | Enable dictionary-based output minification                                            |
@@ -30,7 +31,7 @@ codeknit parse <input-path> [output-dir]
 | `--workers`      | int    | `0` (NumCPU)     | Maximum concurrent parsing goroutines                                                  |
 | `--verbose`      | bool   | `false`          | Print progress information during processing                                           |
 
-The output directory defaults to `./skeleton` when not specified. In `inline` mode, output is written to stdout and no directory is used.
+The output directory defaults to `./skeleton` when not specified. In `inline` mode, output is written to stdout and no directory is used. With `--format json`, directory output is written as `codeknit.json`.
 
 ## codeknit graph show
 

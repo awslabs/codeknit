@@ -1,9 +1,9 @@
 ---
 title: Utilizzo con assistenti AI
-description: Configura codeknit come skill per Kiro, Claude Code e altri assistenti di codifica AI.
+description: Configura codeknit come skill per Kiro, Claude Code e altri assistenti AI per la programmazione.
 ---
 
-codeknit viene fornito con skill pronte all'uso che insegnano agli assistenti di codifica AI come utilizzarlo efficacemente. Queste skill consentono agli assistenti di estrarre la struttura del codice, rilevare duplicati e eseguire analisi strutturali senza prompt manuali.
+codeknit include skill pronte all'uso che insegnano agli assistenti AI per la programmazione come utilizzarlo efficacemente. Queste skill permettono agli assistenti di estrarre la struttura del codice, rilevare duplicati e eseguire analisi strutturali senza prompt manuali.
 
 ## Panoramica delle skill
 
@@ -12,7 +12,7 @@ codeknit fornisce due skill:
 - **`codeknit-parse`**: Insegna agli assistenti a estrarre la struttura del codice (funzioni, classi, metodi, variabili) e le relazioni (chiamate, ereditarietà, contenimento) in file `.skt`.
 - **`codeknit-fingerprint`**: Insegna agli assistenti a rilevare codice duplicato e quasi duplicato utilizzando fuzzy hashing.
 
-Ogni skill include documentazione che l'assistente legge su richiesta per comprendere l'uso, i flag, i formati di output e i flussi di lavoro.
+Ogni skill include documentazione che l'assistente legge su richiesta per comprendere l'utilizzo, i flag, le modalità di output e i flussi di lavoro.
 
 ## Installazione
 
@@ -32,7 +32,7 @@ cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
 cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
 ```
 
-Dopo l'installazione, l'assistente sa automaticamente come invocare i comandi di codeknit, selezionare i flag appropriati e interpretare l'output `.skt`.
+Dopo l'installazione, l'assistente saprà automaticamente come invocare i comandi di codeknit, selezionare i flag appropriati e interpretare l'output `.skt`.
 
 ## Cosa insegna ogni skill
 
@@ -41,11 +41,11 @@ Dopo l'installazione, l'assistente sa automaticamente come invocare i comandi di
 La skill `codeknit-parse` insegna agli assistenti a:
 
 - Eseguire `codeknit parse` con i flag appropriati per diversi scenari
-- Scegliere la modalità di output corretta:
+- Scegliere la giusta modalità di output:
   - `directory-flat` (predefinita) per la maggior parte dei progetti
-  - `inline` per file singoli o input di piccole dimensioni
+  - `inline` per singoli file o input di piccole dimensioni
   - `directory-tree` per rispecchiare la struttura del sorgente
-- Leggere e interpretare i file di output `.skt`, incluse le sezioni `[symbols]`, `[edges]` e opzionali `[dict]`
+- Leggere e interpretare i file di output `.skt`, incluse le sezioni `[symbols]`, `[edges]` e le sezioni opzionali `[dict]`
 - Utilizzare i dati strutturali per refactoring, mappatura delle dipendenze e revisione del codice
 - Eseguire `codeknit graph analyze` per approfondimenti sulla qualità del codice (dipendenze cicliche, simboli hub, god classes, ecc.)
 
@@ -56,10 +56,10 @@ La skill `codeknit-fingerprint` insegna agli assistenti a:
 - Utilizzare `codeknit fingerprint` per il rilevamento di duplicati, audit DRY e identificazione di refactoring
 - Selezionare intervalli di similarità appropriati (`--min-similarity`, `--max-similarity`)
 - Leggere la sezione `[duplicates]` per identificare codice quasi duplicato
-- Comprendere che le fingerprint misurano la forma strutturale, non l'intento semantico
-- Utilizzare `--rerank` con embeddings Ollama per ridurre i falsi positivi quando necessario
+- Comprendere che i fingerprint misurano la forma strutturale, non l'intento semantico
+- Utilizzare `--rerank` con gli embedding di Ollama per ridurre i falsi positivi quando necessario
 
-## Esempi di flussi di lavoro
+## Esempi di flusso di lavoro
 
 ### Analisi strutturale
 
@@ -83,7 +83,7 @@ S1 --contains--> S2
 1. Chiedi all'assistente di trovare codice duplicato
 2. Esegue `codeknit fingerprint ./src`
 3. Legge la sezione `[duplicates]` nell'output
-4. Indaga sulle coppie segnalate e propone consolidamenti
+4. Indaga sulle coppie segnalate e propone la consolidazione
 
 ```skt
 [duplicates]

@@ -3,20 +3,20 @@ title: Comando Fingerprint
 description: Rileva codice duplicato e quasi duplicato tra file e linguaggi utilizzando fuzzy hashing.
 ---
 
-Il comando `codeknit fingerprint` rileva codice duplicato e quasi duplicato nel tuo codebase utilizzando **Context-Triggered Piecewise Hashing (CTPH)**. Funziona tra file e persino tra linguaggi di programmazione normalizzando nomi di variabili, stringhe letterali e annotazioni di tipo prima di calcolare le **impronte strutturali normalizzate**.
+Il comando `codeknit fingerprint` rileva codice duplicato e quasi duplicato nella tua codebase utilizzando **Context-Triggered Piecewise Hashing (CTPH)**. Funziona tra file e persino tra linguaggi di programmazione normalizzando nomi di variabili, stringhe letterali e annotazioni di tipo prima di calcolare le impronte strutturali normalizzate.
 
 ## Cosa fa
 
-`codeknit fingerprint` analizza ogni funzione, metodo, variabile e tipo nel tuo codebase e calcola un'**impronta strutturale normalizzata** basata su:
+`codeknit fingerprint` analizza ogni funzione, metodo, variabile e tipo nella tua codebase e calcola un'**impronta strutturale normalizzata** basata su:
 
 - Flusso di controllo (`if`, `for`, `while`, `switch`)
 - Operazioni (`=`, `+`, `==`, `&&`, `||`)
 - Chiamate, return, assegnazioni e creazione di oggetti
 - Costrutti del linguaggio come `try/catch`, `yield`, `await`, `defer`
 
-Questa normalizzazione significa che **copia-incolla rinominato**, **refactoring banali** e **logica equivalente in linguaggi diversi** possono comunque essere rilevati come duplicati.
+Questa normalizzazione significa che **copia-incolla rinominato**, **refactoring banali** e **logica equivalente in linguaggi diversi** possono ancora essere rilevati come duplicati.
 
-L'algoritmo utilizza **CTPH** (una variante di rolling hash) per trovare in modo efficiente i quasi duplicati. Codice simile produce impronte simili, consentendo il matching fuzzy anche quando il codice è stato leggermente modificato.
+L'algoritmo utilizza **CTPH** (una variante di rolling hash) per trovare efficientemente quasi duplicati. Codice simile produce impronte simili, consentendo il matching fuzzy anche quando il codice è stato leggermente modificato.
 
 ## Utilizzo di base
 
@@ -29,21 +29,21 @@ Questo comando:
 - Analizza tutti i file sorgente in `./src`
 - Calcola le impronte strutturali
 - Genera l'output in `./skeleton/fingerprints.skt`
-- Segnala corrispondenze con similarità tra **65% e 95%** (intervallo predefinito)
+- Riporta corrispondenze con similarità tra **65% e 95%** (intervallo predefinito)
 
 ## Flag
 
-| Flag               | Default                       | Descrizione                                                                                                                                                           |
-| ------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Percorso del file `.skt` di output                                                                                                                                    |
-| `--min-similarity` | `65`                          | Percentuale minima di similarità da segnalare (0–100)                                                                                                                 |
-| `--max-similarity` | `95`                          | Percentuale massima di similarità da segnalare (0–100)                                                                                                                |
-| `--show-all`       | `false`                       | Includi la sezione `[fingerprints]` con i dati grezzi dei token                                                                                                       |
-| `--rerank`         | `false`                       | Riordina i candidati CTPH utilizzando embedding semantici tramite Ollama per eliminare falsi positivi (richiede: `ollama serve` e `ollama pull qwen3-embedding:0.6b`) |
-| `--model`          | `qwen3-embedding:0.6b`        | Modello di embedding Ollama da utilizzare con `--rerank`                                                                                                              |
-| `--collect-test`   | `false`                       | Includi i file di test nell'analisi                                                                                                                                   |
-| `--workers`        | `NumCPU`                      | Numero massimo di goroutine di parsing concorrenti (0 = usa tutti i core CPU)                                                                                         |
-| `--verbose`        | `false`                       | Mostra informazioni di avanzamento durante l'elaborazione                                                                                                             |
+| Flag               | Default                       | Description                                                                                                                                                |
+| ------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Percorso del file `.skt` di output                                                                                                                         |
+| `--min-similarity` | `65`                          | Percentuale minima di similarità da riportare (0–100)                                                                                                      |
+| `--max-similarity` | `95`                          | Percentuale massima di similarità da riportare (0–100)                                                                                                      |
+| `--show-all`       | `false`                       | Include la sezione `[fingerprints]` con i dati grezzi dei token                                                                                            |
+| `--rerank`         | `false`                       | Riordina i candidati CTPH utilizzando embeddings semantici tramite Ollama per eliminare falsi positivi (richiede: `ollama serve` e `ollama pull qwen3-embedding:0.6b`) |
+| `--model`          | `qwen3-embedding:0.6b`        | Modello di embedding Ollama da utilizzare con `--rerank`                                                                                                   |
+| `--collect-test`   | `false`                       | Include i file di test nell'analisi                                                                                                                        |
+| `--workers`        | `NumCPU`                      | Numero massimo di goroutine di parsing concorrenti (0 = usa tutti i core della CPU)                                                                        |
+| `--verbose`        | `false`                       | Stampa informazioni di avanzamento durante l'elaborazione                                                                                                  |
 
 ## Formato di output
 
@@ -86,7 +86,7 @@ Questa sezione è utile per il debug o per la creazione di strumenti downstream.
 
 ```bash
 # Scansione predefinita
-codeknit fingerprint ./codeknit/it/src
+codeknit fingerprint ./src
 ```
 
 ```bash
@@ -100,13 +100,13 @@ codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
 ```bash
-# Usa il riordino semantico per ridurre i falsi positivi
+# Utilizza il riordino semantico per ridurre i falsi positivi
 # Richiede: ollama serve && ollama pull qwen3-embedding:0.6b
 codeknit fingerprint ./src --rerank
 ```
 
 ```bash
-# Usa un modello di embedding diverso per il riordino
+# Utilizza un modello di embedding diverso per il riordino
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
@@ -122,18 +122,18 @@ codeknit fingerprint ./src -o duplicates.skt
 
 ## Scelta di un intervallo di similarità
 
-| Intervallo | Linee guida                                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| 96–100%    | Duplicati strutturali esatti o quasi esatti. Quasi certamente copia-incolla.                                     |
-| 85–95%     | Quasi duplicati. Solitamente copia-incolla con modifiche minori (es. variabili rinominate, aggiunta di logging). |
-| 65–84%     | Intervallo predefinito. Forte similarità strutturale. Buoni candidati per il refactoring.                        |
-| 50–64%     | Similarità moderata. Stessa forma algoritmica ma dettagli diversi. Da rivedere manualmente.                      |
-| < 50%      | Solitamente rumore. Duplicazione non significativa.                                                              |
+| Intervallo | Guida                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| 96–100%    | Duplicati strutturali esatti o quasi esatti. Quasi certamente copia-incolla.             |
+| 85–95%     | Quasi duplicati. Solitamente copia-incolla con modifiche minori (es. variabili rinominate, aggiunto logging). |
+| 65–84%     | Intervallo predefinito. Forte similarità strutturale. Buoni candidati per il refactoring. |
+| 50–64%     | Similarità moderata. Stessa forma algoritmica ma dettagli diversi. Revisione manuale.    |
+| < 50%      | Solitamente rumore. Duplicazione non significativa.                                       |
 
-## Consigli
+## Suggerimenti
 
-- **Le impronte misurano la struttura, non il significato**: Un punteggio di similarità elevato significa che il codice _sembra_ simile, non che _fa_ la stessa cosa. Rivedi sempre entrambi i simboli.
-- **Usa `--rerank` per risultati rumorosi**: Se ottieni molti falsi positivi, abilita il riordino semantico per filtrare le corrispondenze utilizzando gli embedding.
+- **Le impronte misurano la struttura, non il significato**: Un punteggio di similarità elevato significa che il codice _sembra_ simile, non che _fa_ la stessa cosa. Controlla sempre entrambi i simboli.
+- **Usa `--rerank` per risultati rumorosi**: Se ottieni molti falsi positivi, abilita il riordino semantico per filtrare le corrispondenze utilizzando embeddings.
 - **I corpi brevi vengono saltati**: I simboli con meno di 4 token normalizzati (es. semplici getter) vengono ignorati per evitare rumore.
 - **Il matching cross-language funziona**: Costrutti equivalenti (es. una funzione Python e una funzione Go con la stessa logica) possono corrispondere, ma i pattern specifici del linguaggio possono produrre corrispondenze spurie a bassa similarità.
-- **Una corrispondenza è un segnale, non un verdetto**: Tratta ogni corrispondenza come un invito a indagare — non come prova automatica di duplicazione.
+- **Una corrispondenza è un segnale, non una sentenza**: Tratta ogni corrispondenza come un invito a investigare — non come prova automatica di duplicazione.

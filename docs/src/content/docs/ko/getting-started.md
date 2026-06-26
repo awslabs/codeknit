@@ -1,11 +1,11 @@
 ---
 title: 시작하기
-description: 5분 이내에 codeknit를 시작하고 실행해 보세요.
+description: 5분 이내에 codeknit을 시작하고 실행하세요.
 ---
 
 # 시작하기
 
-5분 이내에 codeknit를 시작하고 실행해 보세요.
+5분 이내에 codeknit을 시작하고 실행하세요.
 
 ## 1. 사전 요구 사항
 
@@ -25,7 +25,7 @@ make build
 
 ## 3. PATH에 추가
 
-바이너리를 쉘의 PATH에 추가하세요:
+바이너리를 셸의 PATH에 추가하세요:
 
 ```bash
 # bash (~/.bashrc)
@@ -38,11 +38,11 @@ export PATH="$PATH:$(pwd)/bin"
 fish_add_path $(pwd)/bin
 ```
 
-변경 사항을 적용하려면 쉘을 다시 로드하거나 `source ~/.bashrc` (또는 `~/.zshrc`)를 실행하세요.
+변경 사항을 적용하려면 셸을 다시 로드하거나 `source ~/.bashrc` (또는 `~/.zshrc`)를 실행하세요.
 
 ## 4. 설치 확인
 
-codeknit가 작동하는지 확인하세요:
+codeknit이 작동하는지 확인하세요:
 
 ```bash
 codeknit --version
@@ -56,11 +56,11 @@ codeknit --version
 codeknit parse ./myproject
 ```
 
-이 명령은:
+이 명령은 다음을 수행합니다:
 
 - `./myproject` 내의 모든 소스 파일을 파싱합니다
 - 구조적 정보(함수, 클래스, 관계)를 추출합니다
-- 청크 단위의 `.skt` 파일을 `./skeleton/`(기본 출력 디렉터리)에 작성합니다
+- 청크된 `.skt` 파일을 `./skeleton/`(기본 출력 디렉터리)에 작성합니다
 
 이 명령을 다시 실행할 경우, 이전 출력을 제거하려면 `--clean`을 사용하세요:
 
@@ -68,7 +68,7 @@ codeknit parse ./myproject
 codeknit parse ./myproject --clean
 ```
 
-## 6. 출력 결과 읽기
+## 6. 출력 읽기
 
 `.skt` 파일은 구조화된 코드 정보를 포함합니다. 다음은 작은 예시입니다:
 
@@ -87,15 +87,15 @@ S3 --returns--> S2
 
 주요 섹션:
 
-- `[symbols]`: 파일별로 그룹화된 정의로, 이름, **행 범위**, 메타데이터를 보여줍니다
+- `[symbols]`: 파일별로 그룹화된 정의로, 이름, 행 범위 및 메타데이터를 표시합니다
 - `[edges]`: `contains`, `calls`, `inherits`, `returns`와 같은 관계
 
 ## 7. 다음 단계
 
-이제 첫 번째 파싱을 실행했으니:
+이제 첫 번째 파싱을 실행했으므로 다음을 진행하세요:
 
 - 파싱 명령에 대해 자세히 알아보기: [파싱 명령 가이드](/codeknit/ko/guides/parse-command/)
 - 구조 분석 탐색하기: [그래프 명령 가이드](/codeknit/ko/guides/graph-commands/)
-- 중복 감지 이해하기: [핑거프린트 명령 가이드](/codeknit/ko/guides/fingerprint-command/)
+- 중복 감지 이해하기: [Fingerprint 명령 가이드](/codeknit/ko/guides/fingerprint-command/)
 - 전체 출력 형식 읽기: [출력 형식 참조](/codeknit/ko/reference/output-format/)
-- 사용 가능한 모든 플래그 확인하기: [CLI 플래그 참조](/codeknit/ko/reference/cli-flags/)
+- 사용 가능한 모든 플래그 보기: [CLI 플래그 참조](/codeknit/ko/reference/cli-flags/)

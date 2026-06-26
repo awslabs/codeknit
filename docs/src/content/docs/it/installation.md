@@ -3,16 +3,16 @@ title: Installazione
 description: Come installare codeknit sul proprio sistema.
 ---
 
-codeknit può essere installato dal sorgente. I seguenti passaggi guideranno nell'impostazione di codeknit sul proprio sistema.
+codeknit può essere installato dal sorgente. I seguenti passaggi ti guideranno nella configurazione di codeknit sul tuo sistema.
 
 ## Dal sorgente
 
-Il metodo di installazione principale è la compilazione dal sorgente. Sono necessari:
+Il metodo di installazione principale è la compilazione dal sorgente. Avrai bisogno di:
 
 - Go 1.26+
 - Un compilatore C (richiesto per tree-sitter tramite CGo)
 
-Clonare il repository e compilare il binario:
+Clona il repository e compila il binario:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -22,9 +22,9 @@ make build
 
 Il binario compilato sarà disponibile in `./bin/codeknit`.
 
-## Aggiungere al PATH
+## Aggiungi a PATH
 
-Per eseguire `codeknit` da qualsiasi directory, aggiungere la posizione del binario al PATH del sistema.
+Per eseguire `codeknit` da qualsiasi directory, aggiungi la posizione del binario al PATH del tuo sistema.
 
 Per **bash** (`~/.bashrc`):
 
@@ -44,11 +44,11 @@ Per **fish** (`~/.config/fish/config.fish`):
 fish_add_path /percorso/verso/codeknit
 ```
 
-Dopo aver aggiornato la configurazione della shell, ricaricarla eseguendo `source ~/.bashrc` (o `~/.zshrc`) o riavviare il terminale.
+Dopo aver aggiornato la configurazione della shell, ricaricala eseguendo `source ~/.bashrc` (o `~/.zshrc`) o riavvia il terminale.
 
 ## Completamento della shell
 
-codeknit supporta il completamento automatico per le shell più diffuse. Installare i completamenti utilizzando questi comandi:
+codeknit supporta il completamento automatico per le shell più diffuse. Installa i completamenti utilizzando questi comandi:
 
 Per **bash**:
 
@@ -74,9 +74,9 @@ Per **PowerShell**:
 codeknit completion powershell >> $PROFILE
 ```
 
-## Verifica dell'installazione
+## Verifica installazione
 
-Dopo l'installazione, verificare che codeknit sia configurato correttamente:
+Dopo l'installazione, verifica che codeknit sia configurato correttamente:
 
 ```bash
 codeknit --version
@@ -84,21 +84,21 @@ codeknit --version
 
 ## Configurazione per lo sviluppo
 
-Se si contribuisce a codeknit, eseguire questi comandi aggiuntivi:
+Se stai contribuendo a codeknit, esegui questi comandi aggiuntivi:
 
-Installare le dipendenze di sviluppo:
+Installa le dipendenze di sviluppo:
 
 ```bash
 make deps
 ```
 
-Configurare i git hooks:
+Configura i git hooks:
 
 ```bash
 make setup
 ```
 
-Eseguire la suite di test:
+Esegui la suite di test:
 
 ```bash
 make test

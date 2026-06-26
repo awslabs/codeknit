@@ -1,9 +1,11 @@
 ---
 title: Modalità di output
-description: Scegli la modalità di output giusta per le dimensioni del tuo progetto e il tuo flusso di lavoro.
+description: Scegli la modalità di output giusta per le dimensioni del tuo progetto e il flusso di lavoro.
 ---
 
-codeknit supporta tre modalità di output, controllate dal flag `--output-mode`. Ogni modalità determina come la struttura del codice estratta viene scritta su disco (o su stdout).
+`codeknit` supporta tre modalità di output, controllate dal flag `--output-mode`. Ogni modalità determina come la struttura del codice estratta viene scritta su disco (o su stdout).
+
+La modalità di output è separata dal formato di output. Il formato predefinito è `.skt`; passa `--format json` per emettere lo stesso risultato di parsing come JSON leggibile dalla macchina. Nelle modalità directory, il JSON viene scritto su `codeknit.json`. Nella modalità `inline`, il JSON viene scritto su stdout.
 
 ### directory-flat (predefinita, consigliata)
 
@@ -25,7 +27,7 @@ codeknit parse ./src
 - **Comportamento**: Rispecchia esattamente la struttura della directory sorgente.
 - **Directory di output**: `./skeleton/` per impostazione predefinita
 - **Mappatura**: Viene creato un file `.skt` per ogni file sorgente, nello stesso percorso corrispondente.
-- **Caso d'uso**: Ideale quando si desidera cercare rapidamente la struttura di un file specifico. Utile per la navigazione insieme al codice sorgente originale.
+- **Caso d'uso**: Ideale quando si desidera cercare rapidamente la struttura di un file specifico. Utile per la navigazione insieme al codebase originale.
 
 Esempio:
 
@@ -38,7 +40,7 @@ codeknit parse ./src --output-mode directory-tree
 
 - **Comportamento**: Stampa tutto l'output su stdout.
 - **Directory di output**: Nessuna creata
-- **Caso d'uso**: Consigliato solo per file singoli o progetti molto piccoli (meno di 5 file). Utile quando si invia l'output a un altro strumento o si ispeziona un singolo file in modo interattivo.
+- **Caso d'uso**: Consigliato solo per singoli file o progetti molto piccoli (meno di 5 file). Utile quando si invia l'output a un altro strumento o si ispeziona un singolo file in modo interattivo.
 
 Esempio:
 
@@ -47,13 +49,69 @@ codeknit parse ./src/main.go --output-mode inline
 # Output: stampato direttamente sul terminale
 ```
 
-### Tabella di decisione
+### Formato JSON
 
-| Modalità         | Migliore per                                             | Posizione dell'output                                         |
-| ---------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
-| `directory-flat` | La maggior parte dei progetti (predefinita, consigliata) | `./skeleton/map_001.skt`, `map_002.skt`, ...                  |
-| `directory-tree` | Navigazione dell'output insieme al codice sorgente       | `./skeleton/<percorso speculare>.skt`                         |
-| `inline`         | File singolo, invio a un altro strumento                 | stdout — usare solo per file singoli o progetti molto piccoli |
+- **Comportamento**: Emette un singolo documento JSON contenente `files`, `symbols`, `edges` opzionali e `errors` opzionali.
+- **Posizione di output**: `codeknit.json` nelle modalità directory, o stdout nella modalità `inline`.
+- **Caso d'uso**: Migliore per script, integrazioni con editor, controlli CI e strumenti che necessitano di dati strutturati.
+
+Esempio:
+
+```bash
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+Esempio di output:
+
+```json
+{
+  "files": ["app.go"],
+  "symbols": [
+    {
+      "id": "app.go::User",
+      "short_id": "S1",
+      "name": "User",
+      "file": "app.go",
+      "category": "type",
+      "kind": "struct",
+      "signature": "type User struct",
+      "span": [3, 3]
+    },
+    {
+      "id": "app.go::Save",
+      "short_id": "S2",
+      "name": "Save",
+      "file": "app.go",
+      "category": "callable",
+      "kind": "function",
+      "signature": "Save(u: S1)",
+      "span": [5, 5]
+    }
+  ],
+  "edges": [
+    {
+      "from": "app.go::Save",
+      "from_short": "S2",
+      "to": "app.go::User",
+      "to_short": "S1",
+      "kind": "references"
+    }
+  ]
+}
+```
+
+### Tabella delle decisioni
+
+| Modalità            | Migliore per                                | Posizione di output                                     |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------- |
+| `directory-flat`    | La maggior parte dei progetti (predefinita, consigliata) | `./skeleton/map_001.skt`, `map_002.skt`, ...            |
+| `directory-tree`    | Navigazione dell'output insieme al codice sorgente | `./skeleton/<percorso rispecchiato>.skt`                |
+| `inline`            | Singolo file, invio a un altro strumento    | stdout — usare solo per singoli file o progetti minuscoli |
+
+| Formato | Migliore per                           | Output                                                   |
+| ------- | -------------------------------------- | -------------------------------------------------------- |
+| `skt`   | Contesto LLM e ispezione umana         | File `.skt` o stdout                                     |
+| `json`  | Script e integrazione strutturata      | `codeknit.json` nelle modalità directory, o stdout in `inline` |
 
 ### Regole pratiche
 

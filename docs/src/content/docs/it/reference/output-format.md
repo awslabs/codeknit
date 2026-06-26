@@ -1,5 +1,5 @@
 ---
-title: Riferimento del formato di output
+title: Riferimento della modalità di output
 description: Riferimento completo per il formato di output .skt utilizzato da codeknit.
 ---
 
@@ -9,7 +9,7 @@ Un file `.skt` è diviso in sezioni. Ogni sezione inizia con un'intestazione tra
 
 ## [symbols]
 
-La sezione `[symbols]` elenca tutti i simboli estratti raggruppati per file sorgente. Ogni file è introdotto con un'intestazione `##` seguita dal percorso del file.
+La sezione `[symbols]` elenca tutti i simboli estratti raggruppati per file di origine. Ogni file è introdotto con un'intestazione `##` seguita dal percorso del file.
 
 ### Formato della riga
 
@@ -21,9 +21,9 @@ ShortID categoria/tipo Linizio-Lfine firma {proprietà}
 
 ### Campi
 
-- **ShortID**: Un identificatore sequenziale assegnato a ogni simbolo (ad es., `S1`, `S2`, `S3`). Utilizzato come riferimento negli archi e in altre sezioni.
+- **ShortID**: Un identificatore sequenziale assegnato a ogni simbolo (es. `S1`, `S2`, `S3`). Utilizzato come riferimento negli archi e in altre sezioni.
 - **categoria/tipo**: Una coppia separata da slash che indica la categoria del simbolo e il tipo specifico.
-- **Linizio-Lfine**: L'intervallo di righe nel file sorgente in cui il simbolo è definito (ad es., `L10-L15`).
+- **Linizio-Lfine**: L'intervallo di righe nel file sorgente in cui il simbolo è definito (es. `L10-L15`).
 - **firma**: Il nome del simbolo e le informazioni sul tipo. Il formato dipende dal simbolo:
   - `nome` — per tipi, valori, moduli
   - `nome(parametri)` — per callable senza tipo di ritorno
@@ -34,7 +34,7 @@ ShortID categoria/tipo Linizio-Lfine firma {proprietà}
 
 - In linguaggi non tipizzati: `nomeParametro`
 - In linguaggi tipizzati: `nomeParametro: tipo`
-- I riferimenti ai tipi che corrispondono a simboli noti sono sostituiti con i loro ShortID (ad es., `config: S5` invece di `config: Config`).
+- I riferimenti ai tipi che corrispondono a simboli noti sono sostituiti con i loro ShortID (es. `config: S5` invece di `config: Config`).
 
 ### Proprietà
 
@@ -48,13 +48,13 @@ Proprietà comuni includono:
 
 ### Categorie e tipi di simboli
 
-| Categoria  | Tipi                           | Esempi                                 |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Categoria   | Tipi                          | Esempi                               |
+| ----------- | ----------------------------- | ------------------------------------ |
+| `callable`  | function, method, constructor | `callable/function`, `callable/method` |
+| `type`      | class, interface, struct, enum | `type/class`, `type/interface`         |
+| `value`     | variable, constant, field     | `value/variable`, `value/constant`     |
+| `module`    | package, namespace            | `module/package`                       |
+| `meta`      | type parameters, metadata     | `meta/type_parameter`                  |
 
 ### Esempio
 
@@ -75,23 +75,23 @@ La sezione `[edges]` definisce le relazioni tra i simboli utilizzando i loro Sho
 ### Formato della riga
 
 ```
-IDOrigine --tipo--> IDDestinazione1, IDDestinazione2
+DaID --tipo--> AID1, AID2
 ```
 
 Più ID di destinazione sono separati da virgole. Ogni riga rappresenta una relazione direzionale.
 
 ### Tipi di arco
 
-| Tipo         | Significato                                      |
-| ------------ | ------------------------------------------------ |
-| `calls`      | invocazione di funzione/metodo                   |
-| `contains`   | classe contiene metodo, modulo contiene funzione |
-| `inherits`   | classe estende un'altra classe                   |
-| `implements` | classe implementa interfaccia                    |
-| `overrides`  | metodo sovrascrive metodo padre                  |
-| `references` | simbolo fa riferimento a un altro simbolo        |
-| `imports`    | modulo importa un altro modulo                   |
-| `decorates`  | decoratore applicato a un simbolo                |
+| Tipo         | Significato                                         |
+| ------------ | --------------------------------------------------- |
+| `calls`      | invocazione di funzione/metodo                      |
+| `contains`   | classe contiene metodo, modulo contiene funzione   |
+| `inherits`   | classe estende un'altra classe                      |
+| `implements` | classe implementa interfaccia                       |
+| `overrides`  | metodo sovrascrive metodo genitore                  |
+| `references` | simbolo fa riferimento a un altro simbolo           |
+| `imports`    | modulo importa un altro modulo                      |
+| `decorates`  | decoratore applicato a un simbolo                   |
 
 ### Esempio
 
@@ -125,7 +125,7 @@ Ogni riga inizia con `-` seguito dal percorso del file e dal messaggio di errore
 
 ## [dict]
 
-La sezione `[dict]` appare solo quando viene utilizzato il flag `--minify`. Mappa codici brevi del dizionario a token stringa ripetuti per ridurre la dimensione dell'output.
+La sezione `[dict]` appare solo quando viene utilizzata l'opzione `--minify`. Mappa codici brevi del dizionario a token stringa ripetuti per ridurre la dimensione dell'output.
 
 ### Formato
 

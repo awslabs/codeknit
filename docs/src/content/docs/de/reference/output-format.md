@@ -1,40 +1,40 @@
 ---
-title: Ausgabemodus-Referenz
+title: Referenz zum Ausgabefomat
 description: Vollständige Referenz für das von codeknit verwendete .skt-Ausgabeformat.
 ---
 
-Das `.skt`-Format (Skeleton) ist ein kompaktes, menschenlesbares Textformat, das von `codeknit` verwendet wird, um extrahierte **Codestruktur** darzustellen. Es enthält **Symbole**, Beziehungen und Metadaten in einer minimalen Form, die für den LLM-Verbrauch und die strukturelle Analyse geeignet ist.
+Das `.skt`-Format (Skeleton) ist ein kompaktes, menschenlesbares Textformat, das von `codeknit` verwendet wird, um extrahierte **Codestruktur** darzustellen. Es enthält Symbole, Beziehungen und Metadaten in einer minimalen Form, die für die Verarbeitung durch LLMs und strukturelle Analysen geeignet ist.
 
-Eine `.skt`-Datei ist in Abschnitte unterteilt. Jeder Abschnitt beginnt mit einer Kopfzeile in eckigen Klammern. Die Abschnitte können in beliebiger Reihenfolge erscheinen, wobei `[symbols]` typischerweise zuerst kommt.
+Eine `.skt`-Datei ist in Abschnitte unterteilt. Jeder Abschnitt beginnt mit einer Überschrift in eckigen Klammern. Die Abschnitte können in beliebiger Reihenfolge erscheinen, wobei `[symbols]` typischerweise zuerst kommt.
 
 ## [symbols]
 
-Der Abschnitt `[symbols]` listet alle extrahierten **Symbole** auf, gruppiert nach ihrer Quelldatei. Jede Datei wird mit einer `##`-Überschrift eingeleitet, gefolgt vom Dateipfad.
+Der Abschnitt `[symbols]` listet alle extrahierten Symbole, gruppiert nach ihrer Quelldatei. Jede Datei wird mit einer `##`-Überschrift eingeleitet, gefolgt vom Dateipfad.
 
 ### Zeilenformat
 
-Jedes **Symbol** wird in einer einzelnen Zeile mit folgender Struktur dargestellt:
+Jedes Symbol wird in einer einzelnen Zeile mit folgender Struktur dargestellt:
 
 ```
-ShortID category/kind Lstart-Lend signature {properties}
+ShortID category/kind Lstart-Lend Signatur {Eigenschaften}
 ```
 
 ### Felder
 
-- **ShortID**: Ein sequenzieller Bezeichner, der jedem **Symbol** zugewiesen wird (z. B. `S1`, `S2`, `S3`). Wird als Referenz in **Kanten** und anderen Abschnitten verwendet.
-- **category/kind**: Ein durch Schrägstrich getrenntes Paar, das die Kategorie und die spezifische Art des **Symbols** angibt.
-- **Lstart-Lend**: Der **Zeilenbereich** in der Quelldatei, in dem das **Symbol** definiert ist (z. B. `L10-L15`).
-- **signature**: Der Name und die Typinformationen des **Symbols**. Das Format hängt vom **Symbol** ab:
+- **ShortID**: Ein sequenzieller Identifikator, der jedem Symbol zugewiesen wird (z. B. `S1`, `S2`, `S3`). Wird als Referenz in Kanten und anderen Abschnitten verwendet.
+- **category/kind**: Ein durch Schrägstrich getrenntes Paar, das die Kategorie und die spezifische Art des Symbols angibt.
+- **Lstart-Lend**: Der **Zeilenbereich** im Quellcode, in dem das Symbol definiert ist (z. B. `L10-L15`).
+- **Signatur**: Der Name und die Typinformationen des Symbols. Das Format hängt vom Symbol ab:
   - `name` — für Typen, Werte, Module
-  - `name(params)` — für aufrufbare Elemente ohne Rückgabetyp
-  - `name(params) -> returnType` — für aufrufbare Elemente mit Rückgabetyp
-- **{properties}**: Optionale Metadaten, die in geschweiften Klammern eingeschlossen sind. Mehrere Eigenschaften werden durch Kommas getrennt.
+  - `name(params)` — für Callables ohne Rückgabetyp
+  - `name(params) -> Rückgabetyp` — für Callables mit Rückgabetyp
+- **{Eigenschaften}**: Optionale Metadaten, die in geschweiften Klammern eingeschlossen sind. Mehrere Eigenschaften werden durch Kommas getrennt.
 
 ### Parameter
 
-- In untypisierten Sprachen: `paramName`
-- In typisierten Sprachen: `paramName: type`
-- Typreferenzen, die bekannten **Symbolen** entsprechen, werden durch ihre ShortIDs ersetzt (z. B. `config: S5` anstelle von `config: Config`).
+- In untypisierten Sprachen: `Parametername`
+- In typisierten Sprachen: `Parametername: Typ`
+- Typreferenzen, die bekannten Symbolen entsprechen, werden durch ihre ShortIDs ersetzt (z. B. `config: S5` statt `config: Config`).
 
 ### Eigenschaften
 
@@ -42,19 +42,19 @@ Häufige Eigenschaften sind:
 
 - `async`: `true` oder `false`
 - `exported`: `true` oder `false`
-- `static`: vorhanden, wenn das **Symbol** statisch ist
+- `static`: vorhanden, wenn das Symbol statisch ist
 - `visibility=public|private|protected`
-- `receiver=*TypeName`: für Methoden, gibt den Empfängertyp an
+- `receiver=*Typname`: für Methoden, gibt den Empfängertyp an
 
 ### Symbolkategorien und -arten
 
-| Kategorie  | Arten                          | Beispiele                              |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Kategorie   | Arten                          | Beispiele                               |
+| ----------- | ------------------------------ | --------------------------------------- |
+| `callable`  | function, method, constructor  | `callable/function`, `callable/method` |
+| `type`      | class, interface, struct, enum | `type/class`, `type/interface`          |
+| `value`     | variable, constant, field      | `value/variable`, `value/constant`     |
+| `module`    | package, namespace             | `module/package`                        |
+| `meta`      | type parameters, metadata      | `meta/type_parameter`                   |
 
 ### Beispiel
 
@@ -70,28 +70,28 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-Der Abschnitt `[edges]` definiert Beziehungen zwischen **Symbolen** mithilfe ihrer ShortIDs.
+Der Abschnitt `[edges]` definiert Beziehungen zwischen Symbolen unter Verwendung ihrer ShortIDs.
 
 ### Zeilenformat
 
 ```
-FromID --kind--> ToID1, ToID2
+VonID --Art--> NachID1, NachID2
 ```
 
 Mehrere Ziel-IDs werden durch Kommas getrennt. Jede Zeile stellt eine gerichtete Beziehung dar.
 
 ### Kantenarten
 
-| Art          | Bedeutung                                      |
-| ------------ | ---------------------------------------------- |
-| `calls`      | Aufruf einer Funktion/Methode                  |
-| `contains`   | Klasse enthält Methode, Modul enthält Funktion |
-| `inherits`   | Klasse erbt von einer anderen Klasse           |
-| `implements` | Klasse implementiert Interface                 |
-| `overrides`  | Methode überschreibt Elternmethode             |
-| `references` | **Symbol** referenziert ein anderes **Symbol** |
-| `imports`    | Modul importiert ein anderes Modul             |
-| `decorates`  | Dekorator wird auf ein **Symbol** angewendet   |
+| Art          | Bedeutung                                         |
+| ------------ | ------------------------------------------------- |
+| `calls`      | Aufruf einer Funktion/Methode                     |
+| `contains`   | Klasse enthält Methode, Modul enthält Funktion    |
+| `inherits`   | Klasse erweitert eine andere Klasse               |
+| `implements` | Klasse implementiert Interface                    |
+| `overrides`  | Methode überschreibt Elternmethode                |
+| `references` | Symbol referenziert ein anderes Symbol            |
+| `imports`    | Modul importiert ein anderes Modul                |
+| `decorates`  | Dekorator wird auf ein Symbol angewendet          |
 
 ### Beispiel
 
@@ -112,7 +112,7 @@ Der Abschnitt `[errors]` listet Dateien auf, die nicht vollständig geparst werd
 Jede Zeile beginnt mit `-`, gefolgt vom Dateipfad und der Fehlermeldung:
 
 ```
-- path/to/file.go: syntax error at line 42
+- Pfad/zur/Datei.go: Syntaxfehler in Zeile 42
 ```
 
 ### Beispiel
@@ -125,7 +125,7 @@ Jede Zeile beginnt mit `-`, gefolgt vom Dateipfad und der Fehlermeldung:
 
 ## [dict]
 
-Der Abschnitt `[dict]` erscheint nur, wenn das Flag `--minify` verwendet wird. Er bildet kurze Dictionary-Codes auf wiederholte String-Token ab, um die Ausgabegöße zu reduzieren.
+Der Abschnitt `[dict]` erscheint nur, wenn das Flag `--minify` verwendet wird. Er bildet kurze Dictionary-Codes auf wiederholte String-Tokens ab, um die Ausgabegröße zu reduzieren.
 
 ### Format
 

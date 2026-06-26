@@ -5,14 +5,14 @@ description: 将 codeknit 设置为 Kiro、Claude Code 及其他 AI 编码助手
 
 codeknit 内置了预制的技能，可教会 AI 编码助手如何有效使用它。这些技能使助手能够提取代码结构、检测重复代码并执行结构分析，而无需手动提示。
 
-## 技能概述
+## 技能概览
 
-codeknit 提供了两个技能：
+codeknit 提供两个技能：
 
 - **`codeknit-parse`**：教会助手提取代码结构（函数、类、方法、变量）及关系（调用、继承、包含）到 `.skt` 文件。
 - **`codeknit-fingerprint`**：教会助手使用模糊哈希检测重复和近似重复代码。
 
-每个技能都包含文档，助手可按需阅读以了解用法、标志、输出格式和工作流程。
+每个技能都包含文档，助手可按需阅读以了解用法、标志、输出模式及工作流程。
 
 ## 安装
 
@@ -32,15 +32,15 @@ cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
 cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
 ```
 
-安装后，助手将自动学会如何调用 codeknit 命令、选择适当的标志并解析 `.skt` 输出。
+安装后，助手将自动知晓如何调用 codeknit 命令、选择适当的标志并解析 `.skt` 输出。
 
-## 各技能的功能
+## 每个技能的作用
 
 ### codeknit-parse
 
 `codeknit-parse` 技能教会助手：
 
-- 使用适当的标志运行 `codeknit parse` 以应对不同场景
+- 根据不同场景运行带有适当标志的 `codeknit parse`
 - 选择正确的输出模式：
   - `directory-flat`（默认）适用于大多数项目
   - `inline` 适用于单个文件或小型输入
@@ -57,7 +57,7 @@ cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
 - 选择适当的相似度范围（`--min-similarity`、`--max-similarity`）
 - 读取 `[duplicates]` 部分以识别近似重复代码
 - 理解 fingerprints 测量的是结构形状，而非语义意图
-- 在需要时使用 `--rerank` 结合 Ollama 嵌入减少误报
+- 在需要时使用 `--rerank` 与 Ollama 嵌入来减少误报
 
 ## 工作流示例
 
@@ -83,7 +83,7 @@ S1 --contains--> S2
 1. 要求助手查找重复代码
 2. 助手运行 `codeknit fingerprint ./src`
 3. 助手读取输出中的 `[duplicates]` 部分
-4. 助手调查被标记的代码对并提出合并建议
+4. 助手调查标记的代码对并提出合并建议
 
 ```skt
 [duplicates]
@@ -97,4 +97,4 @@ S3, S4: 76% 相似度
 - 使用 `codeknit graph analyze` 揭示代码质量问题，如循环依赖、枢纽符号和深度继承链
 - 在大型重构前运行 `codeknit fingerprint` 以识别应合并的复制粘贴代码
 - `.skt` 格式专为令牌高效设计，非常适合 LLM 上下文窗口
-- 处理大型代码库时使用 `--minify` 进一步减少令牌使用
+- 在处理大型代码库时使用 `--minify` 进一步减少令牌使用

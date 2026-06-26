@@ -1,9 +1,9 @@
 ---
 title: Commande Fingerprint
-description: Détecter les doublons et quasi-doublons de code entre fichiers et langages à l'aide de hachage flou.
+description: Détectez les doublons et quasi-doublons de code dans les fichiers et les langages à l'aide de hachage flou.
 ---
 
-La commande `codeknit fingerprint` détecte les doublons et quasi-doublons de code dans votre base de code en utilisant le **Context-Triggered Piecewise Hashing (CTPH)**. Elle fonctionne entre fichiers et même entre langages de programmation en normalisant les noms de variables, les littéraux de chaîne et les annotations de type avant de calculer les empreintes structurelles.
+La commande `codeknit fingerprint` détecte les doublons et quasi-doublons de code dans votre base de code en utilisant le **Context-Triggered Piecewise Hashing (CTPH)**. Elle fonctionne entre les fichiers et même entre les langages de programmation en normalisant les noms de variables, les littéraux de chaîne et les annotations de type avant de calculer les empreintes structurelles.
 
 ## Ce qu'elle fait
 
@@ -11,10 +11,10 @@ La commande `codeknit fingerprint` détecte les doublons et quasi-doublons de co
 
 - Le flux de contrôle (`if`, `for`, `while`, `switch`)
 - Les opérations (`=`, `+`, `==`, `&&`, `||`)
-- Les appels, retours, affectations et créations d'objets
+- Les appels, retours, affectations et création d'objets
 - Les constructions du langage comme `try/catch`, `yield`, `await`, `defer`
 
-Cette normalisation signifie que les **copier-coller renommés**, les **refactorisations triviales** et la **logique équivalente dans différents langages** peuvent encore être détectés comme des doublons.
+Cette normalisation signifie que le **copier-coller renommé**, les **refactorisations triviales** et la **logique équivalente dans différents langages** peuvent encore être détectés comme des doublons.
 
 L'algorithme utilise le **CTPH** (une variante de hachage roulant) pour trouver efficacement les quasi-doublons. Un code similaire produit des empreintes similaires, permettant une correspondance floue même lorsque le code a été légèrement modifié.
 
@@ -33,17 +33,17 @@ Cette commande :
 
 ## Options
 
-| Option             | Valeur par défaut             | Description                                                                                                                                                                        |
-| ------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Chemin du fichier `.skt` de sortie                                                                                                                                                 |
-| `--min-similarity` | `65`                          | Pourcentage de similarité minimum à signaler (0–100)                                                                                                                               |
-| `--max-similarity` | `95`                          | Pourcentage de similarité maximum à signaler (0–100)                                                                                                                               |
-| `--show-all`       | `false`                       | Inclure la section `[fingerprints]` avec les données brutes des jetons                                                                                                             |
-| `--rerank`         | `false`                       | Reclasser les candidats CTPH en utilisant des embeddings sémantiques via Ollama pour éliminer les faux positifs (nécessite : `ollama serve` et `ollama pull qwen3-embedding:0.6b`) |
-| `--model`          | `qwen3-embedding:0.6b`        | Modèle d'embedding Ollama à utiliser avec `--rerank`                                                                                                                               |
-| `--collect-test`   | `false`                       | Inclure les fichiers de test dans l'analyse                                                                                                                                        |
-| `--workers`        | `NumCPU`                      | Nombre maximal de goroutines de parsing concurrentes (0 = utiliser tous les cœurs CPU)                                                                                             |
-| `--verbose`        | `false`                       | Afficher des informations de progression pendant le traitement                                                                                                                     |
+| Option              | Valeur par défaut              | Description                                                                                                                                                |
+| ------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-o`, `--output`    | `./skeleton/fingerprints.skt`  | Chemin du fichier `.skt` de sortie                                                                                                                         |
+| `--min-similarity`  | `65`                           | Pourcentage de similarité minimum à signaler (0–100)                                                                                                       |
+| `--max-similarity`  | `95`                           | Pourcentage de similarité maximum à signaler (0–100)                                                                                                       |
+| `--show-all`        | `false`                        | Inclut la section `[fingerprints]` avec les données brutes des jetons                                                                                      |
+| `--rerank`          | `false`                        | Reclasse les candidats CTPH en utilisant des embeddings sémantiques via Ollama pour éliminer les faux positifs (nécessite : `ollama serve` et `ollama pull qwen3-embedding:0.6b`) |
+| `--model`           | `qwen3-embedding:0.6b`         | Modèle d'embedding Ollama à utiliser avec `--rerank`                                                                                                       |
+| `--collect-test`    | `false`                        | Inclut les fichiers de test dans l'analyse                                                                                                                 |
+| `--workers`         | `NumCPU`                       | Nombre maximal de goroutines de parsing concurrentes (0 = utiliser tous les cœurs CPU)                                                                     |
+| `--verbose`         | `false`                        | Affiche des informations de progression pendant le traitement                                                                                              |
 
 ## Format de sortie
 
@@ -86,7 +86,7 @@ Cette section est utile pour le débogage ou la création d'outils en aval.
 
 ```bash
 # Analyse par défaut
-codeknit fingerprint /codeknit/fr/getting-started/
+codeknit fingerprint ./src
 ```
 
 ```bash
@@ -122,18 +122,18 @@ codeknit fingerprint ./src -o duplicates.skt
 
 ## Choix d'une plage de similarité
 
-| Plage    | Recommandation                                                                                                                   |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 96–100 % | Doublons structurels exacts ou quasi exacts. Presque certainement du copier-coller.                                              |
-| 85–95 %  | Quasi-doublons. Généralement du copier-coller avec des modifications mineures (par exemple, variables renommées, ajout de logs). |
-| 65–84 %  | Plage par défaut. Forte similarité structurelle. Bons candidats pour le refactoring.                                             |
-| 50–64 %  | Similarité modérée. Même forme algorithmique mais détails différents. À examiner manuellement.                                   |
-| < 50 %   | Généralement du bruit. Pas de duplication significative.                                                                         |
+| Plage     | Recommandation                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------- |
+| 96–100 %  | Doublons structurels exacts ou quasi exacts. Presque certainement du copier-coller.                |
+| 85–95 %   | Quasi-doublons. Généralement du copier-coller avec des modifications mineures (par exemple, variables renommées, ajout de logs). |
+| 65–84 %   | Plage par défaut. Forte similarité structurelle. Bons candidats pour le refactoring.               |
+| 50–64 %   | Similarité modérée. Même forme algorithmique mais détails différents. À examiner manuellement.    |
+| < 50 %    | Généralement du bruit. Pas de duplication significative.                                          |
 
 ## Conseils
 
-- **Les empreintes mesurent la structure, pas la signification** : Un score de similarité élevé signifie que le code _ressemble_ à un autre, pas qu'il _fait_ la même chose. Toujours examiner les deux symboles.
-- **Utilisez `--rerank` pour des résultats bruyants** : Si vous obtenez beaucoup de faux positifs, activez le reclassement sémantique pour filtrer les correspondances en utilisant des embeddings.
+- **Les empreintes mesurent la structure, pas la signification** : Un score de similarité élevé signifie que le code *ressemble* à un autre, pas qu'il *fait* la même chose. Toujours examiner les deux symboles.
+- **Utilisez `--rerank` pour les résultats bruyants** : Si vous obtenez beaucoup de faux positifs, activez le reclassement sémantique pour filtrer les correspondances en utilisant des embeddings.
 - **Les corps courts sont ignorés** : Les symboles avec moins de 4 jetons normalisés (par exemple, les accesseurs simples) sont ignorés pour éviter le bruit.
-- **La correspondance inter-langages fonctionne** : Des constructions équivalentes (par exemple, une fonction Python et une fonction Go avec la même logique) peuvent correspondre, mais les motifs spécifiques à un langage peuvent produire des correspondances de faible similarité non pertinentes.
+- **La correspondance inter-langages fonctionne** : Les constructions équivalentes (par exemple, une fonction Python et une fonction Go avec la même logique) peuvent correspondre, mais les motifs spécifiques à un langage peuvent produire des correspondances de faible similarité non pertinentes.
 - **Une correspondance est un signal, pas un verdict** : Considérez chaque correspondance comme une invitation à enquêter — pas comme une preuve automatique de duplication.

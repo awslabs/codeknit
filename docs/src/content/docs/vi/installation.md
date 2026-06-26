@@ -3,7 +3,7 @@ title: Cài đặt
 description: Cách cài đặt codeknit trên hệ thống của bạn.
 ---
 
-codeknit có thể được cài đặt từ mã nguồn. Các bước sau sẽ hướng dẫn bạn thiết lập codeknit trên hệ thống của mình.
+codeknit có thể được cài đặt từ mã nguồn. Các bước sau đây sẽ hướng dẫn bạn thiết lập codeknit trên hệ thống của mình.
 
 ## Từ mã nguồn
 

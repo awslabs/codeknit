@@ -1,18 +1,18 @@
 ---
 title: Erste Schritte
-description: codeknit in weniger als 5 Minuten einrichten und loslegen.
+description: codeknit in unter 5 Minuten in Betrieb nehmen.
 ---
 
 # Erste Schritte
 
-codeknit in weniger als 5 Minuten einrichten und loslegen.
+codeknit in unter 5 Minuten in Betrieb nehmen.
 
 ## 1. Voraussetzungen
 
 Sie benötigen:
 
 - Go 1.26+
-- Einen C-Compiler (CGo wird für tree-sitter benötigt)
+- Einen C-Compiler (CGo ist für tree-sitter erforderlich)
 
 ## 2. Installation aus dem Quellcode
 
@@ -25,7 +25,7 @@ make build
 
 ## 3. Zum PATH hinzufügen
 
-Fügen Sie das Binary zu Ihrem Shell-PATH hinzu:
+Fügen Sie das Binary zur PATH-Umgebungsvariable Ihrer Shell hinzu:
 
 ```bash
 # bash (~/.bashrc)
@@ -42,13 +42,13 @@ Laden Sie Ihre Shell neu oder führen Sie `source ~/.bashrc` (oder `~/.zshrc`) a
 
 ## 4. Installation überprüfen
 
-Prüfen Sie, ob codeknit funktioniert:
+Stellen Sie sicher, dass codeknit funktioniert:
 
 ```bash
 codeknit --version
 ```
 
-## 5. Erster Parse-Vorgang
+## 5. Ersten Parse-Vorgang durchführen
 
 Führen Sie Ihren ersten Parse-Vorgang für ein Code-Repository durch:
 
@@ -60,7 +60,7 @@ Dieser Befehl:
 
 - Parst alle Quelldateien in `./myproject`
 - Extrahiert strukturelle Informationen (Funktionen, Klassen, Beziehungen)
-- Schreibt chunked `.skt`-Dateien in `./skeleton/` (Standard-Ausgabeverzeichnis)
+- Schreibt chunkierte `.skt`-Dateien in `./skeleton/` (Standard-Ausgabeverzeichnis)
 
 Wenn Sie diesen Befehl erneut ausführen, verwenden Sie `--clean`, um vorherige Ausgaben zu entfernen:
 
@@ -95,7 +95,7 @@ Wichtige Abschnitte:
 Nachdem Sie Ihren ersten Parse-Vorgang durchgeführt haben:
 
 - Erfahren Sie mehr über den Parse-Befehl: [Parse-Befehlsleitfaden](/codeknit/de/guides/parse-command/)
-- Entdecken Sie strukturelle Analysen: [Graph-Befehlsleitfaden](/codeknit/de/guides/graph-commands/)
-- Verstehen Sie die Duplikat-Erkennung: [Fingerprint-Befehlsleitfaden](/codeknit/de/guides/fingerprint-command/)
+- Erkunden Sie die strukturelle Analyse: [Graph-Befehlsleitfaden](/codeknit/de/guides/graph-commands/)
+- Verstehen Sie die Duplikaterkennung: [Fingerprint-Befehlsleitfaden](/codeknit/de/guides/fingerprint-command/)
 - Lesen Sie das vollständige Ausgabeformat: [Ausgabeformat-Referenz](/codeknit/de/reference/output-format/)
 - Sehen Sie sich alle verfügbaren Flags an: [CLI-Flags-Referenz](/codeknit/de/reference/cli-flags/)

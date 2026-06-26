@@ -1,11 +1,11 @@
 ---
-title: Prise en main
-description: Mettez en route codeknit en moins de 5 minutes.
+title: Démarrer
+description: Prenez en main codeknit en moins de 5 minutes.
 ---
 
-# Prise en main
+# Démarrer
 
-Mettez en route codeknit en moins de 5 minutes.
+Prenez en main codeknit en moins de 5 minutes.
 
 ## 1. Prérequis
 
@@ -14,7 +14,7 @@ Vous aurez besoin de :
 - Go 1.26+
 - Un compilateur C (CGo est requis pour tree-sitter)
 
-## 2. Installation depuis la source
+## 2. Installation depuis les sources
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -23,7 +23,7 @@ make build
 # Le binaire se trouve dans ./bin/codeknit
 ```
 
-## 3. Ajout au PATH
+## 3. Ajouter au PATH
 
 Ajoutez le binaire au PATH de votre shell :
 
@@ -38,9 +38,9 @@ export PATH="$PATH:$(pwd)/bin"
 fish_add_path $(pwd)/bin
 ```
 
-Rechargez votre shell ou exécutez `source ~/.bashrc` (ou `~/.zshrc`) pour que la modification prenne effet.
+Rechargez votre shell ou exécutez `source ~/.bashrc` (ou `~/.zshrc`) pour que la modification soit prise en compte.
 
-## 4. Vérification de l'installation
+## 4. Vérifier l'installation
 
 Vérifiez que codeknit fonctionne :
 
@@ -59,10 +59,10 @@ codeknit parse ./myproject
 Cette commande :
 
 - Analyse tous les fichiers source dans `./myproject`
-- Extrait des informations structurelles (fonctions, classes, relations)
-- Écrit des fichiers `.skt` segmentés dans `./skeleton/` (répertoire de sortie par défaut)
+- Extrait les informations structurelles (fonctions, classes, relations)
+- Écrit les fichiers `.skt` découpés dans `./skeleton/` (répertoire de sortie par défaut)
 
-Si vous réexécutez cette commande, utilisez `--clean` pour supprimer les sorties précédentes :
+Si vous relancez cette commande, utilisez `--clean` pour supprimer les résultats précédents :
 
 ```bash
 codeknit parse ./myproject --clean
@@ -94,8 +94,8 @@ Sections clés :
 
 Maintenant que vous avez exécuté votre première analyse :
 
-- Apprenez-en plus sur la commande parse : [Guide de la commande parse](/codeknit/fr/guides/parse-command/)
-- Explorez l'analyse de structure : [Guide des commandes de graphe](/codeknit/fr/guides/graph-commands/)
-- Comprenez la détection des doublons : [Guide de la commande fingerprint](/codeknit/fr/guides/fingerprint-command/)
-- Consultez le format de sortie complet : [Référence du format de sortie](/codeknit/fr/reference/output-format/)
+- En savoir plus sur la commande parse : [Guide de la commande parse](/codeknit/fr/guides/parse-command/)
+- Explorer l'analyse structurelle : [Guide des commandes graph](/codeknit/fr/guides/graph-commands/)
+- Comprendre la détection des doublons : [Guide de la commande fingerprint](/codeknit/fr/guides/fingerprint-command/)
+- Lire le format de sortie complet : [Référence du format de sortie](/codeknit/fr/reference/output-format/)
 - Voir tous les indicateurs disponibles : [Référence des indicateurs CLI](/codeknit/fr/reference/cli-flags/)

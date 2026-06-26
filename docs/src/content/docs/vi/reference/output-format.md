@@ -1,11 +1,11 @@
 ---
-title: Tài liệu tham khảo định dạng đầu ra
+title: Tài liệu tham khảo về Định dạng Đầu ra
 description: Tài liệu tham khảo đầy đủ về định dạng đầu ra .skt được sử dụng bởi codeknit.
 ---
 
-Định dạng `.skt` (skeleton) là một định dạng văn bản nhỏ gọn, dễ đọc được `codeknit` sử dụng để biểu diễn cấu trúc mã đã trích xuất. Nó chứa các ký hiệu, mối quan hệ và siêu dữ liệu ở dạng tối giản phù hợp cho việc tiêu thụ bởi LLM và phân tích cấu trúc.
+Định dạng `.skt` (skeleton) là một định dạng văn bản nhỏ gọn, dễ đọc được `codeknit` sử dụng để biểu diễn cấu trúc mã đã trích xuất. Nó chứa các ký hiệu, mối quan hệ và siêu dữ liệu dưới dạng tối giản phù hợp cho việc tiêu thụ bởi LLM và phân tích cấu trúc.
 
-Tệp `.skt` được chia thành các phần. Mỗi phần bắt đầu bằng một tiêu đề trong dấu ngoặc vuông. Các phần có thể xuất hiện theo bất kỳ thứ tự nào, mặc dù `[symbols]` thường xuất hiện đầu tiên.
+Một tệp `.skt` được chia thành các phần. Mỗi phần bắt đầu bằng một tiêu đề trong dấu ngoặc vuông. Các phần có thể xuất hiện theo bất kỳ thứ tự nào, mặc dù `[symbols]` thường xuất hiện đầu tiên.
 
 ## [symbols]
 
@@ -13,7 +13,7 @@ Phần `[symbols]` liệt kê tất cả các ký hiệu đã trích xuất đư
 
 ### Định dạng dòng
 
-Mỗi ký hiệu được biểu diễn trên một dòng duy nhất với cấu trúc sau:
+Mỗi ký hiệu được biểu diễn trên một dòng với cấu trúc sau:
 
 ```
 ShortID category/kind Lstart-Lend signature {properties}
@@ -23,12 +23,12 @@ ShortID category/kind Lstart-Lend signature {properties}
 
 - **ShortID**: Một định danh tuần tự được gán cho mỗi ký hiệu (ví dụ: `S1`, `S2`, `S3`). Được sử dụng làm tham chiếu trong các cạnh và các phần khác.
 - **category/kind**: Một cặp phân cách bằng dấu gạch chéo cho biết danh mục và loại cụ thể của ký hiệu.
-- **Lstart-Lend**: phạm vi dòng trong tệp nguồn nơi ký hiệu được định nghĩa (ví dụ: `L10-L15`).
+- **Lstart-Lend**: Phạm vi dòng trong tệp nguồn nơi ký hiệu được định nghĩa (ví dụ: `L10-L15`).
 - **signature**: Tên và thông tin kiểu của ký hiệu. Định dạng phụ thuộc vào ký hiệu:
   - `name` — cho các loại, giá trị, mô-đun
   - `name(params)` — cho các callable không có kiểu trả về
   - `name(params) -> returnType` — cho các callable có kiểu trả về
-- **{properties}**: Siêu dữ liệu tùy chọn được đặt trong dấu ngoặc nhọn. Nhiều thuộc tính được phân cách bằng dấu phẩy.
+- **{properties}**: Siêu dữ liệu tùy chọn được bao trong dấu ngoặc nhọn. Nhiều thuộc tính được phân cách bằng dấu phẩy.
 
 ### Tham số
 
@@ -48,13 +48,13 @@ Các thuộc tính phổ biến bao gồm:
 
 ### Danh mục và loại ký hiệu
 
-| Danh mục   | Loại                           | Ví dụ                                  |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Danh mục    | Loại                            | Ví dụ                                  |
+| ----------- | ------------------------------- | -------------------------------------- |
+| `callable`  | function, method, constructor   | `callable/function`, `callable/method` |
+| `type`      | class, interface, struct, enum  | `type/class`, `type/interface`         |
+| `value`     | variable, constant, field       | `value/variable`, `value/constant`     |
+| `module`    | package, namespace              | `module/package`                       |
+| `meta`      | type parameters, metadata       | `meta/type_parameter`                  |
 
 ### Ví dụ
 
@@ -82,16 +82,16 @@ Nhiều ID đích được phân cách bằng dấu phẩy. Mỗi dòng biểu d
 
 ### Các loại cạnh
 
-| Loại         | Ý nghĩa                                    |
-| ------------ | ------------------------------------------ |
-| `calls`      | lời gọi hàm/phương thức                    |
-| `contains`   | lớp chứa phương thức, mô-đun chứa hàm      |
-| `inherits`   | lớp kế thừa từ lớp khác                    |
-| `implements` | lớp triển khai giao diện                   |
-| `overrides`  | phương thức ghi đè phương thức của lớp cha |
-| `references` | ký hiệu tham chiếu đến ký hiệu khác        |
-| `imports`    | mô-đun nhập mô-đun khác                    |
-| `decorates`  | decorator được áp dụng cho một ký hiệu     |
+| Loại         | Ý nghĩa                                         |
+| ------------ | ----------------------------------------------- |
+| `calls`      | lời gọi hàm/phương thức                         |
+| `contains`   | lớp chứa phương thức, mô-đun chứa hàm          |
+| `inherits`   | lớp kế thừa lớp khác                            |
+| `implements` | lớp triển khai giao diện                        |
+| `overrides`  | phương thức ghi đè phương thức cha              |
+| `references` | ký hiệu tham chiếu đến ký hiệu khác             |
+| `imports`    | mô-đun nhập mô-đun khác                         |
+| `decorates`  | decorator được áp dụng cho một ký hiệu          |
 
 ### Ví dụ
 
@@ -105,7 +105,7 @@ S24 --implements--> S19
 
 ## [errors]
 
-Phần `[errors]` liệt kê các tệp không thể được phân tích cú pháp hoàn toàn.
+Phần `[errors]` liệt kê các tệp không thể phân tích cú pháp hoàn toàn.
 
 ### Định dạng
 
@@ -125,7 +125,7 @@ Mỗi dòng bắt đầu bằng `-` theo sau là đường dẫn tệp và thôn
 
 ## [dict]
 
-Phần `[dict]` chỉ xuất hiện khi sử dụng cờ `--minify`. Nó ánh xạ các mã từ điển ngắn tới các token chuỗi lặp lại để giảm kích thước đầu ra.
+Phần `[dict]` chỉ xuất hiện khi sử dụng cờ `--minify`. Nó ánh xạ các mã từ điển ngắn tới các chuỗi ký tự lặp lại để giảm kích thước đầu ra.
 
 ### Định dạng
 

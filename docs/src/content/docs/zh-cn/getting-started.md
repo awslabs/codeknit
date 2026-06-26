@@ -1,9 +1,9 @@
 ---
-title: 快速开始
+title: 快速入门
 description: 在5分钟内开始使用 codeknit。
 ---
 
-# 快速开始
+# 快速入门
 
 在5分钟内开始使用 codeknit。
 
@@ -56,7 +56,7 @@ codeknit --version
 codeknit parse ./myproject
 ```
 
-该命令将：
+此命令：
 
 - 解析 `./myproject` 中的所有源文件
 - 提取结构信息（函数、类、关系）

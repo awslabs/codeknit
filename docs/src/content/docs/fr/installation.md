@@ -82,7 +82,7 @@ Après l'installation, vérifiez que codeknit est correctement configuré :
 codeknit --version
 ```
 
-## Configuration de développement
+## Configuration pour le développement
 
 Si vous contribuez à codeknit, exécutez ces commandes supplémentaires :
 

@@ -1,14 +1,14 @@
 ---
 title: codeknit
-description: LLMを活用したリファクタリングのための静的コード構造抽出ツール
+description: LLM を活用したリファクタリングのための静的コード構造抽出ツール
 template: splash
 hero:
-  tagline: ソースコードをLLMが実際に利用可能なコンパクトな構造マップにパース
+  tagline: ソースコードを解析し、LLM が実際に利用可能なコンパクトな構造マップに変換
   actions:
     - text: はじめる
       link: /codeknit/ja/getting-started/
       icon: right-arrow
-    - text: GitHubで見る
+    - text: GitHub で見る
       link: https://github.com/awslabs/codeknit
       variant: minimal
       icon: github
@@ -18,10 +18,10 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
 
 <CardGrid>
   <Card title="12言語" icon="translate">
-    C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala、TypeScriptに対応。
+    C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala、TypeScript に対応。
   </Card>
   <Card title="コンパクトな出力" icon="document">
-    最適なLLMコンテキスト利用のために、ミニファイと複数の出力モード（インライン、フラット、ツリー）を備えた`.skt`ファイルを生成。
+    最適なLLMコンテキスト利用のため、`.skt` ファイルを生成。ミニファイや複数の出力モード（インライン、フラット、ツリー）をサポート。
   </Card>
   <Card title="グラフ分析" icon="random">
     17以上の構造アルゴリズムを使用して、循環依存、ハブ、デッドコード、ゴッドクラス、ボトルネックなどを検出。
@@ -30,7 +30,6 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
     CTPHフィンガープリントを使用して、ファイルや言語をまたいだ重複および近似重複コードを検出。
   </Card>
   <Card title="AI対応" icon="rocket">
-    KiroおよびClaude
-    Code用の組み込みスキルを備え、AIアシスタントがコード構造を自律的にパースおよび分析できるようにします。
+    KiroやClaude Code向けの組み込みスキルを提供し、AIアシスタントがコード構造を自律的に解析・分析できるようにします。
   </Card>
 </CardGrid>

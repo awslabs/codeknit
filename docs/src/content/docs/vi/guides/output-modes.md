@@ -3,15 +3,17 @@ title: Chế độ đầu ra
 description: Chọn chế độ đầu ra phù hợp cho kích thước dự án và quy trình làm việc của bạn.
 ---
 
-codeknit hỗ trợ ba chế độ đầu ra, được điều khiển bởi cờ `--output-mode`. Mỗi chế độ xác định cách cấu trúc mã được trích xuất ghi vào đĩa (hoặc stdout).
+codeknit hỗ trợ ba chế độ đầu ra, được điều khiển bởi cờ `--output-mode`. Mỗi chế độ xác định cách cấu trúc mã được trích xuất được ghi vào đĩa (hoặc stdout).
+
+Chế độ đầu ra tách biệt với định dạng đầu ra. Định dạng mặc định là `.skt`; truyền `--format json` để xuất kết quả phân tích cú pháp dưới dạng JSON có thể đọc được bằng máy. Trong các chế độ thư mục, JSON được ghi vào `codeknit.json`. Trong chế độ `inline`, JSON được ghi vào stdout.
 
 ### directory-flat (mặc định, được khuyến nghị)
 
 - **Hành vi**: Ghi các tệp `.skt` phân mảnh như `map_001.skt`, `map_002.skt`, v.v.
 - **Thư mục đầu ra**: `./skeleton/` theo mặc định
-- **Phân mảnh**: Các tệp được phân mảnh khi vượt quá giới hạn `--max-lines` (mặc định: 500 dòng)
+- **Phân chia**: Các tệp được phân chia khi vượt quá giới hạn `--max-lines` (mặc định: 500 dòng)
 - **Trường hợp sử dụng**: Tốt nhất cho hầu hết các dự án. Giữ đầu ra có tổ chức và dễ đọc bằng cách giới hạn kích thước tệp. Bạn có thể chỉ đọc các phân mảnh liên quan đến nhiệm vụ của mình.
-- **Nén**: Khi `--minify` được bật, một tệp `dict.skt` cũng được tạo trong thư mục đầu ra, chứa ánh xạ token cho các giá trị đã nén.
+- **Rút gọn**: Khi `--minify` được bật, một tệp `dict.skt` cũng được tạo trong thư mục đầu ra, chứa ánh xạ token cho các giá trị đã nén.
 
 Ví dụ:
 
@@ -25,7 +27,7 @@ codeknit parse ./src
 - **Hành vi**: Phản ánh chính xác cấu trúc thư mục nguồn.
 - **Thư mục đầu ra**: `./skeleton/` theo mặc định
 - **Ánh xạ**: Một tệp `.skt` được tạo cho mỗi tệp nguồn, tại đường dẫn tương ứng.
-- **Trường hợp sử dụng**: Lý tưởng khi bạn muốn tra cứu nhanh cấu trúc của một tệp cụ thể. Hữu ích cho việc điều hướng cùng với mã nguồn gốc.
+- **Trường hợp sử dụng**: Lý tưởng khi bạn muốn tra cứu nhanh cấu trúc của một tệp cụ thể. Hữu ích cho việc điều hướng cùng với cơ sở mã gốc.
 
 Ví dụ:
 
@@ -38,7 +40,7 @@ codeknit parse ./src --output-mode directory-tree
 
 - **Hành vi**: Xuất tất cả đầu ra ra stdout.
 - **Thư mục đầu ra**: Không tạo thư mục
-- **Trường hợp sử dụng**: Chỉ được khuyến nghị cho các tệp đơn hoặc dự án rất nhỏ (ít hơn 5 tệp). Hữu ích khi chuyển đầu ra đến một công cụ khác hoặc kiểm tra một tệp đơn lẻ tương tác.
+- **Trường hợp sử dụng**: Chỉ được khuyến nghị cho các tệp đơn hoặc các dự án rất nhỏ (ít hơn 5 tệp). Hữu ích khi chuyển tiếp đầu ra đến một công cụ khác hoặc kiểm tra một tệp đơn tương tác.
 
 Ví dụ:
 
@@ -47,32 +49,88 @@ codeknit parse ./src/main.go --output-mode inline
 # Đầu ra: in trực tiếp ra terminal
 ```
 
+### Định dạng JSON
+
+- **Hành vi**: Xuất một tài liệu JSON duy nhất chứa `files`, `symbols`, tùy chọn `edges`, và tùy chọn `errors`.
+- **Vị trí đầu ra**: `codeknit.json` trong các chế độ thư mục, hoặc stdout trong chế độ `inline`.
+- **Trường hợp sử dụng**: Tốt nhất cho các tập lệnh, tích hợp trình soạn thảo, kiểm tra CI, và các công cụ cần dữ liệu có cấu trúc.
+
+Ví dụ:
+
+```bash
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+Mẫu đầu ra:
+
+```json
+{
+  "files": ["app.go"],
+  "symbols": [
+    {
+      "id": "app.go::User",
+      "short_id": "S1",
+      "name": "User",
+      "file": "app.go",
+      "category": "type",
+      "kind": "struct",
+      "signature": "type User struct",
+      "span": [3, 3]
+    },
+    {
+      "id": "app.go::Save",
+      "short_id": "S2",
+      "name": "Save",
+      "file": "app.go",
+      "category": "callable",
+      "kind": "function",
+      "signature": "Save(u: S1)",
+      "span": [5, 5]
+    }
+  ],
+  "edges": [
+    {
+      "from": "app.go::Save",
+      "from_short": "S2",
+      "to": "app.go::User",
+      "to_short": "S1",
+      "kind": "references"
+    }
+  ]
+}
+```
+
 ### Bảng quyết định
 
-| Chế độ           | Phù hợp nhất cho                               | Vị trí đầu ra                                       |
-| ---------------- | ---------------------------------------------- | --------------------------------------------------- |
-| `directory-flat` | Hầu hết các dự án (mặc định, được khuyến nghị) | `./skeleton/map_001.skt`, `map_002.skt`, ...        |
-| `directory-tree` | Điều hướng đầu ra cùng với mã nguồn            | `./skeleton/<đường dẫn phản ánh>.skt`               |
-| `inline`         | Tệp đơn, chuyển đến công cụ khác               | stdout — chỉ sử dụng cho tệp đơn hoặc dự án rất nhỏ |
+| Chế độ            | Tốt nhất cho                              | Vị trí đầu ra                                      |
+| ----------------- | ----------------------------------------- | -------------------------------------------------- |
+| `directory-flat`  | Hầu hết các dự án (mặc định, được khuyến nghị) | `./skeleton/map_001.skt`, `map_002.skt`, ...        |
+| `directory-tree`  | Điều hướng đầu ra cùng với mã nguồn      | `./skeleton/<đường dẫn phản ánh>.skt`              |
+| `inline`          | Tệp đơn, chuyển tiếp đến công cụ khác    | stdout — chỉ sử dụng cho tệp đơn hoặc dự án rất nhỏ |
+
+| Định dạng | Tốt nhất cho                          | Đầu ra                                                   |
+| --------- | ------------------------------------- | -------------------------------------------------------- |
+| `skt`     | Ngữ cảnh LLM và kiểm tra thủ công     | Tệp `.skt` hoặc stdout                                   |
+| `json`    | Tập lệnh và tích hợp có cấu trúc      | `codeknit.json` trong các chế độ thư mục, hoặc stdout trong chế độ `inline` |
 
 ### Nguyên tắc chung
 
 - **Khi không chắc chắn** → sử dụng `directory-flat` (mặc định)
 - **Kiểm tra tệp đơn** → `inline` có thể chấp nhận được
 - **Nhiều hơn một vài tệp** → ưu tiên `directory-flat` hoặc `directory-tree`
-- **Dự án mã nguồn lớn** → thêm `--minify` để giảm sử dụng token
+- **Cơ sở mã lớn** → thêm `--minify` để giảm sử dụng token
 - **Chạy lại trên cùng đầu ra** → sử dụng `--clean` để xóa các tệp `.skt` cũ
 
-### Nén
+### Rút gọn
 
 Cờ `--minify` kích hoạt nén dựa trên từ điển cho các token lặp lại (ví dụ: các khóa thuộc tính như `exported`, `async`, hoặc các tên kiểu phổ biến). Khi được bật:
 
 - Các giá trị lặp lại được thay thế bằng các mã ngắn (`d0`, `d1`, `d2`, ...)
 - Một tệp `dict.skt` được ghi vào thư mục đầu ra, ánh xạ các mã với các giá trị gốc
-- Giảm đáng kể kích thước đầu ra cho các dự án mã nguồn lớn
+- Giảm đáng kể kích thước đầu ra cho các cơ sở mã lớn
 - Hoạt động trong cả hai chế độ `directory-flat` và `directory-tree`
 
-Ví dụ đầu ra đã nén:
+Ví dụ đầu ra đã rút gọn:
 
 ```skt
 [dict]

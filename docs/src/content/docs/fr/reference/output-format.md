@@ -3,17 +3,17 @@ title: Référence du format de sortie
 description: Référence complète du format de sortie .skt utilisé par codeknit.
 ---
 
-Le format `.skt` (skeleton) est un format texte compact et lisible par l'homme utilisé par `codeknit` pour représenter la structure du code extraite. Il contient des symboles, des relations et des métadonnées sous une forme minimale adaptée à la consommation par les LLM et à l'analyse structurelle.
+Le format `.skt` (skeleton) est un format texte compact et lisible par l'humain utilisé par `codeknit` pour représenter la **structure du code** extraite. Il contient des **symboles**, des relations et des métadonnées sous une forme minimale adaptée à la consommation par les LLM et à l'**analyse de graphe**.
 
 Un fichier `.skt` est divisé en sections. Chaque section commence par un en-tête entre crochets. Les sections peuvent apparaître dans n'importe quel ordre, bien que `[symbols]` apparaisse généralement en premier.
 
 ## [symbols]
 
-La section `[symbols]` liste tous les symboles extraits, regroupés par fichier source. Chaque fichier est introduit par un en-tête `##` suivi du chemin du fichier.
+La section `[symbols]` répertorie tous les **symboles** extraits, regroupés par fichier source. Chaque fichier est introduit par un en-tête `##` suivi du chemin du fichier.
 
 ### Format de ligne
 
-Chaque symbole est représenté sur une seule ligne avec la structure suivante :
+Chaque **symbole** est représenté sur une seule ligne avec la structure suivante :
 
 ```
 ShortID catégorie/type Ldébut-Lfin signature {propriétés}
@@ -21,20 +21,20 @@ ShortID catégorie/type Ldébut-Lfin signature {propriétés}
 
 ### Champs
 
-- **ShortID** : Un identifiant séquentiel attribué à chaque symbole (par exemple, `S1`, `S2`, `S3`). Utilisé comme référence dans les arêtes et autres sections.
-- **catégorie/type** : Une paire séparée par une barre oblique indiquant la catégorie et le type spécifique du symbole.
-- **Ldébut-Lfin** : La plage de lignes dans le fichier source où le symbole est défini (par exemple, `L10-L15`).
-- **signature** : Le nom et les informations de type du symbole. Le format dépend du symbole :
+- **ShortID** : Un identifiant séquentiel attribué à chaque **symbole** (par exemple, `S1`, `S2`, `S3`). Utilisé comme référence dans les **arêtes** et les autres sections.
+- **catégorie/type** : Une paire séparée par une barre oblique indiquant la catégorie et le type spécifique du **symbole**.
+- **Ldébut-Lfin** : La **plage de lignes** dans le fichier source où le **symbole** est défini (par exemple, `L10-L15`).
+- **signature** : Le nom et les informations de type du **symbole**. Le format dépend du **symbole** :
   - `nom` — pour les types, valeurs, modules
-  - `nom(paramètres)` — pour les callables sans type de retour
-  - `nom(paramètres) -> typeRetour` — pour les callables avec type de retour
+  - `nom(params)` — pour les **callables** sans type de retour
+  - `nom(params) -> typeRetour` — pour les **callables** avec type de retour
 - **{propriétés}** : Métadonnées optionnelles entre accolades. Plusieurs propriétés sont séparées par des virgules.
 
 ### Paramètres
 
-- Dans les langages non typés : `nomParamètre`
-- Dans les langages typés : `nomParamètre: type`
-- Les références de type qui correspondent à des symboles connus sont remplacées par leurs ShortIDs (par exemple, `config: S5` au lieu de `config: Config`).
+- Dans les langages non typés : `nomParam`
+- Dans les langages typés : `nomParam: type`
+- Les références de type qui correspondent à des **symboles** connus sont remplacées par leurs ShortID (par exemple, `config: S5` au lieu de `config: Config`).
 
 ### Propriétés
 
@@ -42,19 +42,19 @@ Propriétés courantes :
 
 - `async` : `true` ou `false`
 - `exported` : `true` ou `false`
-- `static` : présent si le symbole est statique
+- `static` : présent si le **symbole** est statique
 - `visibility=public|private|protected`
-- `receiver=*NomType` : pour les méthodes, indique le type du récepteur
+- `receiver=*NomType` : pour les méthodes, indique le type récepteur
 
 ### Catégories et types de symboles
 
-| Catégorie  | Types                          | Exemples                               |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Catégorie   | Types                          | Exemples                               |
+| ----------- | ------------------------------ | -------------------------------------- |
+| `callable`  | function, method, constructor  | `callable/function`, `callable/method` |
+| `type`      | class, interface, struct, enum | `type/class`, `type/interface`         |
+| `value`     | variable, constant, field      | `value/variable`, `value/constant`     |
+| `module`    | package, namespace             | `module/package`                       |
+| `meta`      | type parameters, metadata      | `meta/type_parameter`                  |
 
 ### Exemple
 
@@ -70,7 +70,7 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-La section `[edges]` définit les relations entre les symboles en utilisant leurs ShortIDs.
+La section `[edges]` définit les relations entre les **symboles** en utilisant leurs ShortID.
 
 ### Format de ligne
 
@@ -78,20 +78,20 @@ La section `[edges]` définit les relations entre les symboles en utilisant leur
 IDSource --type--> IDCible1, IDCible2
 ```
 
-Plusieurs IDs cibles sont séparés par des virgules. Chaque ligne représente une relation directionnelle.
+Plusieurs ID cibles sont séparés par des virgules. Chaque ligne représente une relation directionnelle.
 
 ### Types d'arêtes
 
-| Type         | Signification                                             |
-| ------------ | --------------------------------------------------------- |
-| `calls`      | invocation de fonction/méthode                            |
+| Type         | Signification                                         |
+| ------------ | ----------------------------------------------------- |
+| `calls`      | invocation de fonction/méthode                       |
 | `contains`   | classe contient une méthode, module contient une fonction |
-| `inherits`   | classe étend une autre classe                             |
-| `implements` | classe implémente une interface                           |
-| `overrides`  | méthode redéfinit une méthode parente                     |
-| `references` | symbole référence un autre symbole                        |
-| `imports`    | module importe un autre module                            |
-| `decorates`  | décorateur appliqué à un symbole                          |
+| `inherits`   | classe étend une autre classe                        |
+| `implements` | classe implémente une interface                      |
+| `overrides`  | méthode redéfinit une méthode parente                |
+| `references` | **symbole** référence un autre **symbole**           |
+| `imports`    | module importe un autre module                       |
+| `decorates`  | décorateur appliqué à un **symbole**                 |
 
 ### Exemple
 
@@ -105,7 +105,7 @@ S24 --implements--> S19
 
 ## [errors]
 
-La section `[errors]` liste les fichiers qui n'ont pas pu être analysés complètement.
+La section `[errors]` répertorie les fichiers qui n'ont pas pu être analysés complètement.
 
 ### Format
 

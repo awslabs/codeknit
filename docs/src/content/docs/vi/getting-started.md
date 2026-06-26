@@ -5,14 +5,14 @@ description: Bắt đầu sử dụng codeknit trong vòng chưa đầy 5 phút.
 
 # Bắt đầu nhanh
 
-Bắt đầu sử dụng **codeknit** trong vòng chưa đầy 5 phút.
+Bắt đầu sử dụng codeknit trong vòng chưa đầy 5 phút.
 
 ## 1. Điều kiện tiên quyết
 
-Bạn cần:
+Bạn sẽ cần:
 
 - Go 1.26+
-- Trình biên dịch C (CGo là bắt buộc cho **tree-sitter**)
+- Trình biên dịch C (CGo là bắt buộc cho tree-sitter)
 
 ## 2. Cài đặt từ mã nguồn
 
@@ -42,7 +42,7 @@ Tải lại shell hoặc chạy `source ~/.bashrc` (hoặc `~/.zshrc`) để tha
 
 ## 4. Xác minh cài đặt
 
-Kiểm tra **codeknit** hoạt động:
+Kiểm tra xem codeknit có hoạt động không:
 
 ```bash
 codeknit --version
@@ -56,11 +56,11 @@ Chạy phân tích đầu tiên trên một codebase:
 codeknit parse ./myproject
 ```
 
-Lệnh này sẽ:
+Lệnh này:
 
 - Phân tích tất cả các tệp nguồn trong `./myproject`
 - Trích xuất thông tin cấu trúc (hàm, lớp, mối quan hệ)
-- Ghi các tệp `.skt` đã phân mảnh vào `./skeleton/` (thư mục đầu ra mặc định)
+- Ghi các tệp `.skt` đã được chia nhỏ vào `./skeleton/` (thư mục đầu ra mặc định)
 
 Nếu bạn chạy lại lệnh này, hãy sử dụng `--clean` để xóa đầu ra trước đó:
 
@@ -87,15 +87,15 @@ S3 --returns--> S2
 
 Các phần chính:
 
-- `[symbols]`: Các định nghĩa được nhóm theo tệp, hiển thị tên, **phạm vi dòng** và siêu dữ liệu
-- `[edges]`: Các mối quan hệ như `contains`, `calls`, `inherits` hoặc `returns`
+- `[symbols]`: Các định nghĩa được nhóm theo tệp, hiển thị tên, phạm vi dòng và siêu dữ liệu
+- `[edges]`: Các mối quan hệ như `contains`, `calls`, `inherits`, hoặc `returns`
 
 ## 7. Các bước tiếp theo
 
 Bây giờ bạn đã chạy phân tích đầu tiên:
 
-- Tìm hiểu thêm về lệnh parse: [Hướng dẫn lệnh Parse](/codeknit/vi/guides/parse-command/)
-- Khám phá phân tích cấu trúc: [Hướng dẫn lệnh Graph](/codeknit/vi/guides/graph-commands/)
-- Hiểu về phát hiện trùng lặp: [Hướng dẫn lệnh Fingerprint](/codeknit/vi/guides/fingerprint-command/)
+- Tìm hiểu thêm về lệnh parse: [Hướng dẫn lệnh parse](/codeknit/vi/guides/parse-command/)
+- Khám phá phân tích cấu trúc: [Hướng dẫn lệnh đồ thị](/codeknit/vi/guides/graph-commands/)
+- Hiểu về phát hiện trùng lặp: [Hướng dẫn lệnh fingerprint](/codeknit/vi/guides/fingerprint-command/)
 - Đọc định dạng đầu ra đầy đủ: [Tài liệu tham khảo định dạng đầu ra](/codeknit/vi/reference/output-format/)
 - Xem tất cả các cờ có sẵn: [Tài liệu tham khảo cờ CLI](/codeknit/vi/reference/cli-flags/)

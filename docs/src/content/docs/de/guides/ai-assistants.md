@@ -3,16 +3,16 @@ title: Verwendung mit KI-Assistenten
 description: Richten Sie codeknit als Skill für Kiro, Claude Code und andere KI-Coding-Assistenten ein.
 ---
 
-codeknit wird mit vorgefertigten Skills ausgeliefert, die KI-Coding-Assistenten beibringen, wie sie es effektiv nutzen können. Diese Skills ermöglichen es Assistenten, Codestrukturen zu extrahieren, Duplikate zu erkennen und strukturelle Analysen ohne manuelle Aufforderungen durchzuführen.
+codeknit wird mit vorgefertigten Skills ausgeliefert, die KI-Coding-Assistenten beibringen, wie sie es effektiv nutzen können. Diese Skills ermöglichen es Assistenten, Codestruktur zu extrahieren, Duplikate zu erkennen und strukturelle Analysen ohne manuelle Aufforderungen durchzuführen.
 
 ## Skills-Übersicht
 
 codeknit bietet zwei Skills:
 
-- **`codeknit-parse`**: Lehrt Assistenten, Codestrukturen (Funktionen, Klassen, Methoden, Variablen) und Beziehungen (Aufrufe, Vererbung, Enthaltensein) in `.skt`-Dateien zu extrahieren.
+- **`codeknit-parse`**: Lehrt Assistenten, Codestruktur (Funktionen, Klassen, Methoden, Variablen) und Beziehungen (Aufrufe, Vererbung, Enthaltensein) in `.skt`-Dateien zu extrahieren.
 - **`codeknit-fingerprint`**: Lehrt Assistenten, duplizierten und beinahe-duplizierten Code mithilfe von fuzzy hashing zu erkennen.
 
-Jeder Skill enthält Dokumentation, die der Assistent bei Bedarf liest, um Nutzung, Flags, Ausgabeformate und Workflows zu verstehen.
+Jeder Skill enthält Dokumentation, die der Assistent bei Bedarf liest, um Nutzung, Flags, Ausgabemodi und Workflows zu verstehen.
 
 ## Installation
 
@@ -45,7 +45,7 @@ Der `codeknit-parse`-Skill lehrt Assistenten:
   - `directory-flat` (Standard) für die meisten Projekte
   - `inline` für einzelne Dateien oder kleine Eingaben
   - `directory-tree`, um die Quellstruktur widerzuspiegeln
-- `.skt`-Ausgabedateien zu lesen und zu interpretieren, einschließlich der Abschnitte `[symbols]`, `[edges]` und optional `[dict]`
+- `.skt`-Ausgabedateien zu lesen und zu interpretieren, einschließlich `[symbols]`, `[edges]` und optionaler `[dict]`-Abschnitte
 - Strukturelle Daten für Refactoring, Abhängigkeitskartierung und Code-Reviews zu nutzen
 - `codeknit graph analyze` für tiefere Einblicke in die Codequalität auszuführen (zyklische Abhängigkeiten, Hub-Symbole, god classes usw.)
 
@@ -54,9 +54,9 @@ Der `codeknit-parse`-Skill lehrt Assistenten:
 Der `codeknit-fingerprint`-Skill lehrt Assistenten:
 
 - `codeknit fingerprint` für Duplikaterkennung, DRY-Audits und Refactoring-Identifikation zu verwenden
-- Geeignete Ähnlichkeitsbereiche (`--min-similarity`, `--max-similarity`) auszuwählen
-- Den Abschnitt `[duplicates]` zu lesen, um beinahe-duplizierten Code zu identifizieren
-- Zu verstehen, dass Fingerprints die strukturelle Form und nicht die semantische Absicht messen
+- Geeignete Ähnlichkeitsbereiche auszuwählen (`--min-similarity`, `--max-similarity`)
+- Den `[duplicates]`-Abschnitt zu lesen, um beinahe-duplizierten Code zu identifizieren
+- Zu verstehen, dass Fingerprints die strukturelle Form messen, nicht die semantische Absicht
 - `--rerank` mit Ollama-Embeddings zu verwenden, um falsch-positive Ergebnisse bei Bedarf zu reduzieren
 
 ## Workflow-Beispiele
@@ -82,7 +82,7 @@ S1 --contains--> S2
 
 1. Bitten Sie den Assistenten, duplizierten Code zu finden
 2. Er führt `codeknit fingerprint ./src` aus
-3. Er liest den Abschnitt `[duplicates]` in der Ausgabe
+3. Er liest den `[duplicates]`-Abschnitt in der Ausgabe
 4. Er untersucht die markierten Paare und schlägt Konsolidierungen vor
 
 ```skt
@@ -93,7 +93,7 @@ S3, S4: 76% Ähnlichkeit
 
 ## Tipps
 
-- **Lesen Sie für strukturelle Fragen immer `.skt`-Dateien, nicht den Rohquellcode** – sie enthalten die extrahierte Struktur in einem kompakten, zuverlässigen Format
+- **Lesen Sie immer `.skt`-Dateien, nicht den Rohquellcode, für strukturelle Fragen** — sie enthalten die extrahierte Struktur in einem kompakten, zuverlässigen Format
 - Verwenden Sie `codeknit graph analyze`, um Codequalitätsprobleme wie zyklische Abhängigkeiten, Hub-Symbole und tiefe Vererbungsketten aufzudecken
 - Führen Sie `codeknit fingerprint` vor großen Refactorings aus, um kopierten Code zu identifizieren, der konsolidiert werden sollte
 - Das `.skt`-Format ist darauf ausgelegt, token-effizient zu sein, was es ideal für LLM-Kontextfenster macht

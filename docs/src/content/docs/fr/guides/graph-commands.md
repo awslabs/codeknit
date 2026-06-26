@@ -17,11 +17,11 @@ Cette commande analyse votre base de code et produit un fichier HTML autonome av
 
 ### Flags
 
-| Flag             | Défaut                           | Description                                                    |
-| ---------------- | -------------------------------- | -------------------------------------------------------------- |
-| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Chemin du fichier HTML de sortie                               |
-| `--collect-test` | `false`                          | Inclure les fichiers de test dans l'analyse                    |
-| `--workers`      | `NumCPU`                         | Nombre maximal de goroutines de parsing concurrentes           |
+| Flag             | Défaut                          | Description                                  |
+| ---------------- | -------------------------------- | -------------------------------------------- |
+| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Chemin du fichier HTML de sortie             |
+| `--collect-test` | `false`                          | Inclure les fichiers de test dans l'analyse  |
+| `--workers`      | `NumCPU`                         | Nombre maximal de goroutines de parsing concurrentes |
 | `--verbose`      | `false`                          | Afficher les informations de progression pendant le traitement |
 
 ### Exemples
@@ -39,13 +39,13 @@ codeknit graph show ./src --collect-test
 
 ## graph analyze
 
-Exécute des algorithmes de graphe structurels sur votre base de code et génère un rapport `.skt` lisible par un LLM contenant des insights sur la qualité du code.
+Exécute des algorithmes de graphe structurels sur votre base de code et génère un rapport `.skt` lisible par LLM contenant des informations sur la qualité du code.
 
 ```bash
 codeknit graph analyze <input-path>
 ```
 
-Cette commande détecte des problèmes courants de qualité de code tels que les dépendances cycliques, les symboles hub, le code mort, les god classes et les goulots d'étranglement architecturaux.
+Cette commande détecte des problèmes courants de qualité du code tels que les dépendances cycliques, les symboles hub, le code mort, les god classes et les goulots d'étranglement architecturaux.
 
 ### Algorithmes
 
@@ -53,36 +53,36 @@ L'analyse inclut 17 algorithmes de graphe structurels :
 
 - Dépendances cycliques (Tarjan's SCC)
 - Détection de hubs (couplage élevé fan-in/fan-out)
-- Détection d'orphelins (candidats de code mort)
+- Détection d'orphelins (candidats au code mort)
 - Détection de god class/function (nombre excessif d'enfants)
-- Métrique d'instabilité (Robert C. Martin's Ce/(Ca+Ce))
+- Métrique d'instabilité (Ce/(Ca+Ce) de Robert C. Martin)
 - Chaînes d'héritage profondes
-- Centralité d'intermédiarité (détection de goulots d'étranglement)
+- Centralité de betweenness (détection de goulots d'étranglement)
 - Points d'articulation (points uniques de défaillance)
 - PageRank (importance récursive)
 - Fan-in transitif (rayon d'impact)
 - Simulation de propagation de changements
-- Dépendances circulaires de paquets
+- Dépendances circulaires de packages
 - Détection de violations de couches
 - Accessibilité depuis les points d'entrée
-- Composantes faiblement connectées
-- Poids des dépendances (force de couplage des paquets)
-- Distance par rapport à la séquence principale (équilibre A+I)
+- Composants faiblement connectés
+- Poids des dépendances (force de couplage des packages)
+- Distance par rapport à la Main Sequence (équilibre A+I)
 
 ### Flags
 
-| Flag                      | Défaut                          | Description                                                                     |
-| ------------------------- | ------------------------------- | ------------------------------------------------------------------------------- |
-| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Chemin du fichier `.skt` de sortie                                              |
-| `--collect-test`          | `false`                         | Inclure les fichiers de test dans l'analyse                                     |
-| `--workers`               | `NumCPU`                        | Nombre maximal de goroutines de parsing concurrentes                            |
-| `--verbose`               | `false`                         | Afficher les informations de progression pendant le traitement                  |
-| `--fan-threshold`         | `10`                            | Nombre minimal de fan-in ou fan-out pour signaler un symbole hub                |
+| Flag                      | Défaut                         | Description                                              |
+| ------------------------- | ------------------------------- | -------------------------------------------------------- |
+| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Chemin du fichier `.skt` de sortie                       |
+| `--collect-test`          | `false`                         | Inclure les fichiers de test dans l'analyse              |
+| `--workers`               | `NumCPU`                        | Nombre maximal de goroutines de parsing concurrentes     |
+| `--verbose`               | `false`                         | Afficher les informations de progression pendant le traitement |
+| `--fan-threshold`         | `10`                            | Nombre minimal de fan-in ou fan-out pour signaler un symbole hub |
 | `--god-threshold`         | `15`                            | Nombre minimal d'arêtes de type "contient" pour signaler une god class/function |
-| `--max-inheritance-depth` | `5`                             | Signaler les chaînes d'héritage plus profondes que cette valeur                 |
-| `--top-n`                 | `30`                            | Limiter les sections de sortie classées ; 0 = pas de limite                     |
-| `--betweenness-threshold` | `0.001`                         | Valeur minimale de centralité d'intermédiarité à rapporter                      |
-| `--propagation-cutoff`    | `0.05`                          | Probabilité minimale pour continuer la propagation des changements              |
+| `--max-inheritance-depth` | `5`                             | Signaler les chaînes d'héritage plus profondes que cette valeur |
+| `--top-n`                 | `30`                            | Limiter les sections de sortie classées ; 0 = pas de limite |
+| `--betweenness-threshold` | `0.001`                         | Valeur minimale de centralité de betweenness à rapporter |
+| `--propagation-cutoff`    | `0.05`                          | Probabilité minimale pour continuer la propagation des changements |
 
 ### Exemples
 

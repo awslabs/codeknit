@@ -5,6 +5,8 @@ description: Choose the right output mode for your project size and workflow.
 
 codeknit supports three output modes, controlled by the `--output-mode` flag. Each mode determines how the extracted code structure is written to disk (or stdout).
 
+Output mode is separate from output format. The default format is `.skt`; pass `--format json` to emit the same parse result as machine-readable JSON. In directory modes, JSON is written to `codeknit.json`. In `inline` mode, JSON is written to stdout.
+
 ### directory-flat (default, recommended)
 
 - **Behavior**: Writes chunked `.skt` files such as `map_001.skt`, `map_002.skt`, etc.
@@ -47,6 +49,57 @@ codeknit parse ./src/main.go --output-mode inline
 # Output: printed directly to terminal
 ```
 
+### JSON format
+
+- **Behavior**: Emits a single JSON document containing `files`, `symbols`, optional `edges`, and optional `errors`.
+- **Output location**: `codeknit.json` in directory modes, or stdout in `inline` mode.
+- **Use case**: Best for scripts, editor integrations, CI checks, and tools that need structured data.
+
+Example:
+
+```bash
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+Sample output:
+
+```json
+{
+  "files": ["app.go"],
+  "symbols": [
+    {
+      "id": "app.go::User",
+      "short_id": "S1",
+      "name": "User",
+      "file": "app.go",
+      "category": "type",
+      "kind": "struct",
+      "signature": "type User struct",
+      "span": [3, 3]
+    },
+    {
+      "id": "app.go::Save",
+      "short_id": "S2",
+      "name": "Save",
+      "file": "app.go",
+      "category": "callable",
+      "kind": "function",
+      "signature": "Save(u: S1)",
+      "span": [5, 5]
+    }
+  ],
+  "edges": [
+    {
+      "from": "app.go::Save",
+      "from_short": "S2",
+      "to": "app.go::User",
+      "to_short": "S1",
+      "kind": "references"
+    }
+  ]
+}
+```
+
 ### Decision Table
 
 | Mode             | Best for                                | Output location                                     |
@@ -54,6 +107,11 @@ codeknit parse ./src/main.go --output-mode inline
 | `directory-flat` | Most projects (default, recommended)    | `./skeleton/map_001.skt`, `map_002.skt`, ...        |
 | `directory-tree` | Navigating output alongside source code | `./skeleton/<mirrored path>.skt`                    |
 | `inline`         | Single file, piping to another tool     | stdout — only use for single files or tiny projects |
+
+| Format | Best for                           | Output                                                   |
+| ------ | ---------------------------------- | -------------------------------------------------------- |
+| `skt`  | LLM context and human inspection   | `.skt` files or stdout                                   |
+| `json` | Scripts and structured integration | `codeknit.json` in directory modes, or stdout in `inline` |
 
 ### Rules of Thumb
 

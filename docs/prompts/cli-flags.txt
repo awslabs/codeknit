@@ -11,6 +11,7 @@ Cover all commands and their flags:
 2. codeknit parse <input-path> [output-dir]:
    All flags:
    --output-mode (string, default "directory-flat"): inline, directory-flat, directory-tree
+   --format (string, default "skt"): skt, json
    --max-lines (int, default 500): max lines per output file
    --collect-test (bool, default false): include test files
    --minify (bool, default false): dictionary-based compression

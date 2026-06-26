@@ -1,9 +1,9 @@
 ---
-title: Referencia del formato de salida
+title: Referencia del formato de salida .skt
 description: Referencia completa del formato de salida .skt utilizado por codeknit.
 ---
 
-El formato `.skt` (skeleton) es un formato de texto compacto y legible por humanos utilizado por `codeknit` para representar la estructura de código extraída. Contiene símbolos, relaciones y metadatos en una forma minimalista adecuada para el consumo por LLM y el análisis estructural.
+El formato `.skt` (esqueleto) es un formato de texto compacto y legible por humanos utilizado por `codeknit` para representar la estructura de código extraída. Contiene símbolos, relaciones y metadatos en una forma mínima adecuada para el consumo por LLM y el análisis estructural.
 
 Un archivo `.skt` está dividido en secciones. Cada sección comienza con un encabezado entre corchetes. Las secciones pueden aparecer en cualquier orden, aunque `[symbols]` típicamente aparece primero.
 
@@ -28,13 +28,13 @@ ShortID categoría/tipo Linicio-Lfin firma {propiedades}
   - `nombre` — para tipos, valores, módulos
   - `nombre(parámetros)` — para elementos invocables sin tipo de retorno
   - `nombre(parámetros) -> tipoRetorno` — para elementos invocables con tipo de retorno
-- **{propiedades}**: Metadatos opcionales encerrados entre llaves. Varias propiedades se separan por comas.
+- **{propiedades}**: Metadatos opcionales encerrados entre llaves. Varias propiedades están separadas por comas.
 
 ### Parámetros
 
 - En lenguajes sin tipos: `nombreParámetro`
 - En lenguajes con tipos: `nombreParámetro: tipo`
-- Las referencias de tipo que coinciden con símbolos conocidos se reemplazan con sus ShortIDs (por ejemplo, `config: S5` en lugar de `config: Config`).
+- Las referencias de tipo que coinciden con símbolos conocidos se reemplazan con sus ShortID (por ejemplo, `config: S5` en lugar de `config: Config`).
 
 ### Propiedades
 
@@ -48,13 +48,13 @@ Propiedades comunes incluyen:
 
 ### Categorías y tipos de símbolos
 
-| Categoría  | Tipos                          | Ejemplos                               |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Categoría   | Tipos                          | Ejemplos                               |
+| ----------- | ------------------------------ | -------------------------------------- |
+| `callable`  | function, method, constructor  | `callable/function`, `callable/method` |
+| `type`      | class, interface, struct, enum | `type/class`, `type/interface`         |
+| `value`     | variable, constant, field      | `value/variable`, `value/constant`     |
+| `module`    | package, namespace             | `module/package`                       |
+| `meta`      | type parameters, metadata      | `meta/type_parameter`                  |
 
 ### Ejemplo
 
@@ -70,7 +70,7 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-La sección `[edges]` define relaciones entre símbolos utilizando sus ShortIDs.
+La sección `[edges]` define relaciones entre símbolos utilizando sus ShortID.
 
 ### Formato de línea
 
@@ -78,20 +78,20 @@ La sección `[edges]` define relaciones entre símbolos utilizando sus ShortIDs.
 IDOrigen --tipo--> IDDestino1, IDDestino2
 ```
 
-Varios IDs de destino se separan por comas. Cada línea representa una relación direccional.
+Varios ID de destino están separados por comas. Cada línea representa una relación direccional.
 
 ### Tipos de relaciones
 
-| Tipo         | Significado                                    |
-| ------------ | ---------------------------------------------- |
-| `calls`      | invocación de función/método                   |
-| `contains`   | clase contiene método, módulo contiene función |
-| `inherits`   | clase extiende otra clase                      |
-| `implements` | clase implementa interfaz                      |
-| `overrides`  | método sobrescribe método padre                |
-| `references` | símbolo hace referencia a otro símbolo         |
-| `imports`    | módulo importa otro módulo                     |
-| `decorates`  | decorador aplicado a un símbolo                |
+| Tipo         | Significado                                         |
+| ------------ | --------------------------------------------------- |
+| `calls`      | invocación de función/método                        |
+| `contains`   | clase contiene método, módulo contiene función      |
+| `inherits`   | clase extiende otra clase                           |
+| `implements` | clase implementa interfaz                           |
+| `overrides`  | método sobrescribe método padre                     |
+| `references` | símbolo hace referencia a otro símbolo              |
+| `imports`    | módulo importa otro módulo                          |
+| `decorates`  | decorador aplicado a un símbolo                     |
 
 ### Ejemplo
 

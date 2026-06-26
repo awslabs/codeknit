@@ -1,9 +1,9 @@
 ---
 title: Parse Command
-description: Extract structural information from source code into .skt files.
+description: Extract structural information from source code into .skt files or JSON.
 ---
 
-The `codeknit parse` command extracts structural information from your codebase — such as functions, classes, methods, variables, and their relationships — and outputs it in a compact `.skt` format designed for efficient consumption by LLMs and analysis tools.
+The `codeknit parse` command extracts structural information from your codebase — such as functions, classes, methods, variables, and their relationships — and outputs it in compact `.skt` format by default. Use JSON when you need machine-readable output for scripts, integrations, or downstream tools.
 
 ## Basic Usage
 
@@ -25,6 +25,9 @@ codeknit parse ./src ./output
 
 # Parse a single file and output to stdout
 codeknit parse ./src/main.go --output-mode inline
+
+# Emit machine-readable JSON to stdout
+codeknit parse ./src --output-mode inline --format json
 ```
 
 ## Output Modes
@@ -43,7 +46,8 @@ Use `--output-mode` to control how output is structured. Three modes are availab
 
 | Flag             | Default          | Description                                                                  |
 | ---------------- | ---------------- | ---------------------------------------------------------------------------- |
-| `--output-mode`  | `directory-flat` | Output format: `inline`, `directory-flat`, or `directory-tree`               |
+| `--output-mode`  | `directory-flat` | Output mode: `inline`, `directory-flat`, or `directory-tree`                 |
+| `--format`       | `skt`            | Output format: `skt` or `json`                                               |
 | `--max-lines`    | `500`            | Maximum lines per output file in flat/tree modes                             |
 | `--collect-test` | `false`          | Include test files in analysis                                               |
 | `--minify`       | `false`          | Enable dictionary-based compression to reduce token usage                    |
@@ -80,6 +84,50 @@ codeknit parse ./src --edges
 ```
 
 ```bash
+# Emit JSON for another tool
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+Example JSON output:
+
+```json
+{
+  "files": ["app.go"],
+  "symbols": [
+    {
+      "id": "app.go::User",
+      "short_id": "S1",
+      "name": "User",
+      "file": "app.go",
+      "category": "type",
+      "kind": "struct",
+      "signature": "type User struct",
+      "span": [3, 3]
+    },
+    {
+      "id": "app.go::Save",
+      "short_id": "S2",
+      "name": "Save",
+      "file": "app.go",
+      "category": "callable",
+      "kind": "function",
+      "signature": "Save(u: S1)",
+      "span": [5, 5]
+    }
+  ],
+  "edges": [
+    {
+      "from": "app.go::Save",
+      "from_short": "S2",
+      "to": "app.go::User",
+      "to_short": "S1",
+      "kind": "references"
+    }
+  ]
+}
+```
+
+```bash
 # Mirror source tree structure in output
 codeknit parse ./src --output-mode directory-tree
 ```
@@ -101,5 +149,6 @@ This ensures a fresh, consistent output set.
 - ✅ **Default to `directory-flat`** for most projects. It balances readability and manageability.
 - 🔍 Use `--minify` on large codebases to reduce token usage via a shared dictionary (`dict.skt`).
 - 🔗 The `[edges]` section is **excluded by default** to save tokens. Use `--edges` when you need relationship data like `calls`, `contains`, or `inherits`.
+- 🧾 Use `--format json` when a script or integration needs structured data instead of `.skt`.
 - 🧹 Always use `--clean` when re-running on the same output directory.
 - 📁 Use `directory-tree` if you want to correlate `.skt` files directly with source files in your editor.

@@ -3,13 +3,13 @@ title: 输出格式参考
 description: codeknit 使用的 .skt 输出格式的完整参考。
 ---
 
-`.skt`（skeleton）格式是一种紧凑、人类可读的文本格式，由 `codeknit` 用于表示提取的代码结构。它以最小形式包含符号、关系和元数据，适用于 LLM 消费和结构分析。
+`.skt`（skeleton）格式是一种紧凑、人类可读的文本格式，由 `codeknit` 用于表示提取的代码结构。它以最小形式包含符号、关系和元数据，适合 LLM 消费和结构分析。
 
-一个 `.skt` 文件被划分为多个部分。每个部分以方括号中的标题开头。各部分可以按任意顺序出现，尽管 `[symbols]` 通常位于最前面。
+`.skt` 文件分为多个部分。每个部分以方括号中的标题开头。各部分可以按任意顺序出现，但 `[symbols]` 通常位于首位。
 
 ## [symbols]
 
-`[symbols]` 部分列出了按源文件分组的所有提取的符号。每个文件以 `##` 标题开头，后跟文件路径。
+`[symbols]` 部分列出按源文件分组的所有提取的符号。每个文件以 `##` 标题开头，后跟文件路径。
 
 ### 行格式
 
@@ -21,20 +21,20 @@ ShortID category/kind Lstart-Lend signature {properties}
 
 ### 字段
 
-- **ShortID**：分配给每个符号的顺序标识符（例如 `S1`、`S2`、`S3`）。用于在边和其他部分中引用。
+- **ShortID**：分配给每个符号的顺序标识符（例如 `S1`、`S2`、`S3`）。在边和其他部分中用作引用。
 - **category/kind**：用斜杠分隔的对，表示符号的类别和具体种类。
 - **Lstart-Lend**：符号在源文件中定义的行范围（例如 `L10-L15`）。
 - **signature**：符号的名称和类型信息。格式取决于符号：
-  - `name` — 用于类型、值、模块
-  - `name(params)` — 用于无返回类型的可调用对象
-  - `name(params) -> returnType` — 用于有返回类型的可调用对象
+  - `name` — 适用于类型、值、模块
+  - `name(params)` — 适用于无返回类型的可调用对象
+  - `name(params) -> returnType` — 适用于有返回类型的可调用对象
 - **{properties}**：用花括号括起来的可选元数据。多个属性用逗号分隔。
 
 ### 参数
 
 - 在无类型语言中：`paramName`
 - 在有类型语言中：`paramName: type`
-- 与已知符号匹配的类型引用会被替换为其 ShortID（例如 `config: S5` 而不是 `config: Config`）。
+- 匹配已知符号的类型引用会被替换为其 ShortID（例如 `config: S5` 而不是 `config: Config`）。
 
 ### 属性
 
@@ -42,14 +42,14 @@ ShortID category/kind Lstart-Lend signature {properties}
 
 - `async`：`true` 或 `false`
 - `exported`：`true` 或 `false`
-- `static`：如果符号是静态的，则存在该属性
+- `static`：如果符号是静态的，则出现
 - `visibility=public|private|protected`
-- `receiver=*TypeName`：用于方法，表示接收器类型
+- `receiver=*TypeName`：适用于方法，表示接收器类型
 
 ### 符号类别和种类
 
-| 类别       | 种类                           | 示例                                   |
-| ---------- | ------------------------------ | -------------------------------------- |
+| 类别       | 种类                          | 示例                               |
+| ---------- | ------------------------------ | ---------------------------------- |
 | `callable` | function, method, constructor  | `callable/function`, `callable/method` |
 | `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
 | `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
@@ -80,18 +80,18 @@ FromID --kind--> ToID1, ToID2
 
 多个目标 ID 用逗号分隔。每行表示一个单向关系。
 
-### 边的种类
+### 边种类
 
-| 种类         | 含义                     |
-| ------------ | ------------------------ |
-| `calls`      | 函数/方法调用            |
-| `contains`   | 类包含方法，模块包含函数 |
-| `inherits`   | 类继承另一个类           |
-| `implements` | 类实现接口               |
-| `overrides`  | 方法覆盖父类方法         |
-| `references` | 符号引用另一个符号       |
-| `imports`    | 模块导入另一个模块       |
-| `decorates`  | 装饰器应用于符号         |
+| 种类         | 含义                                         |
+| ------------ | -------------------------------------------- |
+| `calls`      | 函数/方法调用                                |
+| `contains`   | 类包含方法，模块包含函数                     |
+| `inherits`   | 类继承另一个类                               |
+| `implements` | 类实现接口                                   |
+| `overrides`  | 方法覆盖父类方法                             |
+| `references` | 符号引用另一个符号                           |
+| `imports`    | 模块导入另一个模块                           |
+| `decorates`  | 装饰器应用于符号                             |
 
 ### 示例
 
@@ -105,7 +105,7 @@ S24 --implements--> S19
 
 ## [errors]
 
-`[errors]` 部分列出了无法完全解析的文件。
+`[errors]` 部分列出无法完全解析的文件。
 
 ### 格式
 
@@ -125,7 +125,7 @@ S24 --implements--> S19
 
 ## [dict]
 
-`[dict]` 部分仅在使用 `--minify` 标志时出现。它将简短的字典代码映射到重复的字符串标记，以减小输出大小。
+`[dict]` 部分仅在使用 `--minify` 标志时出现。它将短字典代码映射到重复的字符串标记，以减小输出大小。
 
 ### 格式
 
@@ -137,7 +137,7 @@ S24 --implements--> S19
 - d2: exported
 ```
 
-在文件的其余部分中，这些代码会替换其完整值。
+在文件的其余部分中，这些代码替换其完整值。
 
 ### 示例
 

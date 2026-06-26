@@ -12,7 +12,7 @@ Die primäre Installationsmethode ist das Bauen aus dem Quellcode. Sie benötige
 - Go 1.26+
 - Einen C-Compiler (erforderlich für tree-sitter über CGo)
 
-Klonen Sie das Repository und erstellen Sie die Binärdatei:
+Klone das Repository und baue das Binary:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -20,11 +20,11 @@ cd codeknit
 make build
 ```
 
-Die kompilierte Binärdatei ist unter `./bin/codeknit` verfügbar.
+Das kompilierte Binary ist unter `./bin/codeknit` verfügbar.
 
 ## Zum PATH hinzufügen
 
-Um `codeknit` von jedem Verzeichnis aus ausführen zu können, fügen Sie den Speicherort der Binärdatei zum PATH Ihres Systems hinzu.
+Um `codeknit` von jedem Verzeichnis aus ausführen zu können, fügen Sie den Speicherort des Binarys zum PATH Ihres Systems hinzu.
 
 Für **bash** (`~/.bashrc`):
 
