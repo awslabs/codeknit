@@ -1,5 +1,7 @@
 # .skt output format reference
 
+The default `codeknit parse` format is `.skt`, a compact text format optimized for LLM context. Use `--format json` when a script, editor integration, or CI check needs structured data.
+
 ## Contents
 
 - [symbols] — symbol definitions grouped by source file
@@ -120,4 +122,62 @@ S3 d1 L5-L6 handle(request) {d0}
 
 [edges]
 S1 --contains--> S2, S3
+```
+
+## JSON output
+
+Run JSON output with:
+
+```bash
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+In directory output modes, JSON is written to `codeknit.json`. In `inline` mode, JSON is written to stdout.
+
+Top-level fields:
+
+| Field     | Meaning                                                                    |
+| --------- | -------------------------------------------------------------------------- |
+| `files`   | Source files included in the parse result                                  |
+| `symbols` | Extracted symbols with IDs, short IDs, source file, category, kind, span   |
+| `edges`   | Relationships between symbols; omitted when no edges are present           |
+| `errors`  | Parse warnings/errors; omitted when no parse errors are present            |
+
+### Example
+
+```json
+{
+  "files": ["app.go"],
+  "symbols": [
+    {
+      "id": "app.go::User",
+      "short_id": "S1",
+      "name": "User",
+      "file": "app.go",
+      "category": "type",
+      "kind": "struct",
+      "signature": "type User struct",
+      "span": [3, 3]
+    },
+    {
+      "id": "app.go::Save",
+      "short_id": "S2",
+      "name": "Save",
+      "file": "app.go",
+      "category": "callable",
+      "kind": "function",
+      "signature": "Save(u: S1)",
+      "span": [5, 5]
+    }
+  ],
+  "edges": [
+    {
+      "from": "app.go::Save",
+      "from_short": "S2",
+      "to": "app.go::User",
+      "to_short": "S1",
+      "kind": "references"
+    }
+  ]
+}
 ```
