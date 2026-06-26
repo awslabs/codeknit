@@ -6,7 +6,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import starlightLlmsTxt from 'starlight-llms-txt';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -19,7 +18,6 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'codeknit',
-			plugins: [starlightLlmsTxt()],
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/awslabs/codeknit' }],
 			expressiveCode: {
 				shiki: {
