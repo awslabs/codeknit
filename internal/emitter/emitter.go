@@ -16,13 +16,14 @@ import (
 
 // EmitOptions controls emitter behavior.
 type EmitOptions struct {
-	OutputDir  string
-	OutputMode config.OutputMode
-	InputPath  string
-	FileOrder  []string
-	MaxLines   int
-	Minify     bool
-	Clean      bool
+	OutputDir    string
+	OutputMode   config.OutputMode
+	OutputFormat config.OutputFormat
+	InputPath    string
+	FileOrder    []string
+	MaxLines     int
+	Minify       bool
+	Clean        bool
 }
 
 // Emitter serializes a SymbolGraph to structured text files.
@@ -32,6 +33,10 @@ type Emitter struct{}
 // For inline mode it writes to stdout and returns an empty slice.
 // The SymbolGraph must have its indexes built (via BuildIndexes) before calling Emit.
 func (e *Emitter) Emit(sg *ir.SymbolGraph, opts *EmitOptions) ([]string, error) {
+	if opts.OutputFormat == config.OutputFormatJSON {
+		return e.emitJSON(sg, opts)
+	}
+
 	switch opts.OutputMode {
 	case config.OutputInline:
 		err := e.EmitInline(os.Stdout, sg, opts)

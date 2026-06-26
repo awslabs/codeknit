@@ -137,6 +137,7 @@ codeknit
 ```
 Flags:
       --output-mode string   output mode: inline, directory-flat, directory-tree (default "directory-flat")
+      --format string        output format: skt, json (default "skt")
       --max-lines int        maximum lines per output file (default 500)
       --collect-test         include test files in analysis
       --minify               enable dictionary-based output minification
@@ -158,6 +159,9 @@ codeknit parse ./src --collect-test --minify
 
 # Include relationship edges (off by default to save tokens)
 codeknit parse ./src --edges
+
+# Emit machine-readable JSON to stdout
+codeknit parse ./src --output-mode inline --format json
 
 # Re-run and overwrite previous output
 codeknit parse ./src --clean

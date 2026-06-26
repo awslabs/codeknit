@@ -5,6 +5,7 @@ package emitter
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -174,6 +175,90 @@ func genSymbolGraph(t *rapid.T) *ir.SymbolGraph {
 
 	sg.BuildIndexes()
 	return sg
+}
+
+func TestEmitJSONInline(t *testing.T) {
+	sg := &ir.SymbolGraph{
+		Symbols: []plugin.Symbol{
+			{
+				ID:         "src/app.go::User",
+				Name:       "User",
+				FilePath:   "src/app.go",
+				Category:   plugin.CategoryType,
+				Kind:       "struct",
+				Signature:  "type User struct",
+				Properties: map[string]string{"exported": "true"},
+				Span:       [2]int{1, 3},
+			},
+			{
+				ID:        "src/app.go::Save",
+				Name:      "Save",
+				FilePath:  "src/app.go",
+				Category:  plugin.CategoryCallable,
+				Kind:      "function",
+				Signature: "Save(u: User)",
+				Span:      [2]int{5, 8},
+			},
+		},
+		Edges: []plugin.Edge{
+			{From: "src/app.go::Save", To: "src/app.go::User", Kind: plugin.EdgeReferences},
+		},
+	}
+	sg.BuildIndexes()
+
+	var buf bytes.Buffer
+	if err := (&Emitter{}).EmitJSON(&buf, sg); err != nil {
+		t.Fatalf("EmitJSON: %v", err)
+	}
+
+	var out jsonOutput
+	if err := json.Unmarshal(buf.Bytes(), &out); err != nil {
+		t.Fatalf("unmarshal json: %v\n%s", err, buf.String())
+	}
+	if len(out.Files) != 1 || out.Files[0] != "src/app.go" {
+		t.Fatalf("files = %v, want [src/app.go]", out.Files)
+	}
+	if len(out.Symbols) != 2 {
+		t.Fatalf("symbols len = %d, want 2", len(out.Symbols))
+	}
+	if out.Symbols[1].Signature != "Save(u: S1)" {
+		t.Fatalf("signature = %q, want type ref resolved to short ID", out.Symbols[1].Signature)
+	}
+	if len(out.Edges) != 1 || out.Edges[0].FromShort != "S2" || out.Edges[0].ToShort != "S1" {
+		t.Fatalf("edges = %+v, want resolved short IDs", out.Edges)
+	}
+}
+
+func TestEmitJSONDirectoryWritesSingleFile(t *testing.T) {
+	sg := &ir.SymbolGraph{
+		Symbols: []plugin.Symbol{{
+			ID:        "src/app.go::main",
+			Name:      "main",
+			FilePath:  "src/app.go",
+			Category:  plugin.CategoryCallable,
+			Kind:      "function",
+			Signature: "main()",
+			Span:      [2]int{1, 1},
+		}},
+	}
+	sg.BuildIndexes()
+
+	dir := t.TempDir()
+	written, err := (&Emitter{}).Emit(sg, &EmitOptions{
+		OutputDir:    dir,
+		OutputMode:   config.OutputDirectoryFlat,
+		OutputFormat: config.OutputFormatJSON,
+		MaxLines:     500,
+	})
+	if err != nil {
+		t.Fatalf("Emit: %v", err)
+	}
+	if len(written) != 1 || filepath.Base(written[0]) != "codeknit.json" {
+		t.Fatalf("written = %v, want single codeknit.json", written)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "codeknit.json")); err != nil {
+		t.Fatalf("codeknit.json not written: %v", err)
+	}
 }
 
 // Feature: code-concept-mapper, Property 11: Dictionary Uniqueness

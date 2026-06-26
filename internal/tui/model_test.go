@@ -27,18 +27,20 @@ func TestProperty14_TUIConfigConversion(t *testing.T) {
 		clean := rapid.Bool().Draw(t, "clean")
 		workers := rapid.IntRange(0, 128).Draw(t, "workers")
 		outputMode := rapid.SampledFrom(config.ValidOutputModes()).Draw(t, "outputMode")
+		outputFormat := rapid.SampledFrom(config.ValidOutputFormats()).Draw(t, "outputFormat")
 		maxLines := rapid.IntRange(1, 10000).Draw(t, "maxLines")
 
 		m := Model{
-			InputPath:   inputDir,
-			OutputDir:   outputDir,
-			OutputMode:  outputMode,
-			MaxLines:    strconv.Itoa(maxLines),
-			CollectTest: collectTest,
-			Minify:      minify,
-			Edges:       edges,
-			Clean:       clean,
-			Workers:     strconv.Itoa(workers),
+			InputPath:    inputDir,
+			OutputDir:    outputDir,
+			OutputMode:   outputMode,
+			OutputFormat: outputFormat,
+			MaxLines:     strconv.Itoa(maxLines),
+			CollectTest:  collectTest,
+			Minify:       minify,
+			Edges:        edges,
+			Clean:        clean,
+			Workers:      strconv.Itoa(workers),
 		}
 
 		cfg := m.ToParseConfig()
@@ -51,6 +53,9 @@ func TestProperty14_TUIConfigConversion(t *testing.T) {
 		}
 		if cfg.OutputMode != outputMode {
 			t.Fatalf("OutputMode: got %q, want %q", cfg.OutputMode, outputMode)
+		}
+		if cfg.OutputFormat != outputFormat {
+			t.Fatalf("OutputFormat: got %q, want %q", cfg.OutputFormat, outputFormat)
 		}
 		if cfg.MaxLines != maxLines {
 			t.Fatalf("MaxLines: got %d, want %d", cfg.MaxLines, maxLines)
@@ -139,6 +144,9 @@ func TestNewModelDefaults(t *testing.T) {
 
 	if m.OutputMode != config.OutputDirectoryFlat {
 		t.Fatalf("OutputMode default: got %q, want %q", m.OutputMode, config.OutputDirectoryFlat)
+	}
+	if m.OutputFormat != config.OutputFormatSKT {
+		t.Fatalf("OutputFormat default: got %q, want %q", m.OutputFormat, config.OutputFormatSKT)
 	}
 	if m.OutputDir != "./skeleton" {
 		t.Fatalf("OutputDir default: got %q, want %q", m.OutputDir, "./skeleton")

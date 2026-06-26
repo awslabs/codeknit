@@ -52,6 +52,23 @@ func TestProperty_OutputModeValidation(t *testing.T) {
 	})
 }
 
+func TestProperty_OutputFormatValidation(t *testing.T) {
+	validFormats := map[OutputFormat]bool{
+		OutputFormatSKT:  true,
+		OutputFormatJSON: true,
+	}
+
+	rapid.Check(t, func(t *rapid.T) {
+		s := rapid.StringMatching(`[a-zA-Z0-9_-]{0,30}`).Draw(t, "format")
+		format := OutputFormat(s)
+		got := format.IsValid()
+		want := validFormats[format]
+		if got != want {
+			t.Fatalf("IsValid(%q) = %v, want %v", s, got, want)
+		}
+	})
+}
+
 // Feature: cli-output-modes, Property 4: Directory modes default output directory
 // Validates: Requirement 2.6
 func TestProperty_DirectoryModesDefaultOutputDir(t *testing.T) {

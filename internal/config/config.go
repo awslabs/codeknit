@@ -17,6 +17,9 @@ import (
 // OutputMode controls how the parse emitter writes results.
 type OutputMode string
 
+// OutputFormat controls the serialization format for parse output.
+type OutputFormat string
+
 // Valid output mode constants.
 const (
 	OutputInline        OutputMode = "inline"
@@ -24,15 +27,35 @@ const (
 	OutputDirectoryTree OutputMode = "directory-tree"
 )
 
+// Valid output format constants.
+const (
+	OutputFormatSKT  OutputFormat = "skt"
+	OutputFormatJSON OutputFormat = "json"
+)
+
 // ValidOutputModes returns the set of valid output mode values.
 func ValidOutputModes() []OutputMode {
 	return []OutputMode{OutputInline, OutputDirectoryFlat, OutputDirectoryTree}
+}
+
+// ValidOutputFormats returns the set of valid output format values.
+func ValidOutputFormats() []OutputFormat {
+	return []OutputFormat{OutputFormatSKT, OutputFormatJSON}
 }
 
 // IsValid reports whether m is a recognized output mode.
 func (m OutputMode) IsValid() bool {
 	switch m {
 	case OutputInline, OutputDirectoryFlat, OutputDirectoryTree:
+		return true
+	}
+	return false
+}
+
+// IsValid reports whether f is a recognized output format.
+func (f OutputFormat) IsValid() bool {
+	switch f {
+	case OutputFormatSKT, OutputFormatJSON:
 		return true
 	}
 	return false
@@ -65,8 +88,9 @@ func (c *Common) Validate() error {
 
 // ParseConfig holds options for the `parse` subcommand.
 type ParseConfig struct {
-	OutputDir  string
-	OutputMode OutputMode
+	OutputDir    string
+	OutputMode   OutputMode
+	OutputFormat OutputFormat
 	Common
 	MaxLines int
 	Minify   bool
@@ -85,6 +109,13 @@ func (c *ParseConfig) Validate() error {
 	}
 	if !c.OutputMode.IsValid() {
 		return fmt.Errorf("invalid output mode %s: must be one of inline, directory-flat, directory-tree", c.OutputMode)
+	}
+
+	if c.OutputFormat == "" {
+		c.OutputFormat = OutputFormatSKT
+	}
+	if !c.OutputFormat.IsValid() {
+		return fmt.Errorf("invalid output format %s: must be one of skt, json", c.OutputFormat)
 	}
 
 	if c.OutputMode == OutputDirectoryFlat || c.OutputMode == OutputDirectoryTree {

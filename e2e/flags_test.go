@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +16,18 @@ import (
 
 	"pgregory.net/rapid"
 )
+
+type parseJSONOutput struct {
+	Files   []string `json:"files"`
+	Symbols []struct {
+		Name     string `json:"name"`
+		File     string `json:"file"`
+		Category string `json:"category"`
+	} `json:"symbols"`
+	Edges []struct {
+		Kind string `json:"kind"`
+	} `json:"edges,omitempty"`
+}
 
 // TestE2E_TestFileExclusion verifies that test-patterned files are excluded by
 // default and included when --collect-test is passed.
@@ -1087,5 +1100,35 @@ func TestE2E_EdgesInlineMode(t *testing.T) {
 	}
 	if !strings.Contains(outEdges, "[edges]") {
 		t.Fatal("expected [edges] section when --edges is passed")
+	}
+}
+
+func TestE2E_JSONOutput(t *testing.T) {
+	inputDir := writeFixture(t, map[string]string{
+		"app.go": `package main
+
+type User struct{}
+
+func Save(u User) {}
+`,
+	})
+
+	out, err := runcodeknitInline(t, inputDir, "parse", "--output-mode", "inline", "--format", "json", "--edges", inputDir)
+	if err != nil {
+		t.Fatalf("codeknit json output failed: %v", err)
+	}
+
+	var parsed parseJSONOutput
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("json output is not valid JSON: %v\n%s", err, out)
+	}
+	if len(parsed.Files) != 1 || parsed.Files[0] != "app.go" {
+		t.Fatalf("files = %v, want [app.go]", parsed.Files)
+	}
+	if len(parsed.Symbols) == 0 {
+		t.Fatalf("expected symbols in JSON output, got none:\n%s", out)
+	}
+	if len(parsed.Edges) == 0 {
+		t.Fatalf("expected edges in JSON output with --edges, got none:\n%s", out)
 	}
 }

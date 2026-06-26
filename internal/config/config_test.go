@@ -96,6 +96,19 @@ func TestValidate_OutputModeDefaultsToDirectoryFlat(t *testing.T) {
 	}
 }
 
+func TestValidate_OutputFormatDefaultsToSKT(t *testing.T) {
+	cfg := ParseConfig{
+		Common:    Common{InputPath: t.TempDir()},
+		OutputDir: t.TempDir(),
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OutputFormat != OutputFormatSKT {
+		t.Fatalf("expected OutputFormat to default to %q, got %q", OutputFormatSKT, cfg.OutputFormat)
+	}
+}
+
 func TestValidate_MaxLinesDefaultsTo500(t *testing.T) {
 	cfg := ParseConfig{
 		Common:    Common{InputPath: t.TempDir()},
@@ -141,6 +154,18 @@ func TestValidate_InvalidOutputMode(t *testing.T) {
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("expected error for invalid output mode")
+	}
+}
+
+func TestValidate_InvalidOutputFormat(t *testing.T) {
+	cfg := ParseConfig{
+		Common:       Common{InputPath: t.TempDir()},
+		OutputDir:    t.TempDir(),
+		OutputFormat: "yaml",
+	}
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("expected error for invalid output format")
 	}
 }
 

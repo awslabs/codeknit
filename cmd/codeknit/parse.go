@@ -14,6 +14,7 @@ import (
 // It mirrors the docker CLI pattern: one lowercase options struct per command.
 type parseOptions struct {
 	outputMode  string
+	format      string
 	maxLines    int
 	workers     int
 	collectTest bool
@@ -44,6 +45,9 @@ and directory-tree modes. For inline mode output is written to stdout.`,
   # Inline output to stdout
   codeknit parse ./myproject --output-mode inline
 
+  # JSON output to stdout
+  codeknit parse ./myproject --output-mode inline --format json
+
   # Include test files and minify
   codeknit parse ./src --collect-test --minify
 
@@ -63,12 +67,13 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 					CollectTest: opts.collectTest,
 					Verbose:     opts.verbose,
 				},
-				OutputDir:  outputDir,
-				OutputMode: config.OutputMode(opts.outputMode),
-				MaxLines:   opts.maxLines,
-				Minify:     opts.minify,
-				Edges:      opts.edges,
-				Clean:      opts.clean,
+				OutputDir:    outputDir,
+				OutputMode:   config.OutputMode(opts.outputMode),
+				OutputFormat: config.OutputFormat(opts.format),
+				MaxLines:     opts.maxLines,
+				Minify:       opts.minify,
+				Edges:        opts.edges,
+				Clean:        opts.clean,
 			}
 			if err := cfg.Validate(); err != nil {
 				return err
@@ -79,6 +84,8 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 
 	cmd.Flags().StringVar(&opts.outputMode, "output-mode", "directory-flat",
 		"output mode: inline, directory-flat, directory-tree")
+	cmd.Flags().StringVar(&opts.format, "format", "skt",
+		"output format: skt, json")
 	cmd.Flags().IntVar(&opts.maxLines, "max-lines", 500,
 		"maximum lines per output file")
 	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", false,

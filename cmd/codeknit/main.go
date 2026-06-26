@@ -218,13 +218,16 @@ func runParse(cfg *config.ParseConfig, con *console.Console) error {
 		con.Warn(res.ParseErrors[i].Error())
 	}
 
+	if cfg.OutputMode == config.OutputInline {
+		t := res.Timings
+		con.Verbose(fmt.Sprintf("\nTiming: init %s, scan %s, parse %s, plan %s, emit %s (total %s)",
+			formatDur(t.Init), formatDur(t.Scan), formatDur(t.Parse), formatDur(t.Plan), formatDur(t.Emit), formatDur(t.Total)))
+		return nil
+	}
+
 	c := res.Counts
 	con.Summary(c.FilesProcessed, c.Skipped, c.ParseErrors, c.OutputFiles)
-	if cfg.OutputMode == config.OutputInline {
-		con.Success("Output written to stdout")
-	} else {
-		con.Success(fmt.Sprintf("Output written to %s", cfg.OutputDir))
-	}
+	con.Success(fmt.Sprintf("Output written to %s", cfg.OutputDir))
 
 	t := res.Timings
 	con.Verbose(fmt.Sprintf("\nTiming: init %s, scan %s, parse %s, plan %s, emit %s (total %s)",

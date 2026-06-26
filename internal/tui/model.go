@@ -49,6 +49,7 @@ type field int
 const (
 	fieldInputPath field = iota
 	fieldOutputMode
+	fieldOutputFormat
 	fieldOutputDir
 	fieldMaxLines
 	fieldCollectTest
@@ -72,7 +73,7 @@ const (
 	fieldFingerprintShowAll
 )
 
-const totalFields = 10
+const totalFields = 11
 
 var (
 	labelStyle = lipgloss.NewStyle().
@@ -137,6 +138,7 @@ func banner() string {
 type Model struct {
 	InputPath            string
 	OutputMode           config.OutputMode
+	OutputFormat         config.OutputFormat
 	OutputDir            string
 	MaxLines             string
 	Workers              string
@@ -257,6 +259,7 @@ func NewModel() Model {
 	return Model{
 		screen:               screenCommandSelect,
 		OutputMode:           config.OutputDirectoryFlat,
+		OutputFormat:         config.OutputFormatSKT,
 		OutputDir:            "./skeleton",
 		MaxLines:             "500",
 		Workers:              "0",
@@ -314,13 +317,14 @@ func (m *Model) common() config.Common {
 func (m *Model) ToParseConfig() config.ParseConfig {
 	ml, _ := strconv.Atoi(m.MaxLines)
 	return config.ParseConfig{
-		Common:     m.common(),
-		OutputDir:  m.OutputDir,
-		OutputMode: m.OutputMode,
-		MaxLines:   ml,
-		Minify:     m.Minify,
-		Edges:      m.Edges,
-		Clean:      m.Clean,
+		Common:       m.common(),
+		OutputDir:    m.OutputDir,
+		OutputMode:   m.OutputMode,
+		OutputFormat: m.OutputFormat,
+		MaxLines:     ml,
+		Minify:       m.Minify,
+		Edges:        m.Edges,
+		Clean:        m.Clean,
 	}
 }
 
@@ -478,6 +482,19 @@ func (m *Model) cycleOutputMode() {
 	m.OutputMode = config.OutputDirectoryFlat
 }
 
+// cycleOutputFormat advances the OutputFormat to the next valid value.
+func (m *Model) cycleOutputFormat() {
+	formats := config.ValidOutputFormats()
+	for i, format := range formats {
+		if format == m.OutputFormat {
+			m.OutputFormat = formats[(i+1)%len(formats)]
+			return
+		}
+	}
+	// Fallback if current format is somehow invalid.
+	m.OutputFormat = config.OutputFormatSKT
+}
+
 //nolint:gocritic // hugeParam: called from value-receiver tea.Model methods.
 func (m Model) handleParseOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
@@ -541,6 +558,11 @@ func (m Model) handleParseOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case fieldOutputMode:
 		if key == "enter" || key == " " {
 			m.cycleOutputMode()
+		}
+		return m, nil
+	case fieldOutputFormat:
+		if key == "enter" || key == " " {
+			m.cycleOutputFormat()
 		}
 		return m, nil
 	case fieldCollectTest:
@@ -701,6 +723,7 @@ func (m Model) viewParseOptions() tea.View {
 
 	s += m.textField("Input path:       ", m.InputPath, fieldInputPath)
 	s += m.selectionField("Output mode:      ", string(m.OutputMode), fieldOutputMode)
+	s += m.selectionField("Output format:    ", string(m.OutputFormat), fieldOutputFormat)
 	if m.OutputMode != config.OutputInline {
 		s += m.textField("Output directory: ", m.OutputDir, fieldOutputDir)
 	}

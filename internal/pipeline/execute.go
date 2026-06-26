@@ -167,13 +167,14 @@ func Execute(
 	t3 := time.Now()
 	e := &emitter.Emitter{}
 	opts := &emitter.EmitOptions{
-		OutputDir:  cfg.OutputDir,
-		OutputMode: cfg.OutputMode,
-		InputPath:  cfg.InputPath,
-		FileOrder:  gr.Files,
-		MaxLines:   cfg.MaxLines,
-		Minify:     cfg.Minify,
-		Clean:      cfg.Clean,
+		OutputDir:    cfg.OutputDir,
+		OutputMode:   cfg.OutputMode,
+		OutputFormat: cfg.OutputFormat,
+		InputPath:    cfg.InputPath,
+		FileOrder:    gr.Files,
+		MaxLines:     cfg.MaxLines,
+		Minify:       cfg.Minify,
+		Clean:        cfg.Clean,
 	}
 	written, err := e.Emit(gr.Graph, opts)
 	if err != nil {
