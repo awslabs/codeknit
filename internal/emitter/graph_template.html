@@ -10,9 +10,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>codeknit – Interactive Symbol Graph</title>
-  <script src="https://d3js.org/d3.v7.min.js"
-    integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
-    crossorigin="anonymous"></script>
+  <script>
+/*D3_JS*/
+  </script>
   <style>
     body {
       margin: 0;
@@ -2008,6 +2008,7 @@
     let hoveredNode = null;
     let flowOffset = 0;
     let currentVisibleIds = new Set(GRAPH_DATA.symbols.map(s => s.shortId));
+    let transform = d3.zoomIdentity;
 
     function requestDraw() {
       if (!animFrameId) animFrameId = requestAnimationFrame(drawFrame);
@@ -2020,9 +2021,6 @@
     }
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
-
-    // Transform state (pan/zoom)
-    let transform = d3.zoomIdentity;
 
     // Simulation data
     const allNodes = GRAPH_DATA.symbols.map(s => ({ ...s, _dname: displayName(s) }));

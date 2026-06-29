@@ -261,6 +261,57 @@ func TestEmitJSONDirectoryWritesSingleFile(t *testing.T) {
 	}
 }
 
+func TestEmitGraphIsSelfContained(t *testing.T) {
+	sg := &ir.SymbolGraph{
+		Symbols: []plugin.Symbol{
+			{
+				ID:        "src/app.go::main",
+				Name:      "main",
+				FilePath:  "src/app.go",
+				Category:  plugin.CategoryCallable,
+				Kind:      "function",
+				Signature: "main()",
+				Span:      [2]int{1, 3},
+			},
+			{
+				ID:        "src/app.go::Server",
+				Name:      "Server",
+				FilePath:  "src/app.go",
+				Category:  plugin.CategoryType,
+				Kind:      "struct",
+				Signature: "type Server struct",
+				Span:      [2]int{5, 8},
+			},
+		},
+		Edges: []plugin.Edge{
+			{From: "src/app.go::main", To: "src/app.go::Server", Kind: plugin.EdgeReferences},
+		},
+	}
+	sg.BuildIndexes()
+
+	outputPath := filepath.Join(t.TempDir(), "codeknit-graph.html")
+	if err := (&Emitter{}).EmitGraph(sg, outputPath); err != nil {
+		t.Fatalf("EmitGraph: %v", err)
+	}
+
+	htmlBytes, err := os.ReadFile(outputPath) //nolint:gosec // test file
+	if err != nil {
+		t.Fatalf("read graph HTML: %v", err)
+	}
+	html := string(htmlBytes)
+	for _, disallowed := range []string{`src="https://d3js.org`, `src="http://d3js.org`, "/*D3_JS*/", "/*GRAPH_DATA_JSON*/"} {
+		if strings.Contains(html, disallowed) {
+			t.Fatalf("graph HTML contains %q; output should be self-contained", disallowed)
+		}
+	}
+	if !strings.Contains(html, "d3.zoomIdentity") {
+		t.Fatal("graph HTML does not include embedded D3")
+	}
+	if !strings.Contains(html, `"shortId": "S1"`) || !strings.Contains(html, `"kind": "references"`) {
+		t.Fatal("graph HTML does not include generated graph data")
+	}
+}
+
 // Feature: code-concept-mapper, Property 11: Dictionary Uniqueness
 func TestProperty11_DictionaryUniqueness(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {

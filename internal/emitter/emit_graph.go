@@ -52,7 +52,8 @@ func (e *Emitter) EmitGraph(sg *ir.SymbolGraph, outputPath string) error {
 	// Place the JSON inside a <script type="application/json"> tag.
 	// Escape "</script>" sequences that could prematurely close the tag.
 	safeJSON := strings.ReplaceAll(string(jsonBytes), "</script>", `<\/script>`)
-	html := strings.Replace(graphTemplateHTML, "/*GRAPH_DATA_JSON*/", safeJSON, 1)
+	html := strings.Replace(graphTemplateHTML, "/*D3_JS*/", d3JS, 1)
+	html = strings.Replace(html, "/*GRAPH_DATA_JSON*/", safeJSON, 1)
 
 	if dir := filepath.Dir(outputPath); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o700); err != nil { //nolint:gosec // 0o700 is the least-privilege permission for directories (execute bit required for traversal)
