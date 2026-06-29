@@ -11,15 +11,22 @@ Cover:
    - codeknit-fingerprint: fuzzy duplicate and near-duplicate detection
 
 2. Installation:
-   Each skill is a directory. Copy whichever ones you want:
+   Each skill is a directory. Use the installer helper; it downloads only the skill files, so users do not need to clone the repository:
 
-   For Kiro:
-   cp -r skills/codeknit-parse ~/.kiro/skills/codeknit-parse
-   cp -r skills/codeknit-fingerprint ~/.kiro/skills/codeknit-fingerprint
+   Install for Codex, Kiro, and Claude Code:
+   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
 
-   For Claude Code:
-   cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
-   cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
+   Install for one assistant:
+   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
+   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
+   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+
+   From a local checkout:
+   make skills-install-dry-run
+   make skills-install
+
+   The installer skips existing skill directories by default. To replace them, add --force:
+   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
 
    Each skill directory contains a SKILL.md that the assistant reads on demand.
 

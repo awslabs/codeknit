@@ -1,7 +1,9 @@
 .PHONY: lint fmt fmt-check build test test-unit test-e2e clean setup fieldalign \
        release release-dry-run deps deps-check license license-check \
        third-party-licenses third-party-check third-party-list changelog \
-       docs docs-generate docs-translate docs-build docs-preview
+       docs docs-generate docs-translate docs-build docs-preview \
+       skills-install skills-install-codex skills-install-kiro skills-install-claude \
+       skills-install-dry-run
 
 # Binary name and entry point
 BINARY    := codeknit
@@ -180,3 +182,23 @@ docs:
 # Start Astro dev server for previewing docs (run manually)
 docs-preview:
 	cd docs && npm run dev
+
+# --- Assistant skills ----------------------------------------------------------
+
+# Install bundled assistant skills. Override ASSISTANT=codex|kiro|claude|all.
+ASSISTANT ?= all
+
+skills-install:
+	scripts/install-skills.sh --assistant $(ASSISTANT)
+
+skills-install-codex:
+	scripts/install-skills.sh --assistant codex
+
+skills-install-kiro:
+	scripts/install-skills.sh --assistant kiro
+
+skills-install-claude:
+	scripts/install-skills.sh --assistant claude
+
+skills-install-dry-run:
+	scripts/install-skills.sh --assistant $(ASSISTANT) --dry-run

@@ -278,13 +278,26 @@ Flags:
 `codeknit` ships with ready-made skills in `skills/` that teach AI coding assistants how to use codeknit effectively. Install them to your home directory so they're available across all projects:
 
 ```bash
-# Kiro
-cp -r skills/codeknit-parse ~/.kiro/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.kiro/skills/codeknit-fingerprint
+# Install for Codex, Kiro, and Claude Code without cloning this repository
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
 
-# Claude Code
-cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
+# Install for one assistant
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+```
+
+From a local checkout, you can use Makefile helpers:
+
+```bash
+make skills-install-dry-run
+make skills-install
+```
+
+The installer skips existing skill directories by default. To replace them, add `--force`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
 ```
 
 Once installed, the assistant knows how to invoke codeknit, pick the right output mode, read `.skt` files, use the structural graph for refactoring tasks, and detect duplicate code. No extra prompting needed.

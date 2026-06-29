@@ -16,20 +16,33 @@ Each skill includes documentation that the assistant reads on demand to understa
 
 ## Installation
 
-Copy the skill directories to your assistant's skills folder.
+Use the installer helper to copy the skill directories to your assistant's skills folder. The installer downloads only the bundled skill files, so you do not need to clone the repository.
 
-For **Kiro**:
+Install for **Codex**, **Kiro**, and **Claude Code**:
 
 ```bash
-cp -r skills/codeknit-parse ~/.kiro/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.kiro/skills/codeknit-fingerprint
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
 ```
 
-For **Claude Code**:
+Install for one assistant:
 
 ```bash
-cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+```
+
+From a local checkout, you can use Makefile helpers:
+
+```bash
+make skills-install-dry-run
+make skills-install
+```
+
+The installer skips existing skill directories by default. To replace them, add `--force`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
 ```
 
 After installation, the assistant automatically knows how to invoke codeknit commands, select appropriate flags, and interpret `.skt` output.
