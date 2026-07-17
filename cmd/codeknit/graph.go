@@ -118,7 +118,12 @@ Algorithms:
   - Reachability from entry points
   - Weakly connected components
   - Dependency weight (package coupling strength)
-  - Distance from Main Sequence (A+I balance)`,
+  - Distance from Main Sequence (A+I balance)
+  - Shotgun surgery detection
+  - Feature envy detection
+  - Stable dependency violations
+  - Interface segregation violations
+  - Containment depth`,
 		Example: `  # Analyze with defaults
   codeknit graph analyze ./myproject
 

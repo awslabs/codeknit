@@ -49,7 +49,7 @@ Cette commande détecte des problèmes courants de qualité du code tels que les
 
 ### Algorithmes
 
-L'analyse inclut 17 algorithmes de graphe structurels :
+L'analyse inclut 22 algorithmes de graphe structurels :
 
 - Dépendances cycliques (Tarjan's SCC)
 - Détection de hubs (couplage élevé fan-in/fan-out)
@@ -68,6 +68,11 @@ L'analyse inclut 17 algorithmes de graphe structurels :
 - Composants faiblement connectés
 - Poids des dépendances (force de couplage des packages)
 - Distance par rapport à la Main Sequence (équilibre A+I)
+- Détection du shotgun surgery
+- Détection du feature envy
+- Violations du principe de dépendances stables
+- Violations du principe de ségrégation des interfaces
+- Profondeur d'imbrication
 
 ### Flags
 

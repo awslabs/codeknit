@@ -49,7 +49,7 @@ Lệnh này phát hiện các vấn đề chất lượng mã phổ biến như 
 
 ### Các thuật toán
 
-Phân tích bao gồm 17 thuật toán đồ thị cấu trúc:
+Phân tích bao gồm 22 thuật toán đồ thị cấu trúc:
 
 - Phụ thuộc vòng (Tarjan's SCC)
 - Phát hiện trung tâm (kết nối fan-in/fan-out cao)
@@ -68,6 +68,11 @@ Phân tích bao gồm 17 thuật toán đồ thị cấu trúc:
 - Thành phần kết nối yếu
 - Trọng số phụ thuộc (độ kết nối gói)
 - Khoảng cách từ Chuỗi Chính (cân bằng A+I)
+- Phát hiện shotgun surgery
+- Phát hiện feature envy
+- Vi phạm nguyên tắc phụ thuộc ổn định
+- Vi phạm nguyên tắc phân tách giao diện
+- Độ sâu chứa
 
 ### Cờ
 

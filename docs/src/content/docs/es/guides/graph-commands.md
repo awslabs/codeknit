@@ -49,7 +49,7 @@ Este comando detecta problemas comunes de calidad de código como dependencias c
 
 ### Algoritmos
 
-El análisis incluye 17 algoritmos de grafo estructurales:
+El análisis incluye 22 algoritmos de grafo estructurales:
 
 - Dependencias cíclicas (SCC de Tarjan)
 - Detección de hubs (alto acoplamiento fan-in/fan-out)
@@ -68,6 +68,11 @@ El análisis incluye 17 algoritmos de grafo estructurales:
 - Componentes débilmente conectados
 - Peso de dependencia (fuerza de acoplamiento de paquetes)
 - Distancia desde la Secuencia Principal (balance A+I)
+- Detección de shotgun surgery
+- Detección de feature envy
+- Violaciones del principio de dependencias estables
+- Violaciones del principio de segregación de interfaces
+- Profundidad de contención
 
 ### Flags
 

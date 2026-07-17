@@ -35,7 +35,7 @@ Runs structural graph algorithms and emits an LLM-readable .skt report.
 
 Usage: `codeknit graph analyze <input-path>`
 
-Algorithms (list all 17):
+Algorithms (list all 22):
 - Cyclic dependencies (Tarjan's SCC)
 - Hub detection (high fan-in/fan-out coupling)
 - Orphan detection (dead code candidates)
@@ -53,6 +53,11 @@ Algorithms (list all 17):
 - Weakly connected components
 - Dependency weight (package coupling strength)
 - Distance from Main Sequence (A+I balance)
+- Shotgun surgery detection
+- Feature envy detection
+- Stable dependency violations
+- Interface segregation violations
+- Containment depth
 
 Flags table:
 - -o, --output: output .skt file (default: ./skeleton/graph_analysis.skt)

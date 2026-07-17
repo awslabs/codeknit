@@ -49,7 +49,7 @@ This command detects common code quality issues such as cyclic dependencies, hub
 
 ### Algorithms
 
-The analysis includes 17 structural graph algorithms:
+The analysis includes 22 structural graph algorithms:
 
 - Cyclic dependencies (Tarjan's SCC)
 - Hub detection (high fan-in/fan-out coupling)
@@ -68,6 +68,11 @@ The analysis includes 17 structural graph algorithms:
 - Weakly connected components
 - Dependency weight (package coupling strength)
 - Distance from Main Sequence (A+I balance)
+- Shotgun surgery detection
+- Feature envy detection
+- Stable dependency violations
+- Interface segregation violations
+- Containment depth
 
 ### Flags
 

@@ -49,7 +49,7 @@ Dieser Befehl erkennt gängige Codequalitätsprobleme wie zyklische Abhängigkei
 
 ### Algorithmen
 
-Die Analyse umfasst 17 strukturelle Graphalgorithmen:
+Die Analyse umfasst 22 strukturelle Graphalgorithmen:
 
 - Zyklische Abhängigkeiten (Tarjans SCC)
 - Hub-Erkennung (hohe Fan-in/Fan-out-Kopplung)
@@ -68,6 +68,11 @@ Die Analyse umfasst 17 strukturelle Graphalgorithmen:
 - Schwach verbundene Komponenten
 - Abhängigkeitsgewicht (Paketkopplungsstärke)
 - Abstand von der Main Sequence (A+I-Balance)
+- Erkennung von Shotgun Surgery
+- Erkennung von Feature Envy
+- Verletzungen des Stable-Dependencies-Prinzips
+- Verletzungen des Interface-Segregation-Prinzips
+- Tiefe von Containment-Hierarchien
 
 ### Flags
 

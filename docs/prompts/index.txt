@@ -38,7 +38,7 @@ Supported languages: C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, 
 Key features to highlight:
 - Extracts functions, classes, methods, variables, and their relationships
 - Compact .skt output format designed for LLM context windows
-- Graph analysis with 17+ algorithms (cycles, hubs, dead code, god classes, bottlenecks)
+- Graph analysis with 22 algorithms (cycles, hubs, dead code, god classes, bottlenecks)
 - Interactive HTML graph visualization
 - Fuzzy duplicate and near-duplicate detection with CTPH fingerprinting (cross-file, cross-language)
 - Multiple output modes (inline, directory-flat, directory-tree)

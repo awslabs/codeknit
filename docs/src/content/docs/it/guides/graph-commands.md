@@ -49,7 +49,7 @@ Questo comando rileva problemi comuni di qualità del codice come dipendenze cic
 
 ### Algoritmi
 
-L'analisi include 17 algoritmi di grafo strutturali:
+L'analisi include 22 algoritmi di grafo strutturali:
 
 - Dipendenze cicliche (Tarjan's SCC)
 - Rilevamento di hub (alto accoppiamento fan-in/fan-out)
@@ -68,6 +68,11 @@ L'analisi include 17 algoritmi di grafo strutturali:
 - Componenti debolmente connessi
 - Peso delle dipendenze (forza di accoppiamento dei package)
 - Distanza dalla Main Sequence (bilanciamento A+I)
+- Rilevamento di shotgun surgery
+- Rilevamento di feature envy
+- Violazioni del principio delle dipendenze stabili
+- Violazioni del principio di segregazione delle interfacce
+- Profondità di contenimento
 
 ### Flag
 

@@ -257,7 +257,7 @@ codeknit graph analyze ./src --collect-test
 
 `graph analyze` runs structural graph algorithms on the codebase and emits an LLM-readable `.skt` report. It detects code quality issues such as cyclic dependencies, hub symbols, dead code, god classes, deep inheritance chains, bottleneck functions, and more.
 
-Algorithms include: cyclic dependency detection (Tarjan's SCC), hub detection (fan-in/fan-out coupling), orphan detection, god class/function detection, instability metric, deep inheritance chains, betweenness centrality, articulation points, PageRank, transitive fan-in (blast radius), change propagation simulation, circular package dependencies, layer violation detection, reachability from entry points, weakly connected components, dependency weight, and distance from main sequence.
+The 22 algorithms include: cyclic dependency detection (Tarjan's SCC), hub detection (fan-in/fan-out coupling), orphan detection, god class/function detection, instability metric, deep inheritance chains, betweenness centrality, articulation points, PageRank, transitive fan-in (blast radius), change propagation simulation, circular package dependencies, layer violation detection, reachability from entry points, weakly connected components, dependency weight, distance from main sequence, shotgun surgery detection, feature envy detection, stable dependency violations, interface segregation violations, and containment depth.
 
 ```
 Flags:

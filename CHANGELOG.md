@@ -42,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 #### Graph visualization and analysis
 
 - `codeknit graph show` subcommand: generates a self-contained interactive HTML visualization of the codebase graph, opened automatically in the default browser
-- `codeknit graph analyze` subcommand: runs 17 structural graph algorithms and emits an LLM-readable `.skt` report, including:
+- `codeknit graph analyze` subcommand: runs 22 structural graph algorithms and emits an LLM-readable `.skt` report, including:
   - Cyclic dependencies (Tarjan's SCC)
   - Hub detection (high fan-in/fan-out coupling)
   - Orphan detection (dead code candidates)
@@ -60,6 +60,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - Weakly connected components
   - Dependency weight (package coupling strength)
   - Distance from Main Sequence (A+I balance)
+  - Shotgun surgery detection
+  - Feature envy detection
+  - Stable dependency violations
+  - Interface segregation violations
+  - Containment depth
 - Configurable thresholds for hubs, god classes, inheritance depth, top-N ranking, betweenness, and change propagation
 
 #### Fuzzy duplicate detection
