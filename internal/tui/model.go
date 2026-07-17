@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"codeknit/internal/config"
-	"codeknit/internal/ollama"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -258,22 +257,29 @@ func (m *Model) acceptSuggestion() {
 func NewModel() Model {
 	return Model{
 		screen:               screenCommandSelect,
-		OutputMode:           config.OutputDirectoryFlat,
-		OutputFormat:         config.OutputFormatSKT,
-		OutputDir:            "./skeleton",
-		MaxLines:             "500",
-		Workers:              "0",
-		GraphOutput:          "./skeleton/codeknit-graph.html",
-		AnalysisOutput:       "./skeleton/graph_analysis.skt",
-		FanThreshold:         "10",
-		GodThreshold:         "15",
-		MaxInheritanceDepth:  "5",
-		TopN:                 "30",
-		BetweennessThreshold: "0.001",
-		PropagationCutoff:    "0.05",
-		FingerprintOutput:    "./skeleton/fingerprints.skt",
-		FingerprintMinSim:    "75",
-		FingerprintMaxSim:    "100",
+		OutputMode:           config.DefaultParseOutputMode,
+		OutputFormat:         config.DefaultParseOutputFormat,
+		OutputDir:            config.DefaultParseOutputDir,
+		MaxLines:             strconv.Itoa(config.DefaultParseMaxLines),
+		Workers:              strconv.Itoa(config.DefaultWorkers),
+		GraphOutput:          config.DefaultGraphOutput,
+		AnalysisOutput:       config.DefaultAnalyzeOutput,
+		FanThreshold:         strconv.Itoa(config.DefaultAnalyzeFanThreshold),
+		GodThreshold:         strconv.Itoa(config.DefaultAnalyzeGodThreshold),
+		MaxInheritanceDepth:  strconv.Itoa(config.DefaultAnalyzeMaxInheritanceDepth),
+		TopN:                 strconv.Itoa(config.DefaultAnalyzeTopN),
+		BetweennessThreshold: strconv.FormatFloat(config.DefaultAnalyzeBetweennessThreshold, 'g', -1, 64),
+		PropagationCutoff:    strconv.FormatFloat(config.DefaultAnalyzePropagationCutoff, 'g', -1, 64),
+		FingerprintOutput:    config.DefaultFingerprintOutput,
+		FingerprintMinSim:    strconv.Itoa(config.DefaultFingerprintMinSimilarity),
+		FingerprintMaxSim:    strconv.Itoa(config.DefaultFingerprintMaxSimilarity),
+		FingerprintModel:     config.DefaultFingerprintModelOverride,
+		FingerprintShowAll:   config.DefaultFingerprintShowAll,
+		FingerprintRerank:    config.DefaultFingerprintRerank,
+		CollectTest:          config.DefaultCollectTest,
+		Minify:               config.DefaultParseMinify,
+		Edges:                config.DefaultParseEdges,
+		Clean:                config.DefaultParseClean,
 	}
 }
 
@@ -310,6 +316,7 @@ func (m *Model) common() config.Common {
 		InputPath:   m.InputPath,
 		Workers:     w,
 		CollectTest: m.CollectTest,
+		Verbose:     config.DefaultVerbose,
 	}
 }
 
@@ -360,18 +367,10 @@ func (m *Model) ToAnalyzeConfig() config.AnalyzeConfig {
 func (m *Model) ToFingerprintConfig() config.FingerprintConfig {
 	minSim, _ := strconv.Atoi(m.FingerprintMinSim)
 	maxSim, _ := strconv.Atoi(m.FingerprintMaxSim)
-	// Resolve embed model: rerank toggle enables the default; model field overrides.
-	embedModel := ""
-	if m.FingerprintRerank || m.FingerprintModel != "" {
-		embedModel = ollama.DefaultModel
-		if m.FingerprintModel != "" {
-			embedModel = m.FingerprintModel
-		}
-	}
 	return config.FingerprintConfig{
 		Common:     m.common(),
 		Output:     m.FingerprintOutput,
-		EmbedModel: embedModel,
+		EmbedModel: config.ResolveFingerprintEmbedModel(m.FingerprintRerank, m.FingerprintModel),
 		MinSim:     minSim,
 		MaxSim:     maxSim,
 		ShowAll:    m.FingerprintShowAll,

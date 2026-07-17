@@ -33,6 +33,40 @@ const (
 	OutputFormatJSON OutputFormat = "json"
 )
 
+// Shared command defaults. CLI flags, the TUI, validators, and emitters must
+// all consume these values rather than defining their own copies.
+const (
+	DefaultWorkers     = 0
+	DefaultCollectTest = false
+	DefaultVerbose     = false
+
+	DefaultParseOutputMode   = OutputDirectoryFlat
+	DefaultParseOutputFormat = OutputFormatSKT
+	DefaultParseOutputDir    = "./skeleton"
+	DefaultParseMaxLines     = 500
+	DefaultParseMinify       = false
+	DefaultParseEdges        = false
+	DefaultParseClean        = false
+
+	DefaultGraphOutput = "./skeleton/codeknit-graph.html"
+
+	DefaultAnalyzeOutput               = "./skeleton/graph_analysis.skt"
+	DefaultAnalyzeFanThreshold         = 10
+	DefaultAnalyzeGodThreshold         = 15
+	DefaultAnalyzeMaxInheritanceDepth  = 5
+	DefaultAnalyzeTopN                 = 30
+	DefaultAnalyzeBetweennessThreshold = 0.001
+	DefaultAnalyzePropagationCutoff    = 0.05
+
+	DefaultFingerprintOutput        = "./skeleton/fingerprints.skt"
+	DefaultFingerprintMinSimilarity = 65
+	DefaultFingerprintMaxSimilarity = 95
+	DefaultFingerprintShowAll       = false
+	DefaultFingerprintRerank        = false
+	DefaultFingerprintModelOverride = ""
+	DefaultFingerprintEmbedModel    = "qwen3-embedding:0.6b"
+)
+
 // ValidOutputModes returns the set of valid output mode values.
 func ValidOutputModes() []OutputMode {
 	return []OutputMode{OutputInline, OutputDirectoryFlat, OutputDirectoryTree}
@@ -105,14 +139,14 @@ func (c *ParseConfig) Validate() error {
 	}
 
 	if c.OutputMode == "" {
-		c.OutputMode = OutputDirectoryFlat
+		c.OutputMode = DefaultParseOutputMode
 	}
 	if !c.OutputMode.IsValid() {
 		return fmt.Errorf("invalid output mode %s: must be one of inline, directory-flat, directory-tree", c.OutputMode)
 	}
 
 	if c.OutputFormat == "" {
-		c.OutputFormat = OutputFormatSKT
+		c.OutputFormat = DefaultParseOutputFormat
 	}
 	if !c.OutputFormat.IsValid() {
 		return fmt.Errorf("invalid output format %s: must be one of skt, json", c.OutputFormat)
@@ -120,7 +154,7 @@ func (c *ParseConfig) Validate() error {
 
 	if c.OutputMode == OutputDirectoryFlat || c.OutputMode == OutputDirectoryTree {
 		if c.OutputDir == "" {
-			c.OutputDir = "./skeleton"
+			c.OutputDir = DefaultParseOutputDir
 		}
 		if err := os.MkdirAll(c.OutputDir, 0o700); err != nil { //nolint:gosec // 0o700 is least-privilege for directories (execute bit needed for traversal)
 			return fmt.Errorf("failed to create output directory: %s: %w", c.OutputDir, err)
@@ -128,7 +162,7 @@ func (c *ParseConfig) Validate() error {
 	}
 
 	if c.MaxLines == 0 {
-		c.MaxLines = 500
+		c.MaxLines = DefaultParseMaxLines
 	}
 	if c.MaxLines < 1 {
 		return fmt.Errorf("max-lines must be at least 1")
@@ -149,7 +183,7 @@ func (c *GraphConfig) Validate() error {
 		return err
 	}
 	if c.Output == "" {
-		c.Output = "./skeleton/codeknit-graph.html"
+		c.Output = DefaultGraphOutput
 	}
 	return nil
 }
@@ -172,25 +206,25 @@ func (c *AnalyzeConfig) Validate() error {
 		return err
 	}
 	if c.Output == "" {
-		c.Output = "./skeleton/graph_analysis.skt"
+		c.Output = DefaultAnalyzeOutput
 	}
 	if c.FanThreshold <= 0 {
-		c.FanThreshold = 10
+		c.FanThreshold = DefaultAnalyzeFanThreshold
 	}
 	if c.GodThreshold <= 0 {
-		c.GodThreshold = 15
+		c.GodThreshold = DefaultAnalyzeGodThreshold
 	}
 	if c.MaxInheritanceDepth <= 0 {
-		c.MaxInheritanceDepth = 5
+		c.MaxInheritanceDepth = DefaultAnalyzeMaxInheritanceDepth
 	}
 	if c.TopN <= 0 {
-		c.TopN = 30
+		c.TopN = DefaultAnalyzeTopN
 	}
 	if c.BetweennessThreshold <= 0 {
-		c.BetweennessThreshold = 0.001
+		c.BetweennessThreshold = DefaultAnalyzeBetweennessThreshold
 	}
 	if c.PropagationCutoff <= 0 {
-		c.PropagationCutoff = 0.05
+		c.PropagationCutoff = DefaultAnalyzePropagationCutoff
 	}
 	return nil
 }
@@ -211,13 +245,25 @@ func (c *FingerprintConfig) Validate() error {
 		return err
 	}
 	if c.Output == "" {
-		c.Output = "./skeleton/fingerprints.skt"
+		c.Output = DefaultFingerprintOutput
 	}
 	if c.MinSim <= 0 {
-		c.MinSim = 75
+		c.MinSim = DefaultFingerprintMinSimilarity
 	}
 	if c.MaxSim <= 0 {
-		c.MaxSim = 100
+		c.MaxSim = DefaultFingerprintMaxSimilarity
 	}
 	return nil
+}
+
+// ResolveFingerprintEmbedModel returns the effective embedding model.
+// A model override enables reranking even when rerank is false.
+func ResolveFingerprintEmbedModel(rerank bool, modelOverride string) string {
+	if modelOverride != "" {
+		return modelOverride
+	}
+	if rerank {
+		return DefaultFingerprintEmbedModel
+	}
+	return ""
 }

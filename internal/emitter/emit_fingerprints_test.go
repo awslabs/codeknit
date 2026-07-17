@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"codeknit/internal/config"
 	"codeknit/internal/plugin"
 )
 
@@ -313,6 +314,22 @@ func TestFindDuplicates_RangeFilter(t *testing.T) {
 // ---------------------------------------------------------------------------
 // renderFingerprints
 // ---------------------------------------------------------------------------
+
+func TestDefaultFingerprintOptions_SimilarityRange(t *testing.T) {
+	opts := DefaultFingerprintOptions()
+	if opts.OutputPath != config.DefaultFingerprintOutput {
+		t.Fatalf("OutputPath default: got %q, want %q", opts.OutputPath, config.DefaultFingerprintOutput)
+	}
+	if opts.MinSimilarity != config.DefaultFingerprintMinSimilarity {
+		t.Fatalf("MinSimilarity default: got %d, want %d", opts.MinSimilarity, config.DefaultFingerprintMinSimilarity)
+	}
+	if opts.MaxSimilarity != config.DefaultFingerprintMaxSimilarity {
+		t.Fatalf("MaxSimilarity default: got %d, want %d", opts.MaxSimilarity, config.DefaultFingerprintMaxSimilarity)
+	}
+	if opts.ShowAll != config.DefaultFingerprintShowAll {
+		t.Fatalf("ShowAll default: got %t, want %t", opts.ShowAll, config.DefaultFingerprintShowAll)
+	}
+}
 
 func TestRenderFingerprints_NoDuplicates(t *testing.T) {
 	opts := &FingerprintOptions{MinSimilarity: 75, MaxSimilarity: 100}

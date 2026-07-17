@@ -82,23 +82,23 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.outputMode, "output-mode", "directory-flat",
+	cmd.Flags().StringVar(&opts.outputMode, "output-mode", string(config.DefaultParseOutputMode),
 		"output mode: inline, directory-flat, directory-tree")
-	cmd.Flags().StringVar(&opts.format, "format", "skt",
+	cmd.Flags().StringVar(&opts.format, "format", string(config.DefaultParseOutputFormat),
 		"output format: skt, json")
-	cmd.Flags().IntVar(&opts.maxLines, "max-lines", 500,
+	cmd.Flags().IntVar(&opts.maxLines, "max-lines", config.DefaultParseMaxLines,
 		"maximum lines per output file")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", false,
+	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
 		"include test files in analysis")
-	cmd.Flags().BoolVar(&opts.minify, "minify", false,
+	cmd.Flags().BoolVar(&opts.minify, "minify", config.DefaultParseMinify,
 		"enable dictionary-based output minification")
-	cmd.Flags().BoolVar(&opts.edges, "edges", false,
+	cmd.Flags().BoolVar(&opts.edges, "edges", config.DefaultParseEdges,
 		"include the [edges] section in output (off by default)")
-	cmd.Flags().BoolVar(&opts.clean, "clean", false,
+	cmd.Flags().BoolVar(&opts.clean, "clean", config.DefaultParseClean,
 		"remove stale .skt files from the output directory before writing")
-	cmd.Flags().IntVar(&opts.workers, "workers", 0,
+	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
 		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", false,
+	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
 		"print progress information during processing")
 
 	return cmd

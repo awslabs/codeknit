@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"codeknit/internal/config"
 	"codeknit/internal/ir"
 	"codeknit/internal/plugin"
 )
@@ -36,13 +37,13 @@ type AnalysisOptions struct {
 // DefaultAnalysisOptions returns sensible defaults.
 func DefaultAnalysisOptions() *AnalysisOptions {
 	return &AnalysisOptions{
-		OutputPath:           filepath.Join(".", "skeleton", "graph_analysis.skt"),
-		FanThreshold:         10,
-		GodThreshold:         15,
-		MaxInheritanceDepth:  5,
-		TopN:                 30,
-		BetweennessThreshold: 0.001,
-		PropagationCutoff:    0.05,
+		OutputPath:           config.DefaultAnalyzeOutput,
+		FanThreshold:         config.DefaultAnalyzeFanThreshold,
+		GodThreshold:         config.DefaultAnalyzeGodThreshold,
+		MaxInheritanceDepth:  config.DefaultAnalyzeMaxInheritanceDepth,
+		TopN:                 config.DefaultAnalyzeTopN,
+		BetweennessThreshold: config.DefaultAnalyzeBetweennessThreshold,
+		PropagationCutoff:    config.DefaultAnalyzePropagationCutoff,
 	}
 }
 

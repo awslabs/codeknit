@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"codeknit/internal/config"
 	"codeknit/internal/fingerprint"
 	"codeknit/internal/ir"
 	"codeknit/internal/ollama"
@@ -42,10 +43,10 @@ type FingerprintOptions struct {
 // DefaultFingerprintOptions returns sensible defaults.
 func DefaultFingerprintOptions() *FingerprintOptions {
 	return &FingerprintOptions{
-		OutputPath:    filepath.Join(".", "skeleton", "fingerprints.skt"),
-		MinSimilarity: 75,
-		MaxSimilarity: 100,
-		ShowAll:       false,
+		OutputPath:    config.DefaultFingerprintOutput,
+		MinSimilarity: config.DefaultFingerprintMinSimilarity,
+		MaxSimilarity: config.DefaultFingerprintMaxSimilarity,
+		ShowAll:       config.DefaultFingerprintShowAll,
 	}
 }
 

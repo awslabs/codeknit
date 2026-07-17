@@ -9,7 +9,6 @@ import (
 	"codeknit/internal/config"
 	"codeknit/internal/console"
 	"codeknit/internal/emitter"
-	"codeknit/internal/ollama"
 	"codeknit/internal/pipeline"
 
 	"github.com/spf13/cobra"
@@ -64,15 +63,6 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
   codeknit fingerprint ./myproject -o duplicates.skt`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Resolve the effective embed model: --rerank enables it with the
-			// default, --model overrides the model name (implies --rerank).
-			embedModel := ""
-			if opts.rerank || opts.model != "" {
-				embedModel = ollama.DefaultModel
-				if opts.model != "" {
-					embedModel = opts.model
-				}
-			}
 			cfg := &config.FingerprintConfig{
 				Common: config.Common{
 					InputPath:   args[0],
@@ -81,7 +71,7 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 					Verbose:     opts.verbose,
 				},
 				Output:     opts.output,
-				EmbedModel: embedModel,
+				EmbedModel: config.ResolveFingerprintEmbedModel(opts.rerank, opts.model),
 				MinSim:     opts.minSim,
 				MaxSim:     opts.maxSim,
 				ShowAll:    opts.showAll,
@@ -93,24 +83,24 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.output, "output", "o", "",
-		"output file path (default: ./skeleton/fingerprints.skt)")
-	cmd.Flags().IntVar(&opts.minSim, "min-similarity", 65,
+	cmd.Flags().StringVarP(&opts.output, "output", "o", config.DefaultFingerprintOutput,
+		"output file path")
+	cmd.Flags().IntVar(&opts.minSim, "min-similarity", config.DefaultFingerprintMinSimilarity,
 		"minimum similarity percentage to report (0-100)")
-	cmd.Flags().IntVar(&opts.maxSim, "max-similarity", 95,
+	cmd.Flags().IntVar(&opts.maxSim, "max-similarity", config.DefaultFingerprintMaxSimilarity,
 		"maximum similarity percentage to report (0-100)")
-	cmd.Flags().BoolVar(&opts.showAll, "show-all", false,
+	cmd.Flags().BoolVar(&opts.showAll, "show-all", config.DefaultFingerprintShowAll,
 		"include the [fingerprints] section with raw token data")
-	cmd.Flags().BoolVar(&opts.rerank, "rerank", false,
+	cmd.Flags().BoolVar(&opts.rerank, "rerank", config.DefaultFingerprintRerank,
 		"rerank CTPH candidates with semantic embeddings via Ollama to eliminate\n"+
 			"false positives (requires: ollama serve && ollama pull qwen3-embedding:0.6b)")
-	cmd.Flags().StringVar(&opts.model, "model", "",
+	cmd.Flags().StringVar(&opts.model, "model", config.DefaultFingerprintModelOverride,
 		"Ollama embedding model to use with --rerank (default: qwen3-embedding:0.6b)")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", false,
+	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
 		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", 0,
+	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
 		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", false,
+	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
 		"print progress information during processing")
 
 	return cmd

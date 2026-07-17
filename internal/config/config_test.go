@@ -91,8 +91,8 @@ func TestValidate_OutputModeDefaultsToDirectoryFlat(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.OutputMode != OutputDirectoryFlat {
-		t.Fatalf("expected OutputMode to default to %q, got %q", OutputDirectoryFlat, cfg.OutputMode)
+	if cfg.OutputMode != DefaultParseOutputMode {
+		t.Fatalf("expected OutputMode to default to %q, got %q", DefaultParseOutputMode, cfg.OutputMode)
 	}
 }
 
@@ -104,12 +104,12 @@ func TestValidate_OutputFormatDefaultsToSKT(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.OutputFormat != OutputFormatSKT {
-		t.Fatalf("expected OutputFormat to default to %q, got %q", OutputFormatSKT, cfg.OutputFormat)
+	if cfg.OutputFormat != DefaultParseOutputFormat {
+		t.Fatalf("expected OutputFormat to default to %q, got %q", DefaultParseOutputFormat, cfg.OutputFormat)
 	}
 }
 
-func TestValidate_MaxLinesDefaultsTo500(t *testing.T) {
+func TestValidate_MaxLinesUsesDefault(t *testing.T) {
 	cfg := ParseConfig{
 		Common:    Common{InputPath: t.TempDir()},
 		OutputDir: t.TempDir(),
@@ -117,8 +117,8 @@ func TestValidate_MaxLinesDefaultsTo500(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.MaxLines != 500 {
-		t.Fatalf("expected MaxLines to default to 500, got %d", cfg.MaxLines)
+	if cfg.MaxLines != DefaultParseMaxLines {
+		t.Fatalf("expected MaxLines to default to %d, got %d", DefaultParseMaxLines, cfg.MaxLines)
 	}
 }
 
@@ -140,8 +140,8 @@ func TestValidate_DirectoryModeDefaultsOutputDir(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.OutputDir != "./skeleton" {
-		t.Fatalf("expected OutputDir to default to %q, got %q", "./skeleton", cfg.OutputDir)
+	if cfg.OutputDir != DefaultParseOutputDir {
+		t.Fatalf("expected OutputDir to default to %q, got %q", DefaultParseOutputDir, cfg.OutputDir)
 	}
 }
 
@@ -178,5 +178,81 @@ func TestValidate_MaxLinesNegative(t *testing.T) {
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("expected error for negative MaxLines")
+	}
+}
+
+func TestFingerprintValidate_DefaultSimilarityRange(t *testing.T) {
+	cfg := FingerprintConfig{Common: Common{InputPath: t.TempDir()}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.MinSim != DefaultFingerprintMinSimilarity {
+		t.Fatalf("MinSim default: got %d, want %d", cfg.MinSim, DefaultFingerprintMinSimilarity)
+	}
+	if cfg.MaxSim != DefaultFingerprintMaxSimilarity {
+		t.Fatalf("MaxSim default: got %d, want %d", cfg.MaxSim, DefaultFingerprintMaxSimilarity)
+	}
+	if cfg.Output != DefaultFingerprintOutput {
+		t.Fatalf("Output default: got %q, want %q", cfg.Output, DefaultFingerprintOutput)
+	}
+}
+
+func TestGraphValidate_UsesDefaults(t *testing.T) {
+	cfg := GraphConfig{Common: Common{InputPath: t.TempDir()}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Output != DefaultGraphOutput {
+		t.Fatalf("Output default: got %q, want %q", cfg.Output, DefaultGraphOutput)
+	}
+}
+
+func TestAnalyzeValidate_UsesDefaults(t *testing.T) {
+	cfg := AnalyzeConfig{Common: Common{InputPath: t.TempDir()}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Output != DefaultAnalyzeOutput {
+		t.Errorf("Output default: got %q, want %q", cfg.Output, DefaultAnalyzeOutput)
+	}
+	if cfg.FanThreshold != DefaultAnalyzeFanThreshold {
+		t.Errorf("FanThreshold default: got %d, want %d", cfg.FanThreshold, DefaultAnalyzeFanThreshold)
+	}
+	if cfg.GodThreshold != DefaultAnalyzeGodThreshold {
+		t.Errorf("GodThreshold default: got %d, want %d", cfg.GodThreshold, DefaultAnalyzeGodThreshold)
+	}
+	if cfg.MaxInheritanceDepth != DefaultAnalyzeMaxInheritanceDepth {
+		t.Errorf("MaxInheritanceDepth default: got %d, want %d", cfg.MaxInheritanceDepth, DefaultAnalyzeMaxInheritanceDepth)
+	}
+	if cfg.TopN != DefaultAnalyzeTopN {
+		t.Errorf("TopN default: got %d, want %d", cfg.TopN, DefaultAnalyzeTopN)
+	}
+	if cfg.BetweennessThreshold != DefaultAnalyzeBetweennessThreshold {
+		t.Errorf("BetweennessThreshold default: got %g, want %g", cfg.BetweennessThreshold, DefaultAnalyzeBetweennessThreshold)
+	}
+	if cfg.PropagationCutoff != DefaultAnalyzePropagationCutoff {
+		t.Errorf("PropagationCutoff default: got %g, want %g", cfg.PropagationCutoff, DefaultAnalyzePropagationCutoff)
+	}
+}
+
+func TestResolveFingerprintEmbedModel(t *testing.T) {
+	tests := []struct {
+		name          string
+		modelOverride string
+		want          string
+		rerank        bool
+	}{
+		{name: "disabled", want: ""},
+		{name: "rerank default", rerank: true, want: DefaultFingerprintEmbedModel},
+		{name: "override implies rerank", modelOverride: "custom-model", want: "custom-model"},
+		{name: "override wins", rerank: true, modelOverride: "custom-model", want: "custom-model"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ResolveFingerprintEmbedModel(tc.rerank, tc.modelOverride)
+			if got != tc.want {
+				t.Fatalf("got %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

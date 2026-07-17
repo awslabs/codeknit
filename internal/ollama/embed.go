@@ -14,12 +14,6 @@ import (
 )
 
 const (
-	// DefaultModel is the recommended fast local embedding model as of 2026.
-	// qwen3-embedding:0.6b offers 32k context, 1024 dims, and explicit code
-	// retrieval training — significantly better than nomic-embed-text for
-	// distinguishing semantically different functions with similar structure.
-	DefaultModel = "qwen3-embedding:0.6b"
-
 	defaultBaseURL = "http://localhost:11434"
 	embedPath      = "/api/embed"
 	httpTimeout    = 120 * time.Second

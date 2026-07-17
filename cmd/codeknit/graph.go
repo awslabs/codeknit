@@ -6,7 +6,6 @@ package main
 import (
 	"codeknit/internal/config"
 	"codeknit/internal/console"
-	"codeknit/internal/emitter"
 
 	"github.com/spf13/cobra"
 )
@@ -69,13 +68,13 @@ implements) as edges. Open the HTML file in any browser to explore.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.output, "output", "o", "",
-		"output HTML file path (default: ./skeleton/codeknit-graph.html)")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", false,
+	cmd.Flags().StringVarP(&opts.output, "output", "o", config.DefaultGraphOutput,
+		"output HTML file path")
+	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
 		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", 0,
+	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
 		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", false,
+	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
 		"print progress information during processing")
 
 	return cmd
@@ -155,27 +154,25 @@ Algorithms:
 		},
 	}
 
-	defaults := emitter.DefaultAnalysisOptions()
-
-	cmd.Flags().StringVarP(&opts.output, "output", "o", "",
-		"output .skt file path (default: ./skeleton/graph_analysis.skt)")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", false,
+	cmd.Flags().StringVarP(&opts.output, "output", "o", config.DefaultAnalyzeOutput,
+		"output .skt file path")
+	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
 		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", 0,
+	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
 		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", false,
+	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
 		"print progress information during processing")
-	cmd.Flags().IntVar(&opts.fanThreshold, "fan-threshold", defaults.FanThreshold,
+	cmd.Flags().IntVar(&opts.fanThreshold, "fan-threshold", config.DefaultAnalyzeFanThreshold,
 		"minimum fan-in or fan-out to flag a hub symbol")
-	cmd.Flags().IntVar(&opts.godThreshold, "god-threshold", defaults.GodThreshold,
+	cmd.Flags().IntVar(&opts.godThreshold, "god-threshold", config.DefaultAnalyzeGodThreshold,
 		"minimum contains-edge count to flag a god class/function")
-	cmd.Flags().IntVar(&opts.maxInheritanceDepth, "max-inheritance-depth", defaults.MaxInheritanceDepth,
+	cmd.Flags().IntVar(&opts.maxInheritanceDepth, "max-inheritance-depth", config.DefaultAnalyzeMaxInheritanceDepth,
 		"flag inheritance chains deeper than this")
-	cmd.Flags().IntVar(&opts.topN, "top-n", defaults.TopN,
+	cmd.Flags().IntVar(&opts.topN, "top-n", config.DefaultAnalyzeTopN,
 		"cap ranked output sections (betweenness, pagerank, etc.); 0 = no limit")
-	cmd.Flags().Float64Var(&opts.betweennessThreshold, "betweenness-threshold", defaults.BetweennessThreshold,
+	cmd.Flags().Float64Var(&opts.betweennessThreshold, "betweenness-threshold", config.DefaultAnalyzeBetweennessThreshold,
 		"minimum betweenness centrality value to report")
-	cmd.Flags().Float64Var(&opts.propagationCutoff, "propagation-cutoff", defaults.PropagationCutoff,
+	cmd.Flags().Float64Var(&opts.propagationCutoff, "propagation-cutoff", config.DefaultAnalyzePropagationCutoff,
 		"minimum probability to continue change propagation simulation")
 
 	return cmd

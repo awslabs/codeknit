@@ -142,19 +142,67 @@ func TestInlineModeSkipsOutputDir(t *testing.T) {
 func TestNewModelDefaults(t *testing.T) {
 	m := NewModel()
 
-	if m.OutputMode != config.OutputDirectoryFlat {
-		t.Fatalf("OutputMode default: got %q, want %q", m.OutputMode, config.OutputDirectoryFlat)
+	if m.OutputMode != config.DefaultParseOutputMode {
+		t.Fatalf("OutputMode default: got %q, want %q", m.OutputMode, config.DefaultParseOutputMode)
 	}
-	if m.OutputFormat != config.OutputFormatSKT {
-		t.Fatalf("OutputFormat default: got %q, want %q", m.OutputFormat, config.OutputFormatSKT)
+	if m.OutputFormat != config.DefaultParseOutputFormat {
+		t.Fatalf("OutputFormat default: got %q, want %q", m.OutputFormat, config.DefaultParseOutputFormat)
 	}
-	if m.OutputDir != "./skeleton" {
-		t.Fatalf("OutputDir default: got %q, want %q", m.OutputDir, "./skeleton")
+	if m.OutputDir != config.DefaultParseOutputDir {
+		t.Fatalf("OutputDir default: got %q, want %q", m.OutputDir, config.DefaultParseOutputDir)
 	}
-	if m.MaxLines != "500" {
-		t.Fatalf("MaxLines default: got %q, want %q", m.MaxLines, "500")
+	if m.MaxLines != strconv.Itoa(config.DefaultParseMaxLines) {
+		t.Fatalf("MaxLines default: got %q, want %d", m.MaxLines, config.DefaultParseMaxLines)
 	}
-	if m.Workers != "0" {
-		t.Fatalf("Workers default: got %q, want %q", m.Workers, "0")
+	if m.Workers != strconv.Itoa(config.DefaultWorkers) {
+		t.Fatalf("Workers default: got %q, want %d", m.Workers, config.DefaultWorkers)
+	}
+	if m.GraphOutput != config.DefaultGraphOutput {
+		t.Fatalf("GraphOutput default: got %q, want %q", m.GraphOutput, config.DefaultGraphOutput)
+	}
+	if m.AnalysisOutput != config.DefaultAnalyzeOutput {
+		t.Fatalf("AnalysisOutput default: got %q, want %q", m.AnalysisOutput, config.DefaultAnalyzeOutput)
+	}
+	if m.FanThreshold != strconv.Itoa(config.DefaultAnalyzeFanThreshold) {
+		t.Fatalf("FanThreshold default: got %q, want %d", m.FanThreshold, config.DefaultAnalyzeFanThreshold)
+	}
+	if m.GodThreshold != strconv.Itoa(config.DefaultAnalyzeGodThreshold) {
+		t.Fatalf("GodThreshold default: got %q, want %d", m.GodThreshold, config.DefaultAnalyzeGodThreshold)
+	}
+	if m.MaxInheritanceDepth != strconv.Itoa(config.DefaultAnalyzeMaxInheritanceDepth) {
+		t.Fatalf("MaxInheritanceDepth default: got %q, want %d", m.MaxInheritanceDepth, config.DefaultAnalyzeMaxInheritanceDepth)
+	}
+	if m.TopN != strconv.Itoa(config.DefaultAnalyzeTopN) {
+		t.Fatalf("TopN default: got %q, want %d", m.TopN, config.DefaultAnalyzeTopN)
+	}
+	if m.BetweennessThreshold != strconv.FormatFloat(config.DefaultAnalyzeBetweennessThreshold, 'g', -1, 64) {
+		t.Fatalf("BetweennessThreshold default: got %q, want %g", m.BetweennessThreshold, config.DefaultAnalyzeBetweennessThreshold)
+	}
+	if m.PropagationCutoff != strconv.FormatFloat(config.DefaultAnalyzePropagationCutoff, 'g', -1, 64) {
+		t.Fatalf("PropagationCutoff default: got %q, want %g", m.PropagationCutoff, config.DefaultAnalyzePropagationCutoff)
+	}
+	if m.FingerprintOutput != config.DefaultFingerprintOutput {
+		t.Fatalf("FingerprintOutput default: got %q, want %q", m.FingerprintOutput, config.DefaultFingerprintOutput)
+	}
+	if m.FingerprintMinSim != strconv.Itoa(config.DefaultFingerprintMinSimilarity) {
+		t.Fatalf("FingerprintMinSim default: got %q, want %d", m.FingerprintMinSim, config.DefaultFingerprintMinSimilarity)
+	}
+	if m.FingerprintMaxSim != strconv.Itoa(config.DefaultFingerprintMaxSimilarity) {
+		t.Fatalf("FingerprintMaxSim default: got %q, want %d", m.FingerprintMaxSim, config.DefaultFingerprintMaxSimilarity)
+	}
+	if m.FingerprintModel != config.DefaultFingerprintModelOverride {
+		t.Fatalf("FingerprintModel default: got %q, want %q", m.FingerprintModel, config.DefaultFingerprintModelOverride)
+	}
+	if m.FingerprintShowAll != config.DefaultFingerprintShowAll {
+		t.Fatalf("FingerprintShowAll default: got %t, want %t", m.FingerprintShowAll, config.DefaultFingerprintShowAll)
+	}
+	if m.FingerprintRerank != config.DefaultFingerprintRerank {
+		t.Fatalf("FingerprintRerank default: got %t, want %t", m.FingerprintRerank, config.DefaultFingerprintRerank)
+	}
+	if m.CollectTest != config.DefaultCollectTest {
+		t.Fatalf("CollectTest default: got %t, want %t", m.CollectTest, config.DefaultCollectTest)
+	}
+	if m.Minify != config.DefaultParseMinify || m.Edges != config.DefaultParseEdges || m.Clean != config.DefaultParseClean {
+		t.Fatal("parse boolean defaults do not match config defaults")
 	}
 }

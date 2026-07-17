@@ -81,14 +81,14 @@ func TestProperty_DirectoryModesDefaultOutputDir(t *testing.T) {
 
 		cfg := ParseConfig{
 			Common:     Common{InputPath: tmpDir},
-			OutputDir:  "", // intentionally empty — should default to ./skeleton
+			OutputDir:  "", // intentionally empty
 			OutputMode: mode,
 		}
 		if err := cfg.Validate(); err != nil {
 			t.Fatalf("unexpected error for empty OutputDir with mode %q: %v", mode, err)
 		}
-		if cfg.OutputDir != "./skeleton" {
-			t.Fatalf("expected OutputDir to default to %q, got %q", "./skeleton", cfg.OutputDir)
+		if cfg.OutputDir != DefaultParseOutputDir {
+			t.Fatalf("expected OutputDir to default to %q, got %q", DefaultParseOutputDir, cfg.OutputDir)
 		}
 	})
 }
@@ -101,7 +101,7 @@ func TestProperty_MaxLinesValidation(t *testing.T) {
 
 	rapid.Check(t, func(t *rapid.T) {
 		// Generate integers < 1 (negative values). Zero is excluded because
-		// Validate() defaults zero to 500.
+		// Validate() applies the configured default when the value is zero.
 		maxLines := rapid.IntRange(-1000, -1).Draw(t, "maxLines")
 
 		cfg := ParseConfig{

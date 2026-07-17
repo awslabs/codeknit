@@ -33,6 +33,31 @@ func emitInlineString(t interface{ Fatalf(string, ...any) }, sg *ir.SymbolGraph,
 	return buf.String()
 }
 
+func TestDefaultAnalysisOptionsMatchConfig(t *testing.T) {
+	opts := DefaultAnalysisOptions()
+	if opts.OutputPath != config.DefaultAnalyzeOutput {
+		t.Errorf("OutputPath default: got %q, want %q", opts.OutputPath, config.DefaultAnalyzeOutput)
+	}
+	if opts.FanThreshold != config.DefaultAnalyzeFanThreshold {
+		t.Errorf("FanThreshold default: got %d, want %d", opts.FanThreshold, config.DefaultAnalyzeFanThreshold)
+	}
+	if opts.GodThreshold != config.DefaultAnalyzeGodThreshold {
+		t.Errorf("GodThreshold default: got %d, want %d", opts.GodThreshold, config.DefaultAnalyzeGodThreshold)
+	}
+	if opts.MaxInheritanceDepth != config.DefaultAnalyzeMaxInheritanceDepth {
+		t.Errorf("MaxInheritanceDepth default: got %d, want %d", opts.MaxInheritanceDepth, config.DefaultAnalyzeMaxInheritanceDepth)
+	}
+	if opts.TopN != config.DefaultAnalyzeTopN {
+		t.Errorf("TopN default: got %d, want %d", opts.TopN, config.DefaultAnalyzeTopN)
+	}
+	if opts.BetweennessThreshold != config.DefaultAnalyzeBetweennessThreshold {
+		t.Errorf("BetweennessThreshold default: got %g, want %g", opts.BetweennessThreshold, config.DefaultAnalyzeBetweennessThreshold)
+	}
+	if opts.PropagationCutoff != config.DefaultAnalyzePropagationCutoff {
+		t.Errorf("PropagationCutoff default: got %g, want %g", opts.PropagationCutoff, config.DefaultAnalyzePropagationCutoff)
+	}
+}
+
 // emitFlatFiles is a test helper that emits in directory-flat mode to a temp dir
 // and returns the contents of each map_NNN.skt file in order.
 func emitFlatFiles(t interface {
