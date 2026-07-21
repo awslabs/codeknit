@@ -1,19 +1,19 @@
 ---
-title: Comandos de grafo
-description: Visualiza y analiza la estructura de tu base de código con algoritmos de grafo.
+title: Comandos de Grafo
+description: Visualice y analice la estructura de su base de código con algoritmos de grafo.
 ---
 
-codeknit proporciona dos potentes comandos de grafo para ayudarte a entender y mejorar la estructura de tu base de código: `graph show` para visualización interactiva y `graph analyze` para análisis estructural automatizado.
+codeknit proporciona comandos de grafo para visualizar la estructura, ejecutar análisis automatizados y combinar el grafo de dependencias actual con el historial de cambios de Git.
 
 ## graph show
 
-Genera una visualización interactiva de grafo en HTML de tu base de código.
+Genera una visualización interactiva de grafo en HTML de su base de código.
 
 ```bash
 codeknit graph show <input-path>
 ```
 
-Este comando analiza tu base de código y produce un archivo HTML autónomo con una visualización interactiva de grafo. Los símbolos (funciones, clases, tipos) aparecen como nodos, y sus relaciones (llamadas, contiene, implementa) como relaciones. La visualización se abre automáticamente en tu navegador predeterminado.
+Este comando analiza su base de código y produce un archivo HTML autónomo con una visualización interactiva de grafo. Los símbolos (funciones, clases, tipos) aparecen como nodos, y sus relaciones (llamadas, contiene, implementa) como relaciones. La visualización se abre automáticamente en su navegador predeterminado.
 
 ### Flags
 
@@ -39,7 +39,7 @@ codeknit graph show ./src --collect-test
 
 ## graph analyze
 
-Ejecuta algoritmos de grafo estructurales en tu base de código y emite un informe `.skt` legible por LLM que contiene insights sobre la calidad del código.
+Ejecuta algoritmos de grafo estructural en su base de código y emite un informe `.skt` legible por LLM que contiene insights sobre la calidad del código.
 
 ```bash
 codeknit graph analyze <input-path>
@@ -49,7 +49,7 @@ Este comando detecta problemas comunes de calidad de código como dependencias c
 
 ### Algoritmos
 
-El análisis incluye 22 algoritmos de grafo estructurales:
+El análisis incluye 22 algoritmos de grafo estructural:
 
 - Dependencias cíclicas (SCC de Tarjan)
 - Detección de hubs (alto acoplamiento fan-in/fan-out)
@@ -62,16 +62,16 @@ El análisis incluye 22 algoritmos de grafo estructurales:
 - PageRank (importancia recursiva)
 - Fan-in transitivo (radio de impacto)
 - Simulación de propagación de cambios
-- Dependencias circulares de paquetes
+- Dependencias cíclicas de paquetes
 - Detección de violaciones de capas
 - Alcanzabilidad desde puntos de entrada
 - Componentes débilmente conectados
 - Peso de dependencia (fuerza de acoplamiento de paquetes)
 - Distancia desde la Secuencia Principal (balance A+I)
-- Detección de shotgun surgery
-- Detección de feature envy
-- Violaciones del principio de dependencias estables
-- Violaciones del principio de segregación de interfaces
+- Detección de cirugía de escopeta
+- Detección de envidia de características
+- Violaciones de dependencia estable
+- Violaciones de segregación de interfaces
 - Profundidad de contención
 
 ### Flags
@@ -95,7 +95,7 @@ El análisis incluye 22 algoritmos de grafo estructurales:
 # Ejecutar análisis estructural con valores predeterminados
 codeknit graph analyze ./myproject
 
-# Salida personalizada y umbrales
+# Salida y umbrales personalizados
 codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
 
 # Mostrar más resultados por sección
@@ -103,4 +103,45 @@ codeknit graph analyze ./myproject --top-n 50
 
 # Incluir archivos de prueba
 codeknit graph analyze ./src --collect-test
+```
+
+## graph hotspots
+
+Clasifica los archivos que son tanto frecuentemente modificados como estructuralmente importantes:
+
+```bash
+codeknit graph hotspots <input-path>
+```
+
+La puntuación combina frecuencia de commits, cambios en líneas y actualidad con PageRank a nivel de archivo, fan-in transitivo y centralidad de intermediación. El informe también identifica acoplamiento temporal entre archivos que se modifican repetidamente en los mismos commits.
+
+Los commits de fusión se excluyen de forma predeterminada. También se excluyen los commits que modifican más de 50 archivos para que los cambios generados, vendidos o mecánicos a granel no distorsionen los resultados.
+
+### Flags
+
+| Flag                     | Default                   | Description                                      |
+| ------------------------ | ------------------------- | ------------------------------------------------ |
+| `-o`, `--output`         | `./skeleton/hotspots.skt` | Ruta del archivo de salida                       |
+| `--format`               | `skt`                     | Formato de salida: `skt` o `json`                |
+| `--since`                | `12mo`                    | Ventana de historial, como `180d`, `12mo` o `2y` |
+| `--max-commits`          | `2000`                    | Máximo de commits a inspeccionar                 |
+| `--max-files-per-commit` | `50`                      | Excluir commits que modifiquen más archivos      |
+| `--min-cochanges`        | `3`                       | Mínimo de commits compartidos para acoplamiento temporal |
+| `--top-n`                | `30`                      | Máximo de resultados por sección del informe     |
+| `--include-merges`       | `false`                   | Incluir commits de fusión                        |
+| `--collect-test`         | `false`                   | Incluir archivos de prueba                       |
+| `--workers`              | `NumCPU`                  | Máximo de goroutines de análisis concurrentes    |
+| `--verbose`              | `false`                   | Mostrar información de progreso                  |
+
+### Ejemplos
+
+```bash
+# Analizar los últimos 12 meses
+codeknit graph hotspots ./myproject
+
+# Analizar dos años y emitir JSON
+codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
+
+# Incluir commits más grandes y requerir acoplamiento más fuerte
+codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```

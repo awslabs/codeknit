@@ -3,36 +3,49 @@ title: Verwendung mit KI-Assistenten
 description: Richten Sie codeknit als Skill für Kiro, Claude Code und andere KI-Coding-Assistenten ein.
 ---
 
-codeknit wird mit vorgefertigten Skills ausgeliefert, die KI-Coding-Assistenten beibringen, wie sie es effektiv nutzen können. Diese Skills ermöglichen es Assistenten, Codestruktur zu extrahieren, Duplikate zu erkennen und strukturelle Analysen ohne manuelle Aufforderungen durchzuführen.
+codeknit wird mit vorgefertigten Skills ausgeliefert, die KI-Coding-Assistenten beibringen, wie sie es effektiv nutzen können. Diese Skills ermöglichen es Assistenten, Codestruktur zu extrahieren, Duplikate zu erkennen und strukturelle Analysen ohne manuelle Eingabeaufforderungen durchzuführen.
 
 ## Skills-Übersicht
 
 codeknit bietet zwei Skills:
 
 - **`codeknit-parse`**: Lehrt Assistenten, Codestruktur (Funktionen, Klassen, Methoden, Variablen) und Beziehungen (Aufrufe, Vererbung, Enthaltensein) in `.skt`-Dateien zu extrahieren.
-- **`codeknit-fingerprint`**: Lehrt Assistenten, duplizierten und beinahe-duplizierten Code mithilfe von fuzzy hashing zu erkennen.
+- **`codeknit-fingerprint`**: Lehrt Assistenten, Duplikate und Beinahe-Duplikate von Code mithilfe von fuzzy hashing zu erkennen.
 
-Jeder Skill enthält Dokumentation, die der Assistent bei Bedarf liest, um Nutzung, Flags, Ausgabemodi und Workflows zu verstehen.
+Jeder Skill enthält Dokumentation, die der Assistent bei Bedarf liest, um Nutzung, Flags, Ausgabeformate und Workflows zu verstehen.
 
 ## Installation
 
-Kopieren Sie die Skill-Verzeichnisse in den Skills-Ordner Ihres Assistenten.
+Verwenden Sie den Installationshelfer, um die Skill-Verzeichnisse in den Skills-Ordner Ihres Assistenten zu kopieren. Der Installer lädt nur die gebündelten Skill-Dateien herunter, sodass Sie das Repository nicht klonen müssen.
 
-Für **Kiro**:
-
-```bash
-cp -r skills/codeknit-parse ~/.kiro/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.kiro/skills/codeknit-fingerprint
-```
-
-Für **Claude Code**:
+Installation für **Codex**, **Kiro** und **Claude Code**:
 
 ```bash
-cp -r skills/codeknit-parse ~/.claude/skills/codeknit-parse
-cp -r skills/codeknit-fingerprint ~/.claude/skills/codeknit-fingerprint
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
 ```
 
-Nach der Installation weiß der Assistent automatisch, wie er codeknit-Befehle aufrufen, geeignete Flags auswählen und `.skt`-Ausgaben interpretieren kann.
+Installation für einen Assistenten:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+```
+
+Aus einem lokalen Checkout können Sie Makefile-Helfer verwenden:
+
+```bash
+make skills-install-dry-run
+make skills-install
+```
+
+Der Installer überspringt standardmäßig vorhandene Skill-Verzeichnisse. Um sie zu ersetzen, fügen Sie `--force` hinzu:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+```
+
+Nach der Installation weiß der Assistent automatisch, wie er codeknit-Befehle aufruft, geeignete Flags auswählt und `.skt`-Ausgaben interpretiert.
 
 ## Was jeder Skill lehrt
 
@@ -53,11 +66,11 @@ Der `codeknit-parse`-Skill lehrt Assistenten:
 
 Der `codeknit-fingerprint`-Skill lehrt Assistenten:
 
-- `codeknit fingerprint` für Duplikaterkennung, DRY-Audits und Refactoring-Identifikation zu verwenden
-- Geeignete Ähnlichkeitsbereiche auszuwählen (`--min-similarity`, `--max-similarity`)
-- Den `[duplicates]`-Abschnitt zu lesen, um beinahe-duplizierten Code zu identifizieren
-- Zu verstehen, dass Fingerprints die strukturelle Form messen, nicht die semantische Absicht
-- `--rerank` mit Ollama-Embeddings zu verwenden, um falsch-positive Ergebnisse bei Bedarf zu reduzieren
+- `codeknit fingerprint` für Duplikaterkennung, DRY-Audits und Refaktoridentifizierung zu verwenden
+- Geeignete Ähnlichkeitsbereiche (`--min-similarity`, `--max-similarity`) auszuwählen
+- Den Abschnitt `[duplicates]` zu lesen, um Beinahe-Duplikate von Code zu identifizieren
+- Zu verstehen, dass Fingerprints die strukturelle Form und nicht die semantische Absicht messen
+- `--rerank` mit Ollama-Embeddings zu verwenden, um falsche Positive bei Bedarf zu reduzieren
 
 ## Workflow-Beispiele
 
@@ -82,8 +95,8 @@ S1 --contains--> S2
 
 1. Bitten Sie den Assistenten, duplizierten Code zu finden
 2. Er führt `codeknit fingerprint ./src` aus
-3. Er liest den `[duplicates]`-Abschnitt in der Ausgabe
-4. Er untersucht die markierten Paare und schlägt Konsolidierungen vor
+3. Er liest den Abschnitt `[duplicates]` in der Ausgabe
+4. Er untersucht die markierten Paare und schlägt Konsolidierung vor
 
 ```skt
 [duplicates]
@@ -93,7 +106,7 @@ S3, S4: 76% Ähnlichkeit
 
 ## Tipps
 
-- **Lesen Sie immer `.skt`-Dateien, nicht den Rohquellcode, für strukturelle Fragen** — sie enthalten die extrahierte Struktur in einem kompakten, zuverlässigen Format
+- **Lesen Sie immer `.skt`-Dateien und nicht den Rohquellcode für strukturelle Fragen** — sie enthalten die extrahierte Struktur in einem kompakten, zuverlässigen Format
 - Verwenden Sie `codeknit graph analyze`, um Codequalitätsprobleme wie zyklische Abhängigkeiten, Hub-Symbole und tiefe Vererbungsketten aufzudecken
 - Führen Sie `codeknit fingerprint` vor großen Refactorings aus, um kopierten Code zu identifizieren, der konsolidiert werden sollte
 - Das `.skt`-Format ist darauf ausgelegt, token-effizient zu sein, was es ideal für LLM-Kontextfenster macht

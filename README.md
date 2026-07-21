@@ -287,11 +287,7 @@ codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
 codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```
 
-`graph hotspots` combines commit frequency, line churn, and recency with
-file-level PageRank, transitive fan-in, and betweenness centrality. It also
-reports temporal coupling between files that repeatedly change together.
-Merge commits are excluded by default, and bulk commits are filtered to avoid
-generated or mechanical changes distorting the results.
+`graph hotspots` combines commit frequency, line churn, and recency with file-level PageRank, transitive fan-in, and betweenness centrality. It also reports temporal coupling between files that repeatedly change together. Merge commits are excluded by default, and bulk commits are filtered to avoid generated or mechanical changes distorting the results.
 
 ```
 Flags:
