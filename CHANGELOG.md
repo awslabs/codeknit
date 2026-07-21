@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-21
+
+### Changed
+
+- Updated Go dependencies, including Bubble Tea, Lip Gloss, the AWS SDK, go-git, `x/sync`, and Rapid.
+- Updated the Tree-sitter Scala grammar to v0.24.1, the newest release compatible with the current Tree-sitter runtime ABI.
+
 ## [0.2.0] - 2026-07-21
 
 ### Added
@@ -95,6 +102,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Third-party license generation via `make third-party-licenses`
 - Cross-plugin property test enforcing uniform signature format across all supported languages
 
+[0.2.1]: https://github.com/awslabs/codeknit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/awslabs/codeknit/releases/tag/v0.2.0
 [0.1.2]: https://github.com/awslabs/codeknit/releases/tag/v0.1.2
 [0.1.1]: https://github.com/awslabs/codeknit/releases/tag/v0.1.1
