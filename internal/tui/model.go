@@ -26,6 +26,7 @@ const (
 	screenParseOptions
 	screenGraphOptions
 	screenGraphAnalyzeOptions
+	screenGraphHotspotOptions
 	screenFingerprintOptions
 )
 
@@ -39,6 +40,7 @@ var commands = []command{
 	{Name: "parse", Desc: "Parse source code and extract structural information"},
 	{Name: "graph show", Desc: "Generate an interactive HTML graph of the codebase"},
 	{Name: "graph analyze", Desc: "Run graph analysis algorithms for code quality"},
+	{Name: "graph hotspots", Desc: "Rank change hotspots using Git history and structure"},
 	{Name: "fingerprint", Desc: "Detect duplicate and near-duplicate code via fuzzy hashing"},
 }
 
@@ -64,6 +66,14 @@ const (
 	fieldTopN
 	fieldBetweennessThreshold
 	fieldPropagationCutoff
+	// Graph hotspot specific fields.
+	fieldHotspotFormat
+	fieldHotspotSince
+	fieldHotspotMaxCommits
+	fieldHotspotMaxFilesPerCommit
+	fieldHotspotMinCoChanges
+	fieldHotspotTopN
+	fieldHotspotIncludeMerges
 	// Fingerprint specific fields.
 	fieldFingerprintMinSim
 	fieldFingerprintMaxSim
@@ -151,6 +161,13 @@ type Model struct {
 	TopN                 string
 	BetweennessThreshold string
 	PropagationCutoff    string
+	HotspotOutput        string
+	HotspotFormat        config.OutputFormat
+	HotspotSince         string
+	HotspotMaxCommits    string
+	HotspotMaxFiles      string
+	HotspotMinCoChanges  string
+	HotspotTopN          string
 	FingerprintOutput    string
 	FingerprintMinSim    string
 	FingerprintMaxSim    string
@@ -161,6 +178,7 @@ type Model struct {
 	suggCycle            int
 	FingerprintShowAll   bool
 	FingerprintRerank    bool
+	HotspotIncludeMerges bool
 	CollectTest          bool
 	Minify               bool
 	Edges                bool
@@ -270,6 +288,14 @@ func NewModel() Model {
 		TopN:                 strconv.Itoa(config.DefaultAnalyzeTopN),
 		BetweennessThreshold: strconv.FormatFloat(config.DefaultAnalyzeBetweennessThreshold, 'g', -1, 64),
 		PropagationCutoff:    strconv.FormatFloat(config.DefaultAnalyzePropagationCutoff, 'g', -1, 64),
+		HotspotOutput:        config.DefaultHotspotOutput,
+		HotspotFormat:        config.DefaultHotspotFormat,
+		HotspotSince:         config.DefaultHotspotSince,
+		HotspotMaxCommits:    strconv.Itoa(config.DefaultHotspotMaxCommits),
+		HotspotMaxFiles:      strconv.Itoa(config.DefaultHotspotMaxFilesPerCommit),
+		HotspotMinCoChanges:  strconv.Itoa(config.DefaultHotspotMinCoChanges),
+		HotspotTopN:          strconv.Itoa(config.DefaultHotspotTopN),
+		HotspotIncludeMerges: config.DefaultHotspotIncludeMerges,
 		FingerprintOutput:    config.DefaultFingerprintOutput,
 		FingerprintMinSim:    strconv.Itoa(config.DefaultFingerprintMinSimilarity),
 		FingerprintMaxSim:    strconv.Itoa(config.DefaultFingerprintMaxSimilarity),
@@ -291,6 +317,7 @@ const (
 	CmdParse SelectedCommandKind = iota
 	CmdGraphShow
 	CmdGraphAnalyze
+	CmdGraphHotspots
 	CmdFingerprint
 )
 
@@ -302,6 +329,8 @@ func (m *Model) SelectedCommand() SelectedCommandKind {
 			return CmdGraphShow
 		case "graph analyze":
 			return CmdGraphAnalyze
+		case "graph hotspots":
+			return CmdGraphHotspots
 		case "fingerprint":
 			return CmdFingerprint
 		}
@@ -363,6 +392,25 @@ func (m *Model) ToAnalyzeConfig() config.AnalyzeConfig {
 	}
 }
 
+// ToHotspotConfig converts the TUI model state into a HotspotConfig.
+func (m *Model) ToHotspotConfig() config.HotspotConfig {
+	maxCommits, _ := strconv.Atoi(m.HotspotMaxCommits)
+	maxFiles, _ := strconv.Atoi(m.HotspotMaxFiles)
+	minCoChanges, _ := strconv.Atoi(m.HotspotMinCoChanges)
+	topN, _ := strconv.Atoi(m.HotspotTopN)
+	return config.HotspotConfig{
+		Common:            m.common(),
+		Output:            m.HotspotOutput,
+		Format:            m.HotspotFormat,
+		Since:             m.HotspotSince,
+		MaxCommits:        maxCommits,
+		MaxFilesPerCommit: maxFiles,
+		MinCoChanges:      minCoChanges,
+		TopN:              topN,
+		IncludeMerges:     m.HotspotIncludeMerges,
+	}
+}
+
 // ToFingerprintConfig converts the TUI model state into a FingerprintConfig.
 func (m *Model) ToFingerprintConfig() config.FingerprintConfig {
 	minSim, _ := strconv.Atoi(m.FingerprintMinSim)
@@ -399,6 +447,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleGraphOptionsKey(msg)
 		case screenGraphAnalyzeOptions:
 			return m.handleGraphAnalyzeOptionsKey(msg)
+		case screenGraphHotspotOptions:
+			return m.handleGraphHotspotOptionsKey(msg)
 		case screenFingerprintOptions:
 			return m.handleFingerprintOptionsKey(msg)
 		}
@@ -435,6 +485,9 @@ func (m Model) handleCommandSelectKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.focus = fieldInputPath
 		case "graph analyze":
 			m.screen = screenGraphAnalyzeOptions
+			m.focus = fieldInputPath
+		case "graph hotspots":
+			m.screen = screenGraphHotspotOptions
 			m.focus = fieldInputPath
 		case "fingerprint":
 			m.screen = screenFingerprintOptions
@@ -555,32 +608,32 @@ func (m Model) handleParseOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Toggle / cycle fields
 	switch m.focus {
 	case fieldOutputMode:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.cycleOutputMode()
 		}
 		return m, nil
 	case fieldOutputFormat:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.cycleOutputFormat()
 		}
 		return m, nil
 	case fieldCollectTest:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.CollectTest = !m.CollectTest
 		}
 		return m, nil
 	case fieldMinify:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.Minify = !m.Minify
 		}
 		return m, nil
 	case fieldEdges:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.Edges = !m.Edges
 		}
 		return m, nil
 	case fieldClean:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.Clean = !m.Clean
 		}
 		return m, nil
@@ -662,6 +715,10 @@ func editFloat(val string, msg tea.KeyMsg) string {
 	return val
 }
 
+func isActivationKey(key string) bool {
+	return key == "enter" || key == "space" || key == " "
+}
+
 //nolint:gocritic // hugeParam: called from value-receiver tea.Model methods.
 func (m Model) validate() string {
 	if m.InputPath == "" {
@@ -685,6 +742,8 @@ func (m Model) View() tea.View {
 		return m.viewGraphOptions()
 	case screenGraphAnalyzeOptions:
 		return m.viewGraphAnalyzeOptions()
+	case screenGraphHotspotOptions:
+		return m.viewGraphHotspotOptions()
 	case screenFingerprintOptions:
 		return m.viewFingerprintOptions()
 	}
@@ -842,7 +901,7 @@ func (m Model) handleGraphOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch m.focus {
 	case fieldCollectTest:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.CollectTest = !m.CollectTest
 		}
 		return m, nil
@@ -1012,7 +1071,7 @@ func (m Model) handleGraphAnalyzeOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd)
 
 	switch m.focus {
 	case fieldCollectTest:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.CollectTest = !m.CollectTest
 		}
 		return m, nil
@@ -1082,6 +1141,175 @@ func (m Model) viewGraphAnalyzeOptions() tea.View {
 
 	s += "\n" + hintStyle.Render("tab next • shift+tab prev • space toggle • esc back • ctrl+c quit") + "\n"
 
+	return tea.NewView(s)
+}
+
+// --- Graph hotspot options screen ---
+
+var graphHotspotFields = []field{
+	fieldInputPath,
+	fieldOutputDir,
+	fieldHotspotFormat,
+	fieldHotspotSince,
+	fieldHotspotMaxCommits,
+	fieldHotspotMaxFilesPerCommit,
+	fieldHotspotMinCoChanges,
+	fieldHotspotTopN,
+	fieldHotspotIncludeMerges,
+	fieldCollectTest,
+	fieldWorkers,
+	fieldConfirm,
+}
+
+func graphHotspotNextField(current field) field {
+	return nextInFields(graphHotspotFields, current)
+}
+
+func graphHotspotPrevField(current field) field {
+	return prevInFields(graphHotspotFields, current)
+}
+
+func (m *Model) cycleHotspotFormat() {
+	formats := config.ValidOutputFormats()
+	for i, format := range formats {
+		if format == m.HotspotFormat {
+			m.HotspotFormat = formats[(i+1)%len(formats)]
+			return
+		}
+	}
+	m.HotspotFormat = config.OutputFormatSKT
+}
+
+//nolint:gocritic // hugeParam: called from value-receiver tea.Model methods.
+func (m Model) handleGraphHotspotOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	isTextField := m.focus == fieldInputPath || m.focus == fieldOutputDir ||
+		m.focus == fieldHotspotSince || m.focus == fieldHotspotMaxCommits ||
+		m.focus == fieldHotspotMaxFilesPerCommit || m.focus == fieldHotspotMinCoChanges ||
+		m.focus == fieldHotspotTopN || m.focus == fieldWorkers
+
+	switch key {
+	case "ctrl+c":
+		return m, tea.Quit
+	case "q":
+		if !isTextField {
+			return m, tea.Quit
+		}
+	case "esc":
+		m.screen = screenCommandSelect
+		m.err = ""
+		return m, nil
+	}
+
+	switch key {
+	case "tab":
+		if m.focus == fieldInputPath && m.suggestion != "" {
+			current := m.InputPath
+			if strings.TrimRight(current, string(filepath.Separator)) == m.suggestion {
+				m.suggCycle++
+				m.refreshSuggestion()
+				if m.suggestion != "" {
+					m.acceptSuggestion()
+					return m, nil
+				}
+			} else {
+				m.acceptSuggestion()
+				return m, nil
+			}
+		}
+		m.focus = graphHotspotNextField(m.focus)
+		m.suggCycle = 0
+		m.refreshSuggestion()
+		return m, nil
+	case "down":
+		m.focus = graphHotspotNextField(m.focus)
+		m.suggCycle = 0
+		m.refreshSuggestion()
+		return m, nil
+	case "shift+tab", "up":
+		m.focus = graphHotspotPrevField(m.focus)
+		m.suggCycle = 0
+		m.refreshSuggestion()
+		return m, nil
+	}
+
+	switch m.focus {
+	case fieldHotspotFormat:
+		if isActivationKey(key) {
+			m.cycleHotspotFormat()
+		}
+		return m, nil
+	case fieldHotspotIncludeMerges:
+		if isActivationKey(key) {
+			m.HotspotIncludeMerges = !m.HotspotIncludeMerges
+		}
+		return m, nil
+	case fieldCollectTest:
+		if isActivationKey(key) {
+			m.CollectTest = !m.CollectTest
+		}
+		return m, nil
+	case fieldConfirm:
+		if key == "enter" {
+			if errMsg := m.validate(); errMsg != "" {
+				m.err = errMsg
+				return m, nil
+			}
+			m.confirmed = true
+			return m, tea.Quit
+		}
+		return m, nil
+	}
+
+	switch m.focus {
+	case fieldInputPath:
+		m.InputPath = editText(m.InputPath, msg)
+		m.suggCycle = 0
+		m.refreshSuggestion()
+	case fieldOutputDir:
+		m.HotspotOutput = editText(m.HotspotOutput, msg)
+	case fieldHotspotSince:
+		m.HotspotSince = editText(m.HotspotSince, msg)
+	case fieldHotspotMaxCommits:
+		m.HotspotMaxCommits = editNumeric(m.HotspotMaxCommits, msg)
+	case fieldHotspotMaxFilesPerCommit:
+		m.HotspotMaxFiles = editNumeric(m.HotspotMaxFiles, msg)
+	case fieldHotspotMinCoChanges:
+		m.HotspotMinCoChanges = editNumeric(m.HotspotMinCoChanges, msg)
+	case fieldHotspotTopN:
+		m.HotspotTopN = editNumeric(m.HotspotTopN, msg)
+	case fieldWorkers:
+		m.Workers = editNumeric(m.Workers, msg)
+	}
+	return m, nil
+}
+
+//nolint:gocritic // hugeParam: called from value-receiver View().
+func (m Model) viewGraphHotspotOptions() tea.View {
+	s := banner() + "\n"
+	s += labelStyle.Render("  Command: ") + activeStyle.Render("graph hotspots") + "\n\n"
+
+	s += m.textField("Input path:          ", m.InputPath, fieldInputPath)
+	s += m.textField("Output file:         ", m.HotspotOutput, fieldOutputDir)
+	s += m.selectionField("Output format:       ", string(m.HotspotFormat), fieldHotspotFormat)
+	s += m.textField("History window:      ", m.HotspotSince, fieldHotspotSince)
+	s += m.textField("Max commits:         ", m.HotspotMaxCommits, fieldHotspotMaxCommits)
+	s += m.textField("Max files/commit:    ", m.HotspotMaxFiles, fieldHotspotMaxFilesPerCommit)
+	s += m.textField("Min cochanges:       ", m.HotspotMinCoChanges, fieldHotspotMinCoChanges)
+	s += m.textField("Top N:               ", m.HotspotTopN, fieldHotspotTopN)
+	s += m.toggleField("Include merge commits", m.HotspotIncludeMerges, fieldHotspotIncludeMerges)
+	s += m.toggleField("Collect test files", m.CollectTest, fieldCollectTest)
+	s += m.textField("Workers (0=auto):    ", m.Workers, fieldWorkers)
+
+	if m.focus == fieldConfirm {
+		s += "\n  " + confirmStyle.Render("> [ Confirm ]") + "\n"
+	} else {
+		s += "\n    " + confirmStyle.Render("[ Confirm ]") + "\n"
+	}
+	if m.err != "" {
+		s += "\n  " + errorStyle.Render("error: "+m.err) + "\n"
+	}
+	s += "\n" + hintStyle.Render("tab next • shift+tab prev • space toggle • esc back • ctrl+c quit") + "\n"
 	return tea.NewView(s)
 }
 
@@ -1158,17 +1386,17 @@ func (m Model) handleFingerprintOptionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 
 	switch m.focus {
 	case fieldCollectTest:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.CollectTest = !m.CollectTest
 		}
 		return m, nil
 	case fieldFingerprintRerank:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.FingerprintRerank = !m.FingerprintRerank
 		}
 		return m, nil
 	case fieldFingerprintShowAll:
-		if key == "enter" || key == " " {
+		if isActivationKey(key) {
 			m.FingerprintShowAll = !m.FingerprintShowAll
 		}
 		return m, nil

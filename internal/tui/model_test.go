@@ -9,6 +9,7 @@ import (
 
 	"codeknit/internal/config"
 
+	tea "charm.land/bubbletea/v2"
 	"pgregory.net/rapid"
 )
 
@@ -76,6 +77,117 @@ func TestProperty14_TUIConfigConversion(t *testing.T) {
 			t.Fatalf("Workers: got %d, want %d", cfg.Workers, workers)
 		}
 	})
+}
+
+func TestHotspotConfigConversion(t *testing.T) {
+	m := Model{
+		InputPath:            "/repo",
+		Workers:              "8",
+		CollectTest:          true,
+		HotspotOutput:        "/tmp/hotspots.json",
+		HotspotFormat:        config.OutputFormatJSON,
+		HotspotSince:         "2y",
+		HotspotMaxCommits:    "1500",
+		HotspotMaxFiles:      "75",
+		HotspotMinCoChanges:  "4",
+		HotspotTopN:          "20",
+		HotspotIncludeMerges: true,
+	}
+
+	cfg := m.ToHotspotConfig()
+
+	if cfg.InputPath != m.InputPath {
+		t.Fatalf("InputPath: got %q, want %q", cfg.InputPath, m.InputPath)
+	}
+	if cfg.Workers != 8 {
+		t.Fatalf("Workers: got %d, want 8", cfg.Workers)
+	}
+	if cfg.CollectTest != m.CollectTest {
+		t.Fatalf("CollectTest: got %t, want %t", cfg.CollectTest, m.CollectTest)
+	}
+	if cfg.Output != m.HotspotOutput {
+		t.Fatalf("Output: got %q, want %q", cfg.Output, m.HotspotOutput)
+	}
+	if cfg.Format != m.HotspotFormat {
+		t.Fatalf("Format: got %q, want %q", cfg.Format, m.HotspotFormat)
+	}
+	if cfg.Since != m.HotspotSince {
+		t.Fatalf("Since: got %q, want %q", cfg.Since, m.HotspotSince)
+	}
+	if cfg.MaxCommits != 1500 {
+		t.Fatalf("MaxCommits: got %d, want 1500", cfg.MaxCommits)
+	}
+	if cfg.MaxFilesPerCommit != 75 {
+		t.Fatalf("MaxFilesPerCommit: got %d, want 75", cfg.MaxFilesPerCommit)
+	}
+	if cfg.MinCoChanges != 4 {
+		t.Fatalf("MinCoChanges: got %d, want 4", cfg.MinCoChanges)
+	}
+	if cfg.TopN != 20 {
+		t.Fatalf("TopN: got %d, want 20", cfg.TopN)
+	}
+	if cfg.IncludeMerges != m.HotspotIncludeMerges {
+		t.Fatalf("IncludeMerges: got %t, want %t", cfg.IncludeMerges, m.HotspotIncludeMerges)
+	}
+}
+
+func TestHotspotCommandSelection(t *testing.T) {
+	m := NewModel()
+	for i, command := range commands {
+		if command.Name == "graph hotspots" {
+			m.cmdIndex = i
+			break
+		}
+	}
+
+	if got := m.SelectedCommand(); got != CmdGraphHotspots {
+		t.Fatalf("SelectedCommand: got %v, want %v", got, CmdGraphHotspots)
+	}
+}
+
+func TestHotspotOptionsInteraction(t *testing.T) {
+	m := NewModel()
+	m.screen = screenGraphHotspotOptions
+	m.focus = fieldHotspotFormat
+
+	updated, _ := m.handleGraphHotspotOptionsKey(keyMsg("enter"))
+	m = updated.(Model)
+	if m.HotspotFormat != config.OutputFormatJSON {
+		t.Fatalf("HotspotFormat after cycle: got %q, want %q", m.HotspotFormat, config.OutputFormatJSON)
+	}
+
+	updated, _ = m.handleGraphHotspotOptionsKey(keyMsg("down"))
+	m = updated.(Model)
+	if m.focus != fieldHotspotSince {
+		t.Fatalf("focus after down: got %v, want %v", m.focus, fieldHotspotSince)
+	}
+
+	m.focus = fieldHotspotIncludeMerges
+	updated, _ = m.handleGraphHotspotOptionsKey(keyMsg(" "))
+	m = updated.(Model)
+	if !m.HotspotIncludeMerges {
+		t.Fatal("IncludeMerges was not enabled")
+	}
+
+	m.focus = fieldCollectTest
+	updated, _ = m.handleGraphHotspotOptionsKey(keyMsg(" "))
+	m = updated.(Model)
+	if !m.CollectTest {
+		t.Fatal("CollectTest was not enabled")
+	}
+}
+
+func keyMsg(key string) tea.KeyMsg {
+	if key == " " {
+		return tea.KeyPressMsg(tea.Key{Code: ' ', Text: " "})
+	}
+	if key == "enter" {
+		return tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter})
+	}
+	if key == "down" {
+		return tea.KeyPressMsg(tea.Key{Code: tea.KeyDown})
+	}
+	return tea.KeyPressMsg(tea.Key{Code: rune(key[0]), Text: key})
 }
 
 // TestInlineModeSkipsOutputDir verifies that validate() does not require
@@ -162,6 +274,30 @@ func TestNewModelDefaults(t *testing.T) {
 	}
 	if m.AnalysisOutput != config.DefaultAnalyzeOutput {
 		t.Fatalf("AnalysisOutput default: got %q, want %q", m.AnalysisOutput, config.DefaultAnalyzeOutput)
+	}
+	if m.HotspotOutput != config.DefaultHotspotOutput {
+		t.Fatalf("HotspotOutput default: got %q, want %q", m.HotspotOutput, config.DefaultHotspotOutput)
+	}
+	if m.HotspotFormat != config.DefaultHotspotFormat {
+		t.Fatalf("HotspotFormat default: got %q, want %q", m.HotspotFormat, config.DefaultHotspotFormat)
+	}
+	if m.HotspotSince != config.DefaultHotspotSince {
+		t.Fatalf("HotspotSince default: got %q, want %q", m.HotspotSince, config.DefaultHotspotSince)
+	}
+	if m.HotspotMaxCommits != strconv.Itoa(config.DefaultHotspotMaxCommits) {
+		t.Fatalf("HotspotMaxCommits default: got %q, want %d", m.HotspotMaxCommits, config.DefaultHotspotMaxCommits)
+	}
+	if m.HotspotMaxFiles != strconv.Itoa(config.DefaultHotspotMaxFilesPerCommit) {
+		t.Fatalf("HotspotMaxFiles default: got %q, want %d", m.HotspotMaxFiles, config.DefaultHotspotMaxFilesPerCommit)
+	}
+	if m.HotspotMinCoChanges != strconv.Itoa(config.DefaultHotspotMinCoChanges) {
+		t.Fatalf("HotspotMinCoChanges default: got %q, want %d", m.HotspotMinCoChanges, config.DefaultHotspotMinCoChanges)
+	}
+	if m.HotspotTopN != strconv.Itoa(config.DefaultHotspotTopN) {
+		t.Fatalf("HotspotTopN default: got %q, want %d", m.HotspotTopN, config.DefaultHotspotTopN)
+	}
+	if m.HotspotIncludeMerges != config.DefaultHotspotIncludeMerges {
+		t.Fatalf("HotspotIncludeMerges default: got %t, want %t", m.HotspotIncludeMerges, config.DefaultHotspotIncludeMerges)
 	}
 	if m.FanThreshold != strconv.Itoa(config.DefaultAnalyzeFanThreshold) {
 		t.Fatalf("FanThreshold default: got %q, want %d", m.FanThreshold, config.DefaultAnalyzeFanThreshold)

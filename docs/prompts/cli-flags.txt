@@ -38,7 +38,20 @@ Cover all commands and their flags:
    --betweenness-threshold (float, default 0.001): min centrality to report
    --propagation-cutoff (float, default 0.05): min probability for change propagation
 
-5. codeknit fingerprint <input-path>:
+5. codeknit graph hotspots <input-path>:
+   -o, --output (string, default "./skeleton/hotspots.skt"): output file
+   --format (string, default "skt"): skt, json
+   --since (string, default "12mo"): history window such as 180d, 12mo, or 2y
+   --max-commits (int, default 2000): maximum commits to inspect
+   --max-files-per-commit (int, default 50): exclude larger bulk commits
+   --min-cochanges (int, default 3): minimum shared commits for temporal coupling
+   --top-n (int, default 30): maximum results per section
+   --include-merges (bool, default false): include merge commits
+   --collect-test (bool, default false): include test files
+   --workers (int, default 0/NumCPU): max concurrent goroutines
+   --verbose (bool, default false): print progress info
+
+6. codeknit fingerprint <input-path>:
    -o, --output (string, default "./skeleton/fingerprints.skt"): output .skt file
    --min-similarity (int, default 65): minimum similarity percentage to report (0-100)
    --max-similarity (int, default 95): maximum similarity percentage to report (0-100)
@@ -49,10 +62,10 @@ Cover all commands and their flags:
    --workers (int, default 0/NumCPU): max concurrent goroutines
    --verbose (bool, default false): print progress info
 
-6. codeknit completion <shell>:
+7. codeknit completion <shell>:
    Generates shell completion scripts. Supported: bash, zsh, fish, powershell
 
-7. Global flags:
+8. Global flags:
    --version: print version info
    --help / -h: show help
 

@@ -4,7 +4,7 @@ title: Graph Commands
 description: Visualize and analyze your codebase structure with graph algorithms.
 ---
 
-Cover two subcommands:
+Cover three subcommands:
 
 ## graph show
 
@@ -77,4 +77,39 @@ codeknit graph analyze ./myproject
 codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
 codeknit graph analyze ./myproject --top-n 50
 codeknit graph analyze ./src --collect-test
+```
+
+## graph hotspots
+
+Combines Git history with the current file dependency graph to rank volatile,
+structurally important files and detect temporal coupling.
+
+Usage: `codeknit graph hotspots <input-path>`
+
+Explain:
+- History metrics: commit frequency, added/deleted line churn, and recency
+- Structural metrics: file-level PageRank, transitive fan-in, and betweenness
+- Temporal coupling: files that repeatedly change in the same commits
+- Merge commits are excluded by default
+- Bulk commits are excluded by `--max-files-per-commit`
+- Reports confidence based on the number of relevant commits analyzed
+
+Flags:
+- -o, --output: output file (default: ./skeleton/hotspots.skt)
+- --format: skt or json (default: skt)
+- --since: history window such as 180d, 12mo, or 2y (default: 12mo)
+- --max-commits: maximum commits to inspect (default: 2000)
+- --max-files-per-commit: bulk commit threshold (default: 50)
+- --min-cochanges: minimum shared commits for coupling (default: 3)
+- --top-n: maximum results per section (default: 30)
+- --include-merges: include merge commits
+- --collect-test: include test files
+- --workers: max concurrent goroutines
+- --verbose: print progress
+
+Examples:
+```bash
+codeknit graph hotspots ./myproject
+codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
+codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```

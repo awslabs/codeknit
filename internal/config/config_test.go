@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestValidate_InputPathNotExist(t *testing.T) {
@@ -166,6 +167,42 @@ func TestValidate_InvalidOutputFormat(t *testing.T) {
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("expected error for invalid output format")
+	}
+}
+
+func TestHotspotConfigValidateDefaults(t *testing.T) {
+	cfg := HotspotConfig{Common: Common{InputPath: t.TempDir()}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Output != DefaultHotspotOutput || cfg.Format != DefaultHotspotFormat ||
+		cfg.Since != DefaultHotspotSince || cfg.MaxCommits != DefaultHotspotMaxCommits ||
+		cfg.MaxFilesPerCommit != DefaultHotspotMaxFilesPerCommit ||
+		cfg.MinCoChanges != DefaultHotspotMinCoChanges || cfg.TopN != DefaultHotspotTopN {
+		t.Fatalf("unexpected defaults: %#v", cfg)
+	}
+}
+
+func TestParseLookback(t *testing.T) {
+	tests := map[string]time.Duration{
+		"180d": 180 * 24 * time.Hour,
+		"12mo": 360 * 24 * time.Hour,
+		"2y":   730 * 24 * time.Hour,
+		"3w":   21 * 24 * time.Hour,
+	}
+	for input, want := range tests {
+		got, err := ParseLookback(input)
+		if err != nil {
+			t.Fatalf("ParseLookback(%q): %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("ParseLookback(%q) = %v, want %v", input, got, want)
+		}
+	}
+	for _, input := range []string{"", "0d", "-1y", "forever"} {
+		if _, err := ParseLookback(input); err == nil {
+			t.Fatalf("ParseLookback(%q) unexpectedly succeeded", input)
+		}
 	}
 }
 

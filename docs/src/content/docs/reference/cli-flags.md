@@ -71,6 +71,29 @@ codeknit graph analyze <input-path>
 | `--betweenness-threshold` | float64 | `0.001`                         | Minimum betweenness centrality value to report                |
 | `--propagation-cutoff`    | float64 | `0.05`                          | Minimum probability to continue change propagation simulation |
 
+## codeknit graph hotspots
+
+Rank files using Git history and structural importance, and report temporal
+coupling between files that repeatedly change together.
+
+```bash
+codeknit graph hotspots <input-path>
+```
+
+| Flag                     | Type   | Default                   | Description                                      |
+| ------------------------ | ------ | ------------------------- | ------------------------------------------------ |
+| `-o`, `--output`         | string | `./skeleton/hotspots.skt` | Output file path                                 |
+| `--format`               | string | `skt`                     | Output format: `skt` or `json`                   |
+| `--since`                | string | `12mo`                    | History window, such as `180d`, `12mo`, or `2y`  |
+| `--max-commits`          | int    | `2000`                    | Maximum commits to inspect                       |
+| `--max-files-per-commit` | int    | `50`                      | Exclude commits changing more files              |
+| `--min-cochanges`        | int    | `3`                       | Minimum shared commits for temporal coupling     |
+| `--top-n`                | int    | `30`                      | Maximum results per report section               |
+| `--include-merges`       | bool   | `false`                   | Include merge commits                            |
+| `--collect-test`         | bool   | `false`                   | Include test files                               |
+| `--workers`              | int    | `0` (NumCPU)              | Maximum concurrent parsing goroutines            |
+| `--verbose`              | bool   | `false`                   | Print progress information                       |
+
 ## codeknit fingerprint
 
 Detect duplicate and near-duplicate code using fuzzy hashing.

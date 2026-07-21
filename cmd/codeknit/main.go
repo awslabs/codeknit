@@ -12,6 +12,8 @@ import (
 	"codeknit/internal/config"
 	"codeknit/internal/console"
 	"codeknit/internal/emitter"
+	"codeknit/internal/history"
+	"codeknit/internal/hotspot"
 	"codeknit/internal/pipeline"
 	"codeknit/internal/plugin"
 	"codeknit/internal/plugin/clang"
@@ -76,6 +78,13 @@ func runTUI() (commandRunner, error) {
 			return nil, err
 		}
 		return func(con *console.Console) error { return runGraphAnalyze(&cfg, con) }, nil
+
+	case tui.CmdGraphHotspots:
+		cfg := fm.ToHotspotConfig()
+		if err := cfg.Validate(); err != nil {
+			return nil, err
+		}
+		return func(con *console.Console) error { return runGraphHotspots(&cfg, con) }, nil
 
 	case tui.CmdFingerprint:
 		cfg := fm.ToFingerprintConfig()
@@ -196,6 +205,50 @@ func runGraphAnalyze(cfg *config.AnalyzeConfig, con *console.Console) error {
 	con.Success(fmt.Sprintf("Analysis written to %s (%d symbols, %d edges, %d files)",
 		cfg.Output, len(gr.Graph.Symbols), len(gr.Graph.Edges), len(gr.Files)))
 
+	return nil
+}
+
+// runGraphHotspots executes Git history and structural hotspot analysis.
+func runGraphHotspots(cfg *config.HotspotConfig, con *console.Console) error {
+	con.SetVerbose(cfg.Verbose)
+	gr, err := buildGraphResult(cfg.Common, con)
+	if err != nil {
+		return err
+	}
+
+	lookback, err := config.ParseLookback(cfg.Since)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	historyResult, err := history.Collect(cfg.InputPath, gr.Graph.FileOrder, history.Options{
+		Since:             now.Add(-lookback),
+		Now:               now,
+		MaxCommits:        cfg.MaxCommits,
+		MaxFilesPerCommit: cfg.MaxFilesPerCommit,
+		IncludeMerges:     cfg.IncludeMerges,
+	})
+	if err != nil {
+		return err
+	}
+
+	result := hotspot.Analyze(gr.Graph, historyResult, now.Add(-lookback), now, hotspot.Options{
+		TopN:         cfg.TopN,
+		MinCoChanges: cfg.MinCoChanges,
+	})
+	e := &emitter.Emitter{}
+	if err := e.EmitHotspots(result, &emitter.HotspotOptions{
+		OutputPath: cfg.Output,
+		Format:     cfg.Format,
+	}); err != nil {
+		return err
+	}
+
+	if result.Confidence == "low" {
+		con.Warn(fmt.Sprintf("History confidence is low: only %d relevant commits were analyzed", result.CommitsAnalyzed))
+	}
+	con.Success(fmt.Sprintf("Hotspots written to %s (%d commits analyzed, %d files ranked, %d coupling pairs)",
+		cfg.Output, result.CommitsAnalyzed, len(result.Hotspots), len(result.TemporalCoupling)))
 	return nil
 }
 

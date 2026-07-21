@@ -63,6 +63,23 @@ func TestCommandFlagDefaultsMatchConfig(t *testing.T) {
 			},
 		},
 		{
+			name:   "graph hotspots",
+			newCmd: newGraphHotspotsCmd,
+			flags: map[string]string{
+				"output":               config.DefaultHotspotOutput,
+				"format":               string(config.DefaultHotspotFormat),
+				"since":                config.DefaultHotspotSince,
+				"max-commits":          strconv.Itoa(config.DefaultHotspotMaxCommits),
+				"max-files-per-commit": strconv.Itoa(config.DefaultHotspotMaxFilesPerCommit),
+				"min-cochanges":        strconv.Itoa(config.DefaultHotspotMinCoChanges),
+				"top-n":                strconv.Itoa(config.DefaultHotspotTopN),
+				"include-merges":       strconv.FormatBool(config.DefaultHotspotIncludeMerges),
+				"collect-test":         strconv.FormatBool(config.DefaultCollectTest),
+				"workers":              strconv.Itoa(config.DefaultWorkers),
+				"verbose":              strconv.FormatBool(config.DefaultVerbose),
+			},
+		},
+		{
 			name:   "fingerprint",
 			newCmd: newFingerprintCmd,
 			flags: map[string]string{

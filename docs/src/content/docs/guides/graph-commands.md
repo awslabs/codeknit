@@ -3,7 +3,8 @@ title: Graph Commands
 description: Visualize and analyze your codebase structure with graph algorithms.
 ---
 
-codeknit provides two powerful graph commands to help you understand and improve your codebase structure: `graph show` for interactive visualization and `graph analyze` for automated structural analysis.
+codeknit provides graph commands to visualize structure, run automated
+analysis, and combine the current dependency graph with Git change history.
 
 ## graph show
 
@@ -103,4 +104,50 @@ codeknit graph analyze ./myproject --top-n 50
 
 # Include test files
 codeknit graph analyze ./src --collect-test
+```
+
+## graph hotspots
+
+Ranks files that are both frequently changed and structurally important:
+
+```bash
+codeknit graph hotspots <input-path>
+```
+
+The score combines commit frequency, line churn, and recency with file-level
+PageRank, transitive fan-in, and betweenness centrality. The report also
+identifies temporal coupling between files that repeatedly change in the same
+commits.
+
+Merge commits are excluded by default. Commits changing more than 50 files are
+also excluded so generated, vendored, or mechanical bulk changes do not
+distort the results.
+
+### Flags
+
+| Flag                     | Default                   | Description                                      |
+| ------------------------ | ------------------------- | ------------------------------------------------ |
+| `-o`, `--output`         | `./skeleton/hotspots.skt` | Output file path                                 |
+| `--format`               | `skt`                     | Output format: `skt` or `json`                   |
+| `--since`                | `12mo`                    | History window, such as `180d`, `12mo`, or `2y`  |
+| `--max-commits`          | `2000`                    | Maximum commits to inspect                       |
+| `--max-files-per-commit` | `50`                      | Exclude commits changing more files              |
+| `--min-cochanges`        | `3`                       | Minimum shared commits for temporal coupling     |
+| `--top-n`                | `30`                      | Maximum results per report section               |
+| `--include-merges`       | `false`                   | Include merge commits                            |
+| `--collect-test`         | `false`                   | Include test files                               |
+| `--workers`              | `NumCPU`                  | Maximum concurrent parsing goroutines            |
+| `--verbose`              | `false`                   | Print progress information                       |
+
+### Examples
+
+```bash
+# Analyze the last 12 months
+codeknit graph hotspots ./myproject
+
+# Analyze two years and emit JSON
+codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
+
+# Include larger commits and require stronger coupling
+codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```

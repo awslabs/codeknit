@@ -101,12 +101,13 @@ codeknit completion powershell >> $PROFILE
 
 ## Usage
 
-codeknit has three main commands:
+codeknit has five primary command workflows:
 
 - `codeknit parse` — extract structural information into `.skt` files
 - `codeknit fingerprint` — detect duplicate and near-duplicate code using fuzzy hashing
 - `codeknit graph show` — generate an interactive HTML graph visualization
 - `codeknit graph analyze` — run structural analysis algorithms and emit an LLM-readable report
+- `codeknit graph hotspots` — rank change hotspots using Git history and graph structure
 
 ### Parse a codebase
 
@@ -271,6 +272,40 @@ Flags:
       --top-n int                        cap ranked output sections; 0 = no limit (default 30)
       --betweenness-threshold float64    minimum betweenness centrality value to report (default 0.001)
       --propagation-cutoff float64       minimum probability to continue change propagation (default 0.05)
+```
+
+### Find history-aware hotspots
+
+```bash
+# Rank files using the last 12 months of Git history
+codeknit graph hotspots ./myproject
+
+# Analyze two years and emit JSON
+codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
+
+# Include larger commits and require stronger temporal coupling
+codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
+```
+
+`graph hotspots` combines commit frequency, line churn, and recency with
+file-level PageRank, transitive fan-in, and betweenness centrality. It also
+reports temporal coupling between files that repeatedly change together.
+Merge commits are excluded by default, and bulk commits are filtered to avoid
+generated or mechanical changes distorting the results.
+
+```
+Flags:
+  -o, --output string              output file path (default "./skeleton/hotspots.skt")
+      --format string              output format: skt, json (default "skt")
+      --since string               history window: 180d, 12mo, or 2y (default "12mo")
+      --max-commits int            maximum commits to inspect (default 2000)
+      --max-files-per-commit int   exclude larger bulk commits (default 50)
+      --min-cochanges int          minimum shared commits for temporal coupling (default 3)
+      --top-n int                  maximum results per section (default 30)
+      --include-merges             include merge commits in history metrics
+      --collect-test               include test files in analysis
+      --workers int                max concurrent parsing goroutines (0 = NumCPU)
+      --verbose                    print progress information during processing
 ```
 
 ## Using with AI coding assistants

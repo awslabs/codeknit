@@ -12,6 +12,9 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // OutputMode controls how the parse emitter writes results.
@@ -57,6 +60,15 @@ const (
 	DefaultAnalyzeTopN                 = 30
 	DefaultAnalyzeBetweennessThreshold = 0.001
 	DefaultAnalyzePropagationCutoff    = 0.05
+
+	DefaultHotspotOutput            = "./skeleton/hotspots.skt"
+	DefaultHotspotFormat            = OutputFormatSKT
+	DefaultHotspotSince             = "12mo"
+	DefaultHotspotMaxCommits        = 2000
+	DefaultHotspotMaxFilesPerCommit = 50
+	DefaultHotspotMinCoChanges      = 3
+	DefaultHotspotTopN              = 30
+	DefaultHotspotIncludeMerges     = false
 
 	DefaultFingerprintOutput        = "./skeleton/fingerprints.skt"
 	DefaultFingerprintMinSimilarity = 65
@@ -198,6 +210,92 @@ type AnalyzeConfig struct {
 	GodThreshold         int
 	MaxInheritanceDepth  int
 	TopN                 int
+}
+
+// HotspotConfig holds options for the `graph hotspots` subcommand.
+type HotspotConfig struct {
+	Output string
+	Format OutputFormat
+	Since  string
+	Common
+	MaxCommits        int
+	MaxFilesPerCommit int
+	MinCoChanges      int
+	TopN              int
+	IncludeMerges     bool
+}
+
+// Validate checks HotspotConfig and fills defaults.
+func (c *HotspotConfig) Validate() error {
+	if err := c.Common.Validate(); err != nil {
+		return err
+	}
+	if c.Output == "" {
+		c.Output = DefaultHotspotOutput
+	}
+	if c.Format == "" {
+		c.Format = DefaultHotspotFormat
+	}
+	if !c.Format.IsValid() {
+		return fmt.Errorf("invalid output format %s: must be one of skt, json", c.Format)
+	}
+	if c.Since == "" {
+		c.Since = DefaultHotspotSince
+	}
+	if _, err := ParseLookback(c.Since); err != nil {
+		return err
+	}
+	if c.MaxCommits == 0 {
+		c.MaxCommits = DefaultHotspotMaxCommits
+	}
+	if c.MaxCommits < 1 {
+		return fmt.Errorf("max-commits must be at least 1")
+	}
+	if c.MaxFilesPerCommit == 0 {
+		c.MaxFilesPerCommit = DefaultHotspotMaxFilesPerCommit
+	}
+	if c.MaxFilesPerCommit < 1 {
+		return fmt.Errorf("max-files-per-commit must be at least 1")
+	}
+	if c.MinCoChanges == 0 {
+		c.MinCoChanges = DefaultHotspotMinCoChanges
+	}
+	if c.MinCoChanges < 1 {
+		return fmt.Errorf("min-cochanges must be at least 1")
+	}
+	if c.TopN == 0 {
+		c.TopN = DefaultHotspotTopN
+	}
+	if c.TopN < 1 {
+		return fmt.Errorf("top-n must be at least 1")
+	}
+	return nil
+}
+
+// ParseLookback parses history windows such as 180d, 12mo, and 2y.
+func ParseLookback(value string) (time.Duration, error) {
+	value = strings.TrimSpace(strings.ToLower(value))
+	units := []struct {
+		suffix string
+		days   int
+	}{
+		{suffix: "mo", days: 30},
+		{suffix: "y", days: 365},
+		{suffix: "w", days: 7},
+		{suffix: "d", days: 1},
+	}
+	for _, unit := range units {
+		if !strings.HasSuffix(value, unit.suffix) {
+			continue
+		}
+		number := strings.TrimSuffix(value, unit.suffix)
+		count, err := strconv.Atoi(number)
+		if err != nil || count <= 0 {
+			break
+		}
+		return time.Duration(count*unit.days) * 24 * time.Hour, nil
+	}
+	return 0, fmt.Errorf("invalid since value %q: use a positive duration such as 180d, 12mo, or 2y", value)
 }
 
 // Validate checks AnalyzeConfig and fills defaults.

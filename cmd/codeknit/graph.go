@@ -13,16 +13,18 @@ import (
 func newGraphCmd(con *console.Console) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "graph",
-		Short: "Graph commands for codebase structure visualization and analysis",
-		Long: `Analyze source files and either visualize the codebase as an interactive
-HTML graph or run graph algorithms to detect code quality issues.
+		Short: "Visualize structure and run graph or history analysis",
+		Long: `Analyze source files to visualize the codebase, run structural graph
+algorithms, or combine the graph with Git history to rank change hotspots.
 
 Use "graph show" to generate an interactive HTML visualization.
-Use "graph analyze" to run structural analysis algorithms.`,
+Use "graph analyze" to run structural analysis algorithms.
+Use "graph hotspots" to find volatile, structurally important files.`,
 	}
 
 	cmd.AddCommand(newGraphShowCmd(con))
 	cmd.AddCommand(newGraphAnalyzeCmd(con))
+	cmd.AddCommand(newGraphHotspotsCmd(con))
 
 	return cmd
 }
