@@ -108,7 +108,7 @@ codeknit fingerprint <input-path>
 | `--min-similarity` | int    | `65`                          | Minimum similarity percentage to report (0–100)                                                                              |
 | `--max-similarity` | int    | `95`                          | Maximum similarity percentage to report (0–100)                                                                              |
 | `--show-all`       | bool   | `false`                       | Include the `[fingerprints]` section with raw token data                                                                     |
-| `--rerank`         | bool   | `false`                       | Rerank CTPH candidates using semantic embeddings via Ollama (requires `ollama serve` and `ollama pull qwen3-embedding:0.6b`) |
+| `--rerank`         | bool   | `false`                       | Find semantic neighbors and rerank candidates using Ollama embeddings (requires `ollama serve` and `ollama pull qwen3-embedding:0.6b`) |
 | `--model`          | string | `qwen3-embedding:0.6b`        | Ollama embedding model to use with `--rerank`                                                                                |
 | `--collect-test`   | bool   | `false`                       | Include test files in analysis                                                                                               |
 | `--workers`        | int    | `0` (NumCPU)                  | Maximum concurrent parsing goroutines                                                                                        |

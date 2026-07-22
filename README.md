@@ -186,11 +186,11 @@ codeknit fingerprint ./myproject --min-similarity 100
 # Find moderately similar code (50-80%)
 codeknit fingerprint ./myproject --min-similarity 50 --max-similarity 80
 
-# Semantic reranking — filters false positives via Ollama embeddings
+# Semantic matching — finds embedding neighbors and filters false positives
 # requires: ollama serve && ollama pull qwen3-embedding:0.6b
 codeknit fingerprint ./myproject --rerank
 
-# Semantic reranking with a different model
+# Semantic matching with a different model
 codeknit fingerprint ./myproject --rerank --model qwen3-embedding:4b
 
 # Include raw fingerprint listing
@@ -208,9 +208,8 @@ Flags:
       --min-similarity int   minimum similarity percentage to report (0-100) (default 65)
       --max-similarity int   maximum similarity percentage to report (0-100) (default 95)
       --show-all             include the [fingerprints] section with raw token data
-      --rerank               rerank CTPH candidates with semantic embeddings via Ollama to
-                             eliminate false positives (requires: ollama serve && ollama pull
-                             qwen3-embedding:0.6b)
+      --rerank               find semantic neighbors and rerank candidates with Ollama embeddings
+                             (requires: ollama serve && ollama pull qwen3-embedding:0.6b)
       --model string         Ollama embedding model to use with --rerank (default: qwen3-embedding:0.6b)
       --collect-test         include test files in analysis
       --workers int          max concurrent parsing goroutines (0 = NumCPU)

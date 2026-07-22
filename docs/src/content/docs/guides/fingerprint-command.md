@@ -39,7 +39,7 @@ This command:
 | `--min-similarity` | `65`                          | Minimum similarity percentage to report (0–100)                                                                                                            |
 | `--max-similarity` | `95`                          | Maximum similarity percentage to report (0–100)                                                                                                            |
 | `--show-all`       | `false`                       | Include the `[fingerprints]` section with raw token data                                                                                                   |
-| `--rerank`         | `false`                       | Rerank CTPH candidates using semantic embeddings via Ollama to eliminate false positives (requires: `ollama serve` and `ollama pull qwen3-embedding:0.6b`) |
+| `--rerank`         | `false`                       | Find semantic neighbors and rerank candidates using Ollama embeddings (requires: `ollama serve` and `ollama pull qwen3-embedding:0.6b`) |
 | `--model`          | `qwen3-embedding:0.6b`        | Ollama embedding model to use with `--rerank`                                                                                                              |
 | `--collect-test`   | `false`                       | Include test files in analysis                                                                                                                             |
 | `--workers`        | `NumCPU`                      | Max concurrent parsing goroutines (0 = use all CPU cores)                                                                                                  |
@@ -100,13 +100,13 @@ codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
 ```bash
-# Use semantic reranking to reduce false positives
+# Use semantic matching to find additional candidates and reduce false positives
 # Requires: ollama serve && ollama pull qwen3-embedding:0.6b
 codeknit fingerprint ./src --rerank
 ```
 
 ```bash
-# Use a different embedding model for reranking
+# Use a different embedding model for semantic matching
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
@@ -133,7 +133,7 @@ codeknit fingerprint ./src -o duplicates.skt
 ## Tips
 
 - **Fingerprints measure structure, not meaning**: A high similarity score means the code _looks_ similar, not that it _does_ the same thing. Always review both symbols.
-- **Use `--rerank` for noisy results**: If you get many false positives, enable semantic reranking to filter matches using embeddings.
+- **Use `--rerank` for semantic matching**: Embeddings add semantic neighbors that structural retrieval can miss and filter candidates that disagree semantically.
 - **Short bodies are skipped**: Symbols with fewer than 4 normalized tokens (e.g. simple getters) are ignored to avoid noise.
 - **Cross-language matching works**: Equivalent constructs (e.g., a Python function and a Go function with the same logic) can match, but language-specific patterns may produce spurious low-similarity matches.
 - **A match is a signal, not a verdict**: Treat each match as a prompt to investigate — not automatic proof of duplication.

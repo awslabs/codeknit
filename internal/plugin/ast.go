@@ -106,6 +106,7 @@ const (
 	FPLitNil  = types.FPLitNil
 	FPDict    = types.FPDict
 	FPArray   = types.FPArray
+	FPVar     = types.FPVar
 )
 
 // Re-export functions from types.

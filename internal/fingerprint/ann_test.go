@@ -68,6 +68,20 @@ func TestBuildANNIndex_CandidatesAreDeduplicated(t *testing.T) {
 	}
 }
 
+func TestBuildVectorANNIndex_IdenticalVectorsAreTopCandidate(t *testing.T) {
+	vector := []float32{0.1, 0.2, 0.3, 0.4, 0.5}
+	different := []float32{0.5, -0.4, 0.3, -0.2, 0.1}
+
+	idx := BuildVectorANNIndex([][]float32{vector, vector, different})
+	candidates := idx.FindCandidates(1)
+	if len(candidates) == 0 {
+		t.Fatal("expected vector candidates")
+	}
+	if candidates[0].I != 0 || candidates[0].J != 1 {
+		t.Fatalf("top vector candidate = (%d,%d), want (0,1)", candidates[0].I, candidates[0].J)
+	}
+}
+
 func TestDefaultANNK(t *testing.T) {
 	if k := DefaultANNK(); k != annK {
 		t.Errorf("DefaultANNK() = %d, want %d", k, annK)

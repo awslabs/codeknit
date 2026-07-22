@@ -5,6 +5,7 @@ package golang
 
 import (
 	"errors"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"sort"
@@ -24,6 +25,53 @@ func parseSource(t *testing.T, filename string, src []byte) (symbols []plugin.Sy
 		t.Fatalf("writing temp file: %v", err)
 	}
 	return NewPlugin().Parse(path)
+}
+
+func TestParseWithOptions_FingerprintCallMetadata(t *testing.T) {
+	src := []byte(`package main
+
+var DefaultValue = makeValue(1, 2)
+
+func run() {
+	processValue(1, 2, 3)
+}
+`)
+	path := filepath.Join(t.TempDir(), "calls.go")
+	if err := os.WriteFile(path, src, 0o600); err != nil {
+		t.Fatalf("writing temp file: %v", err)
+	}
+
+	symbols, _, err := NewPlugin().ParseWithOptions(path, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertCallPayload := func(symbolName, callee string, argCount byte) {
+		t.Helper()
+		for _, symbol := range symbols {
+			if symbol.Name != symbolName {
+				continue
+			}
+
+			hasher := fnv.New32a()
+			_, _ = hasher.Write([]byte(callee))
+			hash := hasher.Sum(nil)
+			want := []byte{plugin.FPCall, hash[0], hash[1], argCount}
+			if len(symbol.BodyTokens) < len(want) {
+				t.Fatalf("%s tokens %v are too short for call payload %v", symbolName, symbol.BodyTokens, want)
+			}
+			for i := range want {
+				if symbol.BodyTokens[i] != want[i] {
+					t.Fatalf("%s call payload: got %v, want prefix %v", symbolName, symbol.BodyTokens, want)
+				}
+			}
+			return
+		}
+		t.Fatalf("symbol %q not found", symbolName)
+	}
+
+	assertCallPayload("run", "processvalue", 3)
+	assertCallPayload("DefaultValue", "makevalue", 2)
 }
 
 func TestParseSource_Symbols(t *testing.T) {

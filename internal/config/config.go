@@ -330,7 +330,7 @@ func (c *AnalyzeConfig) Validate() error {
 // FingerprintConfig holds options for the `fingerprint` subcommand.
 type FingerprintConfig struct {
 	Output     string
-	EmbedModel string // Ollama model for semantic reranking via RRF; "" disables
+	EmbedModel string // Ollama model for semantic retrieval and reranking; "" disables
 	Common
 	MinSim  int
 	MaxSim  int

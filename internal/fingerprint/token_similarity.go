@@ -15,20 +15,28 @@ import "codeknit/internal/plugin"
 // define the function's shape — making the comparison insensitive to
 // variable naming patterns and literal values.
 func TokenEditSimilarity(a, b []byte) int {
-	sa := structuralTokens(a)
-	sb := structuralTokens(b)
+	return normalizedEditSimilarity(structuralTokens(a), structuralTokens(b))
+}
 
-	if len(sa) == 0 && len(sb) == 0 {
+// RawTokenEditSimilarity computes normalized edit similarity without
+// discarding payload bytes. It is used for type shapes and value initializers,
+// where names and literal values are meaningful parts of the fingerprint.
+func RawTokenEditSimilarity(a, b []byte) int {
+	return normalizedEditSimilarity(a, b)
+}
+
+func normalizedEditSimilarity(a, b []byte) int {
+	if len(a) == 0 && len(b) == 0 {
 		return 100
 	}
-	if len(sa) == 0 || len(sb) == 0 {
+	if len(a) == 0 || len(b) == 0 {
 		return 0
 	}
 
-	dist := editDistance(sa, sb)
-	maxLen := len(sa)
-	if len(sb) > maxLen {
-		maxLen = len(sb)
+	dist := editDistance(a, b)
+	maxLen := len(a)
+	if len(b) > maxLen {
+		maxLen = len(b)
 	}
 
 	score := 100 - (dist*100)/maxLen
@@ -52,6 +60,15 @@ func structuralTokens(tokens []byte) []byte {
 	for i < len(tokens) {
 		tok := tokens[i]
 		i++
+
+		// FPVar: skip the tagged variable ordinal. The tag prevents ordinal
+		// bytes from being mistaken for semantic operation tokens.
+		if tok == plugin.FPVar {
+			if i < len(tokens) {
+				i++
+			}
+			continue
+		}
 
 		// FPCall: keep the call token, skip 2-byte callee hash + 1-byte arg count.
 		if tok == plugin.FPCall {

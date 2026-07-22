@@ -6,6 +6,7 @@ package emitter
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,10 +23,10 @@ import (
 type FingerprintOptions struct {
 	// OutputPath is the file to write the fingerprint results to.
 	OutputPath string
-	// EmbedModel is the Ollama model name to use for semantic reranking of
-	// CTPH candidates via weighted scoring. When non-empty, all CTPH
-	// candidates are re-sorted by a weighted combination of structural
-	// similarity and cosine similarity — none are dropped.
+	// EmbedModel is the Ollama model used for semantic candidate retrieval and
+	// weighted reranking. When non-empty, embedding neighbors are merged with
+	// structural candidates, filtered by cosine agreement, and ranked by the
+	// combined semantic and structural score.
 	// Requires Ollama to be running locally.
 	// Recommended: "qwen3-embedding:0.6b"
 	EmbedModel string
@@ -66,7 +67,7 @@ func (e *Emitter) EmitFingerprints(sg *ir.SymbolGraph, opts *FingerprintOptions)
 	entries := collectFingerprints(sg)
 	matches := findDuplicates(entries, opts.MinSimilarity, opts.MaxSimilarity)
 
-	if opts.EmbedModel != "" && len(matches) > 0 {
+	if opts.EmbedModel != "" && len(entries) > 1 {
 		var err error
 		matches, err = rerank(entries, matches, opts)
 		if err != nil {
@@ -97,6 +98,7 @@ type fpEntry struct {
 	name       string
 	fp         string
 	sourceBody string // raw source code of the symbol body (for embedding)
+	category   plugin.SymbolCategory
 	tokens     []byte
 	span       [2]int // line range [start, end] in the source file
 }
@@ -139,6 +141,7 @@ func collectFingerprints(sg *ir.SymbolGraph) []fpEntry {
 			tokens:     sym.BodyTokens,
 			sourceBody: src,
 			span:       sym.Span,
+			category:   sym.Category,
 		})
 	}
 	return entries
@@ -178,13 +181,7 @@ func extractSourceBody(filePath string, span [2]int, cache map[string][]string) 
 		return ""
 	}
 
-	// Cap at ~2000 chars to avoid blowing up embedding context windows.
-	body := strings.Join(lines[start:end], "\n")
-	const maxEmbedLen = 2000
-	if len(body) > maxEmbedLen {
-		body = body[:maxEmbedLen]
-	}
-	return body
+	return strings.Join(lines[start:end], "\n")
 }
 
 // annThreshold is the minimum number of entries above which the ANN
@@ -228,19 +225,45 @@ func findDuplicatesBrute(entries []fpEntry, minSim, maxSim int) []fpMatch {
 // bigrams to narrow the candidate set to top-K neighbors per symbol, then
 // scores only those candidates with the full CTPH + token-edit pipeline.
 func findDuplicatesANN(entries []fpEntry, minSim, maxSim int) []fpMatch {
-	// Build token streams slice for the ANN index.
-	streams := make([][]byte, len(entries))
+	groups := make(map[plugin.SymbolCategory][]int)
 	for i := range entries {
-		streams[i] = entries[i].tokens
+		groups[entries[i].category] = append(groups[entries[i].category], i)
 	}
 
-	idx := fingerprint.BuildANNIndex(streams)
-	candidates := idx.FindCandidates(fingerprint.DefaultANNK())
+	categories := make([]plugin.SymbolCategory, 0, len(groups))
+	for category := range groups {
+		categories = append(categories, category)
+	}
+	sort.Slice(categories, func(i, j int) bool {
+		return categories[i] < categories[j]
+	})
 
 	var matches []fpMatch
-	for _, c := range candidates {
-		if m, ok := scorePair(entries, c.I, c.J, minSim, maxSim); ok {
-			matches = append(matches, m)
+	for _, category := range categories {
+		entryIndexes := groups[category]
+		if len(entryIndexes) < 2 {
+			continue
+		}
+
+		streams := make([][]byte, len(entryIndexes))
+		for i, entryIndex := range entryIndexes {
+			streams[i] = entries[entryIndex].tokens
+		}
+
+		var idx *fingerprint.ANNIndex
+		switch category {
+		case plugin.CategoryType, plugin.CategoryValue:
+			idx = fingerprint.BuildRawANNIndex(streams)
+		default:
+			idx = fingerprint.BuildANNIndex(streams)
+		}
+
+		for _, candidate := range idx.FindCandidates(fingerprint.DefaultANNK()) {
+			i := entryIndexes[candidate.I]
+			j := entryIndexes[candidate.J]
+			if m, ok := scorePair(entries, i, j, minSim, maxSim); ok {
+				matches = append(matches, m)
+			}
 		}
 	}
 	sort.Slice(matches, func(a, b int) bool {
@@ -252,11 +275,21 @@ func findDuplicatesANN(entries []fpEntry, minSim, maxSim int) []fpMatch {
 // scorePair computes the combined similarity for a single (i, j) pair.
 // Returns the match and true if it falls within [minSim, maxSim].
 func scorePair(entries []fpEntry, i, j, minSim, maxSim int) (fpMatch, bool) {
+	if entries[i].category != entries[j].category {
+		return fpMatch{}, false
+	}
+
 	ctph := fingerprint.Distance(entries[i].fp, entries[j].fp)
 	if ctph < 0 {
 		ctph = 0
 	}
-	tokSim := fingerprint.TokenEditSimilarity(entries[i].tokens, entries[j].tokens)
+	var tokSim int
+	switch entries[i].category {
+	case plugin.CategoryType, plugin.CategoryValue:
+		tokSim = fingerprint.RawTokenEditSimilarity(entries[i].tokens, entries[j].tokens)
+	default:
+		tokSim = fingerprint.TokenEditSimilarity(entries[i].tokens, entries[j].tokens)
+	}
 
 	// Average both signals — a pair must score well on both to pass.
 	sim := (ctph + tokSim) / 2
@@ -347,6 +380,15 @@ func tokensToText(tokens []byte) string {
 		tok := tokens[i]
 		i++
 
+		// Tagged variable ordinal.
+		if tok == plugin.FPVar {
+			if i < len(tokens) {
+				fmt.Fprintf(&b, "var%d ", tokens[i])
+				i++
+			}
+			continue
+		}
+
 		// FPCall: skip 2-byte callee hash, read arg count.
 		if tok == plugin.FPCall {
 			skip := min(2, len(tokens)-i)
@@ -398,16 +440,6 @@ func tokensToText(tokens []byte) string {
 	return strings.TrimSpace(b.String())
 }
 
-// embedInput builds the text sent to the embedding model for a symbol.
-// It uses the raw source code read from disk — embedding models are trained
-// on real code and produce much better semantic vectors than pseudo-code.
-func embedInput(e *fpEntry) string {
-	if e.sourceBody != "" {
-		return fmt.Sprintf("symbol:%s file:%s\n%s", e.name, e.filePath, e.sourceBody)
-	}
-	return fmt.Sprintf("symbol:%s file:%s", e.name, e.filePath)
-}
-
 // Reranking weights for the weighted linear combination of signals.
 // Cosine similarity from a code-trained embedding model is the strongest
 // signal for semantic clones (Type 3/4), so it gets the highest weight.
@@ -442,70 +474,97 @@ func cosineFloor(structuralSim int) float64 {
 	return cosineFloorBase
 }
 
-// rerank scores each CTPH candidate with cosine similarity via Ollama
-// embeddings, applies a dynamic cosine floor to drop false positives, then
-// re-sorts survivors by weighted score. Pairs where the embedding model
-// disagrees with the structural signal are eliminated — this catches
-// "same shape, different semantics" noise like unrelated constants or
-// boilerplate methods that happen to share control flow patterns.
+const embeddingBatchSize = 64
+
+// rerank embeds every symbol so semantic nearest neighbors can contribute
+// candidates that structural retrieval did not find. It unions both candidate
+// sets, applies the dynamic cosine floor, and filters on the final weighted
+// similarity range.
 func rerank(entries []fpEntry, matches []fpMatch, opts *FingerprintOptions) ([]fpMatch, error) {
-	// Collect unique entry indexes that appear in at least one match.
-	needed := make(map[int]struct{}, len(matches)*2)
-	for _, m := range matches {
-		needed[m.i] = struct{}{}
-		needed[m.j] = struct{}{}
-	}
-
-	idxOrder := make([]int, 0, len(needed))
-	for idx := range needed {
-		idxOrder = append(idxOrder, idx)
-	}
-	sort.Ints(idxOrder)
-
-	pos := make(map[int]int, len(idxOrder))
-	texts := make([]string, len(idxOrder))
-	for i, idx := range idxOrder {
-		pos[idx] = i
-		texts[i] = embedInput(&entries[idx])
+	texts := make([]string, len(entries))
+	for i := range entries {
+		texts[i] = embedInput(&entries[i])
 	}
 
 	client := ollama.NewClient("", opts.EmbedModel)
-	vecs, err := client.Embed(texts)
-	if err != nil {
-		return nil, err
+	vecs := make([][]float32, 0, len(texts))
+	for start := 0; start < len(texts); start += embeddingBatchSize {
+		end := min(start+embeddingBatchSize, len(texts))
+		batch, err := client.Embed(texts[start:end])
+		if err != nil {
+			return nil, fmt.Errorf("embed symbols %d-%d: %w", start+1, end, err)
+		}
+		vecs = append(vecs, batch...)
 	}
 
-	// Score every match and apply the dynamic cosine floor.
-	filtered := matches[:0] // reuse backing array
-	for k := range matches {
-		va := vecs[pos[matches[k].i]]
-		vb := vecs[pos[matches[k].j]]
-		matches[k].cosineSim = ollama.CosineSimilarity(va, vb)
+	return rerankWithVectors(entries, matches, vecs, opts), nil
+}
+
+func rerankWithVectors(entries []fpEntry, matches []fpMatch, vecs [][]float32, opts *FingerprintOptions) []fpMatch {
+	if len(entries) != len(vecs) {
+		return nil
+	}
+
+	semantic := findSemanticCandidates(entries, vecs, semanticNeighborK)
+	byPair := make(map[candidatePair]fpMatch, len(matches)+len(semantic))
+	structuralPairs := make(map[candidatePair]struct{}, len(matches))
+	for _, match := range matches {
+		key := newCandidatePair(match.i, match.j)
+		byPair[key] = match
+		structuralPairs[key] = struct{}{}
+	}
+	for _, candidate := range semantic {
+		key := newCandidatePair(candidate.i, candidate.j)
+		if _, exists := byPair[key]; exists {
+			continue
+		}
+		if match, ok := scorePair(entries, key.i, key.j, 0, 100); ok {
+			byPair[key] = match
+		}
+	}
+
+	filtered := make([]fpMatch, 0, len(byPair))
+	for key, match := range byPair {
+		match.cosineSim = ollama.CosineSimilarity(vecs[match.i], vecs[match.j])
 
 		// Dynamic cosine floor: higher structural similarity demands
 		// higher cosine agreement. Drop pairs the embedding model rejects.
-		floor := cosineFloor(matches[k].similarity)
-		if matches[k].cosineSim < floor {
+		floor := cosineFloor(match.similarity)
+		if _, structurallyRetrieved := structuralPairs[key]; !structurallyRetrieved {
+			floor = max(floor, semanticCandidateCosineFloor)
+		}
+		if match.cosineSim < floor {
 			continue
 		}
 
 		// Normalize all signals to [0, 1].
-		normCTPH := float64(matches[k].ctphSim) / 100.0
-		normToken := float64(matches[k].tokenSim) / 100.0
-		normCosine := matches[k].cosineSim
+		normCTPH := float64(match.ctphSim) / 100.0
+		normToken := float64(match.tokenSim) / 100.0
+		normCosine := match.cosineSim
 		if normCosine < 0 {
 			normCosine = 0
 		}
 
-		matches[k].rrfScore = weightCosine*normCosine + weightTokenSim*normToken + weightCTPH*normCTPH
-		filtered = append(filtered, matches[k])
+		match.rrfScore = weightCosine*normCosine + weightTokenSim*normToken + weightCTPH*normCTPH
+		weightedPercent := match.rrfScore * 100
+		if weightedPercent < float64(opts.MinSimilarity) || weightedPercent > float64(opts.MaxSimilarity) {
+			continue
+		}
+		match.similarity = int(math.Round(weightedPercent))
+		filtered = append(filtered, match)
 	}
 
 	// Re-sort survivors by weighted score descending.
 	sort.Slice(filtered, func(a, b int) bool {
-		return filtered[a].rrfScore > filtered[b].rrfScore
+		if filtered[a].rrfScore != filtered[b].rrfScore {
+			return filtered[a].rrfScore > filtered[b].rrfScore
+		}
+		if filtered[a].i != filtered[b].i {
+			return filtered[a].i < filtered[b].i
+		}
+		return filtered[a].j < filtered[b].j
 	})
-	return filtered, nil
+	return filtered
 }
 
 // renderFingerprints formats the output .skt content.
@@ -538,8 +597,9 @@ func renderFingerprints(entries []fpEntry, matches []fpMatch, opts *FingerprintO
 	fmt.Fprintf(&b, "[duplicates]\n# similarity range: %d%%-%d%%\n",
 		opts.MinSimilarity, opts.MaxSimilarity)
 	if opts.EmbedModel != "" {
-		fmt.Fprintf(&b, "# semantic model: %s  ranking: weighted(%.0f%% cosine, %.0f%% token, %.0f%% ctph)  cosine floor: %.2f+\n",
-			opts.EmbedModel, weightCosine*100, weightTokenSim*100, weightCTPH*100, cosineFloorBase)
+		fmt.Fprintf(&b, "# semantic model: %s  ranking: weighted(%.0f%% cosine, %.0f%% token, %.0f%% ctph)  cosine floor: %.2f+  semantic top-k: %d floor: %.2f\n",
+			opts.EmbedModel, weightCosine*100, weightTokenSim*100, weightCTPH*100,
+			cosineFloorBase, semanticNeighborK, semanticCandidateCosineFloor)
 	}
 
 	if len(matches) > 0 {

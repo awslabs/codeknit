@@ -63,4 +63,5 @@ const (
 	FPLitNil  FPToken = 0x43
 	FPDict    FPToken = 0x44
 	FPArray   FPToken = 0x45
+	FPVar     FPToken = 0x46
 )

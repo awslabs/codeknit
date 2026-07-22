@@ -1441,7 +1441,7 @@ func (m Model) viewFingerprintOptions() tea.View {
 	s += m.textField("Output file:        ", m.FingerprintOutput, fieldOutputDir)
 	s += m.textField("Min similarity (%): ", m.FingerprintMinSim, fieldFingerprintMinSim)
 	s += m.textField("Max similarity (%): ", m.FingerprintMaxSim, fieldFingerprintMaxSim)
-	s += m.toggleField("Semantic reranking  ", m.FingerprintRerank, fieldFingerprintRerank)
+	s += m.toggleField("Semantic matching   ", m.FingerprintRerank, fieldFingerprintRerank)
 	s += m.textField("Model override:     ", m.FingerprintModel, fieldFingerprintModel)
 	s += m.toggleField("Show all fingerprints", m.FingerprintShowAll, fieldFingerprintShowAll)
 	s += m.toggleField("Collect test files", m.CollectTest, fieldCollectTest)

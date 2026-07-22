@@ -226,22 +226,7 @@ func walkInitRecursive(node *sitter.Node, src []byte, tokenMap map[string]byte, 
 	}
 
 	if mapped && tok == types.FPCall {
-		for i := range node.ChildCount() {
-			child := node.Child(i)
-			if child != nil && callArgKinds[child.Kind()] {
-				count := 0
-				for j := range child.ChildCount() {
-					arg := child.Child(j)
-					if arg != nil && arg.IsNamed() {
-						count++
-					}
-				}
-				if count < 255 {
-					*tokens = append(*tokens, byte(count))
-				}
-				break
-			}
-		}
+		appendCallMetadata(node, src, tokens)
 	}
 
 	for i := range node.ChildCount() {
@@ -500,7 +485,7 @@ func fnv32(data []byte) [4]byte {
 	return [4]byte{byte(h >> 24), byte(h >> 16), byte(h >> 8), byte(h)} //nolint:gosec // FNV-1a hash bytes, values are always 0-255
 }
 
-func normalizeCalleName(name []byte) []byte {
+func normalizeCalleeName(name []byte) []byte {
 	out := make([]byte, 0, len(name))
 	for _, b := range name {
 		if b == '_' {
@@ -540,7 +525,7 @@ func walkBodyWithScope(node *sitter.Node, src []byte, tokenMap map[string]byte, 
 			varScope[name] = next
 			ord = next
 		}
-		*tokens = append(*tokens, ord)
+		*tokens = append(*tokens, types.FPVar, ord)
 		return
 	}
 
@@ -588,39 +573,13 @@ func walkBodyWithScope(node *sitter.Node, src []byte, tokenMap map[string]byte, 
 	}
 
 	if mapped && tok == types.FPCall {
-		if node.ChildCount() > 0 {
-			callee := node.Child(0)
-			if callee != nil {
-				calleeName := normalizeCalleName(src[callee.StartByte():callee.EndByte()])
-				h := fnv32(calleeName)
-				*tokens = append(*tokens, h[0], h[1])
-			}
-		}
-		for i := range node.ChildCount() {
-			child := node.Child(i)
-			if child == nil {
-				continue
-			}
-			if callArgKinds[child.Kind()] {
-				count := 0
-				for j := range child.ChildCount() {
-					arg := child.Child(j)
-					if arg != nil && arg.IsNamed() {
-						count++
-					}
+		args := appendCallMetadata(node, src, tokens)
+		if args != nil {
+			for i := range args.ChildCount() {
+				arg := args.Child(i)
+				if arg != nil {
+					walkBodyWithScope(arg, src, tokenMap, tokens, varScope)
 				}
-				if count < 255 {
-					*tokens = append(*tokens, byte(count))
-				} else {
-					*tokens = append(*tokens, 0xFF)
-				}
-				for j := range child.ChildCount() {
-					arg := child.Child(j)
-					if arg != nil {
-						walkBodyWithScope(arg, src, tokenMap, tokens, varScope)
-					}
-				}
-				break
 			}
 		}
 		return
@@ -632,6 +591,41 @@ func walkBodyWithScope(node *sitter.Node, src []byte, tokenMap map[string]byte, 
 			walkBodyWithScope(child, src, tokenMap, tokens, varScope)
 		}
 	}
+}
+
+// appendCallMetadata appends the fixed call payload:
+// two bytes of normalized callee hash followed by one argument-count byte.
+// It returns the argument-list node so callers can walk argument expressions.
+func appendCallMetadata(node *sitter.Node, src []byte, tokens *[]byte) *sitter.Node {
+	var calleeHash [4]byte
+	if node.ChildCount() > 0 {
+		if callee := node.Child(0); callee != nil {
+			calleeHash = fnv32(normalizeCalleeName(src[callee.StartByte():callee.EndByte()]))
+		}
+	}
+	*tokens = append(*tokens, calleeHash[0], calleeHash[1])
+
+	var argsNode *sitter.Node
+	count := 0
+	for i := range node.ChildCount() {
+		child := node.Child(i)
+		if child == nil || !callArgKinds[child.Kind()] {
+			continue
+		}
+		argsNode = child
+		for j := range child.ChildCount() {
+			arg := child.Child(j)
+			if arg != nil && arg.IsNamed() {
+				count++
+			}
+		}
+		break
+	}
+	if count > 255 {
+		count = 255
+	}
+	*tokens = append(*tokens, byte(count)) //nolint:gosec // count is clamped above
+	return argsNode
 }
 
 func isElseIf(node *sitter.Node) bool {

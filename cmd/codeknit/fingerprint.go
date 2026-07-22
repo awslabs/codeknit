@@ -49,11 +49,11 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
   # Find only exact duplicates
   codeknit fingerprint ./myproject --min-similarity 100
 
-  # Semantic reranking — filters false positives via Ollama embeddings
+  # Semantic matching — finds embedding neighbors and filters false positives
   # requires: ollama serve && ollama pull qwen3-embedding:0.6b
   codeknit fingerprint ./myproject --rerank
 
-  # Semantic reranking with a different model
+  # Semantic matching with a different model
   codeknit fingerprint ./myproject --rerank --model qwen3-embedding:4b
 
   # Include raw fingerprint listing
@@ -92,8 +92,8 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 	cmd.Flags().BoolVar(&opts.showAll, "show-all", config.DefaultFingerprintShowAll,
 		"include the [fingerprints] section with raw token data")
 	cmd.Flags().BoolVar(&opts.rerank, "rerank", config.DefaultFingerprintRerank,
-		"rerank CTPH candidates with semantic embeddings via Ollama to eliminate\n"+
-			"false positives (requires: ollama serve && ollama pull qwen3-embedding:0.6b)")
+		"find semantic neighbors and rerank candidates with Ollama embeddings\n"+
+			"(requires: ollama serve && ollama pull qwen3-embedding:0.6b)")
 	cmd.Flags().StringVar(&opts.model, "model", config.DefaultFingerprintModelOverride,
 		"Ollama embedding model to use with --rerank (default: qwen3-embedding:0.6b)")
 	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,

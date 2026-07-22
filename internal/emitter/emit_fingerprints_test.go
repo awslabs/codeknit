@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"codeknit/internal/config"
+	"codeknit/internal/fingerprint"
 	"codeknit/internal/plugin"
 )
 
@@ -212,14 +213,21 @@ func TestEmbedInput_WithTokens(t *testing.T) {
 	e := fpEntry{
 		filePath:   "pkg/foo.go",
 		name:       "myFunc",
+		category:   plugin.CategoryCallable,
 		tokens:     []byte{plugin.FPIf, plugin.FPReturn},
-		sourceBody: "if x > 0 {\n\treturn x\n}",
+		sourceBody: "func myFunc(x int) int {\n\t// explain the implementation\n\treturn api.Transform(x)\n}",
 	}
 	got := embedInput(&e)
-	if !strings.HasPrefix(got, "symbol:myFunc file:pkg/foo.go\n") {
+	if !strings.HasPrefix(got, "category:callable language:go\nstructure:if return\nsource:\n") {
 		t.Errorf("unexpected format: %q", got)
 	}
-	if !strings.Contains(got, "if x > 0") || !strings.Contains(got, "return x") {
+	if strings.Contains(got, "pkg/foo.go") || strings.Contains(got, "myFunc") {
+		t.Errorf("embedding input leaked path or symbol name: %q", got)
+	}
+	if strings.Contains(got, "explain the implementation") {
+		t.Errorf("embedding input retained a comment: %q", got)
+	}
+	if !strings.Contains(got, "func <symbol>") || !strings.Contains(got, "api.Transform(x)") {
 		t.Errorf("body missing expected source code: %q", got)
 	}
 }
@@ -228,10 +236,11 @@ func TestEmbedInput_EmptyTokens(t *testing.T) {
 	e := fpEntry{
 		filePath: "pkg/foo.go",
 		name:     "myFunc",
+		category: plugin.CategoryCallable,
 		tokens:   []byte{},
 	}
 	got := embedInput(&e)
-	want := "symbol:myFunc file:pkg/foo.go"
+	want := "category:callable language:go"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -240,8 +249,41 @@ func TestEmbedInput_EmptyTokens(t *testing.T) {
 func TestEmbedInput_NilTokens(t *testing.T) {
 	e := fpEntry{filePath: "a.go", name: "fn", tokens: nil}
 	got := embedInput(&e)
-	if got != "symbol:fn file:a.go" {
+	if got != "category:unknown language:go" {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestStripSourceComments_PreservesStrings(t *testing.T) {
+	source := "const url = \"https://example.com/a#b\"; // remove me\napi.Call(url)/* remove me too */next()"
+	got := stripSourceComments(source, "javascript")
+	if strings.Contains(got, "remove me") {
+		t.Fatalf("comments were not removed: %q", got)
+	}
+	if !strings.Contains(got, "\"https://example.com/a#b\"") ||
+		!strings.Contains(got, "api.Call(url) next()") {
+		t.Fatalf("code or string content was removed: %q", got)
+	}
+}
+
+func TestStripSourceComments_PythonKeepsFloorDivision(t *testing.T) {
+	source := "value = total // count  # average bucket\nreturn api.normalize(value)"
+	got := stripSourceComments(source, "python")
+	if strings.Contains(got, "average bucket") {
+		t.Fatalf("hash comment was not removed: %q", got)
+	}
+	if !strings.Contains(got, "total // count") || !strings.Contains(got, "api.normalize(value)") {
+		t.Fatalf("python code was removed: %q", got)
+	}
+}
+
+func TestTruncateEmbeddingText_PreservesUnicodeHeadAndTail(t *testing.T) {
+	got := truncateEmbeddingText("αβγδεζηθ", 4)
+	if got != "αβ"+truncationMarker+"ηθ" {
+		t.Fatalf("got %q", got)
+	}
+	if !strings.Contains(got, truncationMarker) {
+		t.Fatalf("truncation marker missing: %q", got)
 	}
 }
 
@@ -250,7 +292,13 @@ func TestEmbedInput_NilTokens(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func makeEntry(name, fp string) fpEntry {
-	return fpEntry{filePath: "f.go", name: name, fp: fp, tokens: []byte{plugin.FPIf}}
+	return fpEntry{
+		filePath: "f.go",
+		name:     name,
+		category: plugin.CategoryCallable,
+		fp:       fp,
+		tokens:   []byte{plugin.FPIf},
+	}
 }
 
 func TestFindDuplicates_Empty(t *testing.T) {
@@ -308,6 +356,55 @@ func TestFindDuplicates_RangeFilter(t *testing.T) {
 	matches := findDuplicates(entries, 50, 99)
 	if len(matches) != 0 {
 		t.Errorf("score 100 should be excluded by maxSim=99, got %d matches", len(matches))
+	}
+}
+
+func TestFindDuplicates_DoesNotCompareDifferentCategories(t *testing.T) {
+	fp := "2:aabbccdd:eeff0011"
+	entries := []fpEntry{
+		{
+			filePath: "f.go",
+			name:     "callable",
+			category: plugin.CategoryCallable,
+			fp:       fp,
+			tokens:   []byte{plugin.FPReturn},
+		},
+		{
+			filePath: "f.go",
+			name:     "value",
+			category: plugin.CategoryValue,
+			fp:       fp,
+			tokens:   []byte{plugin.FPReturn},
+		},
+	}
+
+	if matches := findDuplicates(entries, 0, 100); len(matches) != 0 {
+		t.Fatalf("different categories produced %d matches, want 0", len(matches))
+	}
+}
+
+func TestScorePair_TypeUsesRawShapeTokens(t *testing.T) {
+	a := []byte{0xE0, 0xEB, 0x01, 0x02, 0xE1}
+	b := []byte{0xE0, 0xEB, 0x09, 0x09, 0xE1}
+	entries := []fpEntry{
+		{
+			category: plugin.CategoryType,
+			fp:       fingerprint.Hash(a),
+			tokens:   a,
+		},
+		{
+			category: plugin.CategoryType,
+			fp:       fingerprint.Hash(b),
+			tokens:   b,
+		},
+	}
+
+	match, ok := scorePair(entries, 0, 1, 0, 100)
+	if !ok {
+		t.Fatal("type pair was unexpectedly rejected")
+	}
+	if match.tokenSim >= 100 {
+		t.Fatalf("different type shapes received token score %d, want less than 100", match.tokenSim)
 	}
 }
 

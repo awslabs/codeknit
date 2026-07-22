@@ -21,10 +21,9 @@ const annK = 50
 // DefaultANNK returns the default K value for ANN candidate retrieval.
 func DefaultANNK() int { return annK }
 
-// ANNIndex is a brute-force approximate nearest neighbor index built from
-// lightweight feature vectors derived from structural token bigrams. It
-// replaces O(N²) pairwise comparison with O(N·K) by only surfacing the
-// top-K most similar candidates per symbol.
+// ANNIndex is a brute-force nearest-neighbor candidate index built from
+// lightweight token-bigram feature vectors. Vector retrieval is O(N²), but it
+// limits the more expensive CTPH and edit-distance scoring to O(N·K) pairs.
 type ANNIndex struct {
 	vecs []annVec
 }
@@ -45,16 +44,62 @@ type Candidate struct {
 // Each token stream is converted to a fixed-size feature vector using
 // token bigram frequency hashing (a lightweight bag-of-bigrams).
 func BuildANNIndex(tokenStreams [][]byte) *ANNIndex {
+	return buildANNIndex(tokenStreams, true)
+}
+
+// BuildRawANNIndex constructs an index from full token streams, retaining
+// payload bytes. This is appropriate for type shapes and value initializers,
+// where names and literal values are meaningful.
+func BuildRawANNIndex(tokenStreams [][]byte) *ANNIndex {
+	return buildANNIndex(tokenStreams, false)
+}
+
+// BuildVectorANNIndex constructs a candidate index from dense embedding
+// vectors. Signed feature hashing projects arbitrary model dimensions into
+// the index's fixed 128 dimensions while approximately preserving cosine
+// similarity.
+func BuildVectorANNIndex(vectors [][]float32) *ANNIndex {
+	idx := &ANNIndex{
+		vecs: make([]annVec, len(vectors)),
+	}
+	for i, vector := range vectors {
+		idx.vecs[i] = annVec{
+			idx: i,
+			vec: projectVector(vector),
+		}
+	}
+	return idx
+}
+
+func buildANNIndex(tokenStreams [][]byte, structural bool) *ANNIndex {
 	idx := &ANNIndex{
 		vecs: make([]annVec, len(tokenStreams)),
 	}
 	for i, tokens := range tokenStreams {
+		if structural {
+			tokens = structuralTokens(tokens)
+		}
 		idx.vecs[i] = annVec{
 			idx: i,
 			vec: tokenBigramVec(tokens),
 		}
 	}
 	return idx
+}
+
+func projectVector(vector []float32) [annDims]float32 {
+	var projected [annDims]float32
+	for i, value := range vector {
+		hash := uint32(i+1) * 2654435761
+		bucket := hash % annDims
+		if hash&0x80000000 != 0 {
+			projected[bucket] -= value
+		} else {
+			projected[bucket] += value
+		}
+	}
+	normalizeANNVec(&projected)
+	return projected
 }
 
 // FindCandidates returns deduplicated candidate pairs where at least one
@@ -134,28 +179,31 @@ func (idx *ANNIndex) topK(a, k int) []neighbor {
 // in a compact, comparison-friendly form.
 func tokenBigramVec(tokens []byte) [annDims]float32 {
 	var vec [annDims]float32
-	structural := structuralTokens(tokens)
 
-	if len(structural) < 2 {
-		if len(structural) == 1 {
-			vec[int(structural[0])%annDims]++
+	if len(tokens) < 2 {
+		if len(tokens) == 1 {
+			vec[int(tokens[0])%annDims]++
 		}
 		return vec
 	}
 
 	// Hash each bigram into a bucket.
-	for i := 0; i < len(structural)-1; i++ {
+	for i := 0; i < len(tokens)-1; i++ {
 		// Simple hash: combine two consecutive tokens.
-		h := uint(structural[i])*31 + uint(structural[i+1])
+		h := uint(tokens[i])*31 + uint(tokens[i+1])
 		vec[h%annDims]++
 	}
 
 	// Also add unigrams at half weight for short-function robustness.
-	for _, tok := range structural {
+	for _, tok := range tokens {
 		vec[int(tok)%annDims] += 0.5
 	}
 
-	// L2-normalize.
+	normalizeANNVec(&vec)
+	return vec
+}
+
+func normalizeANNVec(vec *[annDims]float32) {
 	var mag float64
 	for i := range vec {
 		mag += float64(vec[i]) * float64(vec[i])
@@ -166,8 +214,6 @@ func tokenBigramVec(tokens []byte) [annDims]float32 {
 			vec[i] *= inv
 		}
 	}
-
-	return vec
 }
 
 // cosSim32 computes cosine similarity between two fixed-size float32 vectors.
