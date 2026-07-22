@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-22
+
+### Added
+
+- Added semantic candidate generation to `codeknit fingerprint --rerank`, merging category-aware embedding neighbors with structural candidates before weighted scoring.
+- Added batched Ollama embedding requests and projected embedding vectors for efficient nearest-neighbor retrieval.
+
+### Changed
+
+- Improved fingerprint similarity scoring with category-aware comparisons, structural scoring for callables and modules, and payload-aware scoring for types and values.
+- Improved embedding inputs by removing path and symbol-name leakage, stripping comments, adding normalized structural context, and preserving both ends of long symbols with Unicode-safe truncation.
+- Updated CLI, TUI, README, and documentation wording from semantic reranking to semantic matching.
+- Updated the documentation site dependencies for Astro, Starlight, and Sharp.
+
+### Fixed
+
+- Prevented variable ordinal bytes from being interpreted as semantic fingerprint tokens.
+- Standardized call fingerprints to include a normalized callee hash and argument count in callable bodies and value initializers.
+
 ## [0.2.1] - 2026-07-21
 
 ### Changed
@@ -102,6 +121,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Third-party license generation via `make third-party-licenses`
 - Cross-plugin property test enforcing uniform signature format across all supported languages
 
+[0.3.0]: https://github.com/awslabs/codeknit/releases/tag/v0.3.0
 [0.2.1]: https://github.com/awslabs/codeknit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/awslabs/codeknit/releases/tag/v0.2.0
 [0.1.2]: https://github.com/awslabs/codeknit/releases/tag/v0.1.2
