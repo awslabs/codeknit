@@ -19,17 +19,17 @@ Estrae informazioni strutturali dal codice sorgente in file `.skt` o JSON.
 codeknit parse <input-path> [output-dir]
 ```
 
-| Flag             | Tipo   | Default          | Descrizione                                                                                     |
-| ---------------- | ------ | ---------------- | ----------------------------------------------------------------------------------------------- |
-| `--output-mode`  | string | `directory-flat` | modalità di output: `inline`, `directory-flat` o `directory-tree`                              |
-| `--format`       | string | `skt`            | Formato di output: `skt` o `json`                                                              |
-| `--max-lines`    | int    | `500`            | Numero massimo di righe per file di output (applicabile alle modalità `directory-flat` e `directory-tree`) |
-| `--collect-test` | bool   | `false`          | Includi file di test nell'analisi                                                              |
-| `--minify`       | bool   | `false`          | Abilita la minimizzazione dell'output basata su dizionario                                     |
+| Flag             | Tipo   | Default          | Descrizione                                                                            |
+| ---------------- | ------ | ---------------- | -------------------------------------------------------------------------------------- |
+| `--output-mode`  | string | `directory-flat` | Modalità di output: `inline`, `directory-flat` o `directory-tree`                      |
+| `--format`       | string | `skt`            | Formato di output: `skt` o `json`                                                      |
+| `--max-lines`    | int    | `500`            | Numero massimo di righe per file di output (si applica alle modalità `directory-flat` e `directory-tree`) |
+| `--collect-test` | bool   | `false`          | Includi file di test nell'analisi                                                       |
+| `--minify`       | bool   | `false`          | Abilita la minimizzazione dell'output basata su dizionario                             |
 | `--edges`        | bool   | `false`          | Includi la sezione `[edges]` nell'output (disattivata per impostazione predefinita per risparmiare token) |
-| `--clean`        | bool   | `false`          | Rimuovi i file `.skt` obsoleti dalla directory di output prima della scrittura                 |
-| `--workers`      | int    | `0` (NumCPU)     | Numero massimo di goroutine di parsing concorrenti                                             |
-| `--verbose`      | bool   | `false`          | Mostra informazioni di avanzamento durante l'elaborazione                                      |
+| `--clean`        | bool   | `false`          | Rimuovi i file `.skt` obsoleti dalla directory di output prima della scrittura         |
+| `--workers`      | int    | `0` (NumCPU)     | Numero massimo di goroutine di parsing concorrenti                                     |
+| `--verbose`      | bool   | `false`          | Mostra informazioni di avanzamento durante l'elaborazione                              |
 
 La directory di output predefinita è `./skeleton` quando non specificata. In modalità `inline`, l'output viene scritto su stdout e non viene utilizzata alcuna directory. Con `--format json`, l'output della directory viene scritto come `codeknit.json`.
 
@@ -64,11 +64,11 @@ codeknit graph analyze <input-path>
 | `--collect-test`          | bool    | `false`                         | Includi file di test nell'analisi                             |
 | `--workers`               | int     | `0` (NumCPU)                    | Numero massimo di goroutine di parsing concorrenti            |
 | `--verbose`               | bool    | `false`                         | Mostra informazioni di avanzamento durante l'elaborazione     |
-| `--fan-threshold`         | int     | `10`                            | Numero minimo di fan-in o fan-out per segnalare un simbolo hub |
-| `--god-threshold`         | int     | `15`                            | Numero minimo di archi "contains" per segnalare una god class/function |
+| `--fan-threshold`         | int     | `10`                            | Fan-in o fan-out minimo per segnalare un simbolo hub          |
+| `--god-threshold`         | int     | `15`                            | Conteggio minimo di archi contains per segnalare una god class/function |
 | `--max-inheritance-depth` | int     | `5`                             | Segnala catene di ereditarietà più profonde di questo valore  |
 | `--top-n`                 | int     | `30`                            | Limita le sezioni di output classificate; `0` significa nessun limite |
-| `--betweenness-threshold` | float64 | `0.001`                         | Valore minimo di betweenness centrality da riportare          |
+| `--betweenness-threshold` | float64 | `0.001`                         | Valore minimo di centralità betweenness da riportare          |
 | `--propagation-cutoff`    | float64 | `0.05`                          | Probabilità minima per continuare la simulazione di propagazione delle modifiche |
 
 ## codeknit graph hotspots
@@ -88,7 +88,7 @@ codeknit graph hotspots <input-path>
 | `--max-files-per-commit` | int    | `50`                      | Escludi i commit che modificano più file         |
 | `--min-cochanges`        | int    | `3`                       | Numero minimo di commit condivisi per l'accoppiamento temporale |
 | `--top-n`                | int    | `30`                      | Numero massimo di risultati per sezione del report |
-| `--include-merges`       | bool   | `false`                   | Includi i merge commit                           |
+| `--include-merges`       | bool   | `false`                   | Includi i commit di merge                        |
 | `--collect-test`         | bool   | `false`                   | Includi file di test                             |
 | `--workers`              | int    | `0` (NumCPU)              | Numero massimo di goroutine di parsing concorrenti |
 | `--verbose`              | bool   | `false`                   | Mostra informazioni di avanzamento               |
@@ -107,7 +107,7 @@ codeknit fingerprint <input-path>
 | `--min-similarity` | int    | `65`                          | Percentuale minima di similarità da riportare (0–100)                                                                        |
 | `--max-similarity` | int    | `95`                          | Percentuale massima di similarità da riportare (0–100)                                                                       |
 | `--show-all`       | bool   | `false`                       | Includi la sezione `[fingerprints]` con i dati grezzi dei token                                                              |
-| `--rerank`         | bool   | `false`                       | Riordina i candidati CTPH utilizzando embedding semantici tramite Ollama (richiede `ollama serve` e `ollama pull qwen3-embedding:0.6b`) |
+| `--rerank`         | bool   | `false`                       | Trova vicini semantici e riclassifica i candidati utilizzando embeddings Ollama (richiede `ollama serve` e `ollama pull qwen3-embedding:0.6b`) |
 | `--model`          | string | `qwen3-embedding:0.6b`        | Modello di embedding Ollama da utilizzare con `--rerank`                                                                     |
 | `--collect-test`   | bool   | `false`                       | Includi file di test nell'analisi                                                                                            |
 | `--workers`        | int    | `0` (NumCPU)                  | Numero massimo di goroutine di parsing concorrenti                                                                           |
@@ -128,4 +128,4 @@ Shell supportate: `bash`, `zsh`, `fish`, `powershell`.
 | Flag           | Descrizione                       |
 | -------------- | --------------------------------- |
 | `--version`    | Mostra informazioni sulla versione |
-| `--help`, `-h` | Mostra l'aiuto per il comando corrente |
+| `--help`, `-h` | Mostra aiuto per il comando corrente |
