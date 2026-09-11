@@ -24,6 +24,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Preserve scoped modules and attach package containment only to declarations without an existing owner.
 - Escape multiline signatures in SKT while retaining their source formatting in JSON.
 
+## [0.3.1] - 2026-09-01
+
+### Changed
+
+- Updated go-git to v5.19.2, `golang.org/x/crypto` to v0.53.0, and `golang.org/x/net` to v0.56.0.
+- Refreshed documentation tooling dependencies, including the Astro language server, PostCSS, Prettier, SVGO, and YAML tooling.
+- Updated translated fingerprint guides and CLI references to describe semantic candidate discovery and reranking.
+
 ## [0.3.0] - 2026-07-22
 
 ### Added
