@@ -1,7 +1,9 @@
 ---
 title: Referencia de CLI
-description: Referencia completa para todos los comandos y flags de codeknit.
+description: Referencia completa para todos los comandos y opciones de codeknit.
 ---
+
+Todos los comandos de procesamiento de código fuente aceptan `--header-language c|cpp` para archivos `.h`. El valor predeterminado es `c`; elige `cpp` para cabeceras C++ nombradas `.h`. Otras extensiones no se ven afectadas. Consulta [soporte de lenguajes](../codeknit/es/language-support/) para la política de selección y las capacidades de extracción probadas.
 
 ## codeknit
 
@@ -19,10 +21,10 @@ Extrae información estructural del código fuente a archivos `.skt` o JSON.
 codeknit parse <input-path> [output-dir]
 ```
 
-| Flag             | Tipo   | Valor predeterminado | Descripción                                                                                     |
+| Opción           | Tipo   | Valor predeterminado | Descripción                                                                                     |
 | ---------------- | ------ | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `--output-mode`  | string | `directory-flat`     | Modo de salida: `inline`, `directory-flat` o `directory-tree`                                  |
-| `--format`       | string | `skt`                | Formato de salida: `skt` o `json`                                                              |
+| `--output-mode`  | string | `directory-flat`     | Modo de salida: `inline`, `directory-flat` o `directory-tree`                                   |
+| `--format`       | string | `skt`                | Formato de salida: `skt` o `json`                                                               |
 | `--max-lines`    | int    | `500`                | Máximo de líneas por archivo de salida (aplica a los modos `directory-flat` y `directory-tree`) |
 | `--collect-test` | bool   | `false`              | Incluir archivos de prueba en el análisis                                                       |
 | `--minify`       | bool   | `false`              | Habilitar la minificación de salida basada en diccionario                                       |
@@ -31,7 +33,7 @@ codeknit parse <input-path> [output-dir]
 | `--workers`      | int    | `0` (NumCPU)         | Máximo de goroutines de análisis concurrentes                                                   |
 | `--verbose`      | bool   | `false`              | Mostrar información de progreso durante el procesamiento                                        |
 
-El directorio de salida predeterminado es `./skeleton` cuando no se especifica. En el modo `inline`, la salida se escribe en stdout y no se utiliza ningún directorio. Con `--format json`, la salida del directorio se escribe como `codeknit.json`.
+El directorio de salida predeterminado es `./skeleton` cuando no se especifica. En el modo `inline`, la salida se escribe en stdout y no se usa ningún directorio. Con `--format json`, la salida de directorio se escribe como `codeknit.json`.
 
 ## codeknit graph show
 
@@ -41,12 +43,12 @@ Genera una visualización interactiva de grafo en HTML de la estructura del cód
 codeknit graph show <input-path>
 ```
 
-| Flag             | Tipo   | Valor predeterminado            | Descripción                                      |
-| ---------------- | ------ | ------------------------------- | ------------------------------------------------ |
-| `-o`, `--output` | string | `./skeleton/codeknit-graph.html` | Ruta del archivo HTML de salida                 |
-| `--collect-test` | bool   | `false`                         | Incluir archivos de prueba en el análisis        |
-| `--workers`      | int    | `0` (NumCPU)                    | Máximo de goroutines de análisis concurrentes    |
-| `--verbose`      | bool   | `false`                         | Mostrar información de progreso durante el procesamiento |
+| Opción           | Tipo   | Valor predeterminado             | Descripción                                              |
+| ---------------- | ------ | -------------------------------- | -------------------------------------------------------- |
+| `-o`, `--output` | string | `./skeleton/codeknit-graph.html` | Ruta del archivo HTML de salida                          |
+| `--collect-test` | bool   | `false`                          | Incluir archivos de prueba en el análisis                |
+| `--workers`      | int    | `0` (NumCPU)                     | Máximo de goroutines de análisis concurrentes            |
+| `--verbose`      | bool   | `false`                          | Mostrar información de progreso durante el procesamiento |
 
 El archivo HTML generado es autónomo y se abre automáticamente en tu navegador predeterminado.
 
@@ -58,40 +60,40 @@ Ejecuta algoritmos de análisis estructural y emite un informe `.skt` legible po
 codeknit graph analyze <input-path>
 ```
 
-| Flag                      | Tipo    | Valor predeterminado          | Descripción                                                                 |
-| ------------------------- | ------- | ----------------------------- | --------------------------------------------------------------------------- |
+| Opción                    | Tipo    | Valor predeterminado            | Descripción                                                                |
+| ------------------------- | ------- | ------------------------------- | -------------------------------------------------------------------------- |
 | `-o`, `--output`          | string  | `./skeleton/graph_analysis.skt` | Ruta del archivo `.skt` de salida                                          |
-| `--collect-test`          | bool    | `false`                       | Incluir archivos de prueba en el análisis                                   |
-| `--workers`               | int     | `0` (NumCPU)                  | Máximo de goroutines de análisis concurrentes                               |
-| `--verbose`               | bool    | `false`                       | Mostrar información de progreso durante el procesamiento                   |
-| `--fan-threshold`         | int     | `10`                          | Mínimo de fan-in o fan-out para marcar un símbolo como hub                  |
-| `--god-threshold`         | int     | `15`                          | Mínimo de relaciones contains para marcar una clase/función como god class |
-| `--max-inheritance-depth` | int     | `5`                           | Marcar cadenas de herencia más profundas que este valor                     |
-| `--top-n`                 | int     | `30`                          | Limitar las secciones de salida clasificadas; `0` significa sin límite     |
-| `--betweenness-threshold` | float64 | `0.001`                       | Valor mínimo de centralidad de intermediación para informar                |
-| `--propagation-cutoff`    | float64 | `0.05`                        | Probabilidad mínima para continuar la simulación de propagación de cambios |
+| `--collect-test`          | bool    | `false`                         | Incluir archivos de prueba en el análisis                                  |
+| `--workers`               | int     | `0` (NumCPU)                    | Máximo de goroutines de análisis concurrentes                              |
+| `--verbose`               | bool    | `false`                         | Mostrar información de progreso durante el procesamiento                   |
+| `--fan-threshold`         | int     | `10`                            | Mínimo fan-in o fan-out para marcar un símbolo como hub                    |
+| `--god-threshold`         | int     | `15`                            | Mínimo de relaciones de tipo contains para marcar una god class/function   |
+| `--max-inheritance-depth` | int     | `5`                             | Marcar cadenas de herencia más profundas que este valor                    |
+| `--top-n`                 | int     | `30`                            | Limitar las secciones de salida clasificadas; `0` significa sin límite     |
+| `--betweenness-threshold` | float64 | `0.001`                         | Valor mínimo de centralidad de intermediación para reportar                |
+| `--propagation-cutoff`    | float64 | `0.05`                          | Probabilidad mínima para continuar la simulación de propagación de cambios |
 
 ## codeknit graph hotspots
 
-Clasifica archivos utilizando el historial de Git y la importancia estructural, e informa el acoplamiento temporal entre archivos que cambian juntos repetidamente.
+Clasifica archivos utilizando el historial de Git y la importancia estructural, y reporta acoplamiento temporal entre archivos que cambian juntos repetidamente.
 
 ```bash
 codeknit graph hotspots <input-path>
 ```
 
-| Flag                     | Tipo   | Valor predeterminado      | Descripción                                                      |
-| ------------------------ | ------ | ------------------------- | ---------------------------------------------------------------- |
-| `-o`, `--output`         | string | `./skeleton/hotspots.skt` | Ruta del archivo de salida                                       |
-| `--format`               | string | `skt`                     | Formato de salida: `skt` o `json`                                |
-| `--since`                | string | `12mo`                    | Ventana de historial, como `180d`, `12mo` o `2y`                 |
-| `--max-commits`          | int    | `2000`                    | Máximo de commits a inspeccionar                                 |
-| `--max-files-per-commit` | int    | `50`                      | Excluir commits que cambian más archivos                         |
-| `--min-cochanges`        | int    | `3`                       | Mínimo de commits compartidos para el acoplamiento temporal      |
-| `--top-n`                | int    | `30`                      | Máximo de resultados por sección del informe                     |
-| `--include-merges`       | bool   | `false`                   | Incluir commits de fusión                                         |
-| `--collect-test`         | bool   | `false`                   | Incluir archivos de prueba                                        |
-| `--workers`              | int    | `0` (NumCPU)              | Máximo de goroutines de análisis concurrentes                    |
-| `--verbose`              | bool   | `false`                   | Mostrar información de progreso                                  |
+| Opción                   | Tipo   | Valor predeterminado      | Descripción                                              |
+| ------------------------ | ------ | ------------------------- | -------------------------------------------------------- |
+| `-o`, `--output`         | string | `./skeleton/hotspots.skt` | Ruta del archivo de salida                               |
+| `--format`               | string | `skt`                     | Formato de salida: `skt` o `json`                        |
+| `--since`                | string | `12mo`                    | Ventana de historial, como `180d`, `12mo` o `2y`         |
+| `--max-commits`          | int    | `2000`                    | Máximo de commits a inspeccionar                         |
+| `--max-files-per-commit` | int    | `50`                      | Excluir commits que cambian más archivos                 |
+| `--min-cochanges`        | int    | `3`                       | Mínimo de commits compartidos para acoplamiento temporal |
+| `--top-n`                | int    | `30`                      | Máximo de resultados por sección de informe              |
+| `--include-merges`       | bool   | `false`                   | Incluir commits de fusión                                |
+| `--collect-test`         | bool   | `false`                   | Incluir archivos de prueba                               |
+| `--workers`              | int    | `0` (NumCPU)              | Máximo de goroutines de análisis concurrentes            |
+| `--verbose`              | bool   | `false`                   | Mostrar información de progreso                          |
 
 ## codeknit fingerprint
 
@@ -101,17 +103,17 @@ Detecta código duplicado y casi duplicado utilizando fuzzy hashing.
 codeknit fingerprint <input-path>
 ```
 
-| Flag               | Tipo   | Valor predeterminado          | Descripción                                                                                     |
-| ------------------ | ------ | ----------------------------- | ----------------------------------------------------------------------------------------------- |
-| `-o`, `--output`   | string | `./skeleton/fingerprints.skt` | Ruta del archivo `.skt` de salida                                                              |
-| `--min-similarity` | int    | `65`                          | Porcentaje mínimo de similitud para informar (0–100)                                            |
-| `--max-similarity` | int    | `95`                          | Porcentaje máximo de similitud para informar (0–100)                                            |
-| `--show-all`       | bool   | `false`                       | Incluir la sección `[fingerprints]` con datos de tokens sin procesar                           |
+| Opción             | Tipo   | Valor predeterminado          | Descripción                                                                                                                                           |
+| ------------------ | ------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-o`, `--output`   | string | `./skeleton/fingerprints.skt` | Ruta del archivo `.skt` de salida                                                                                                                     |
+| `--min-similarity` | int    | `65`                          | Porcentaje mínimo de similitud para reportar (0–100)                                                                                                  |
+| `--max-similarity` | int    | `95`                          | Porcentaje máximo de similitud para reportar (0–100)                                                                                                  |
+| `--show-all`       | bool   | `false`                       | Incluir la sección `[fingerprints]` con datos de tokens sin procesar                                                                                  |
 | `--rerank`         | bool   | `false`                       | Encontrar vecinos semánticos y reclasificar candidatos utilizando embeddings de Ollama (requiere `ollama serve` y `ollama pull qwen3-embedding:0.6b`) |
-| `--model`          | string | `qwen3-embedding:0.6b`        | Modelo de embedding de Ollama a utilizar con `--rerank`                                        |
-| `--collect-test`   | bool   | `false`                       | Incluir archivos de prueba en el análisis                                                       |
-| `--workers`        | int    | `0` (NumCPU)                  | Máximo de goroutines de análisis concurrentes                                                   |
-| `--verbose`        | bool   | `false`                       | Mostrar información de progreso durante el procesamiento                                        |
+| `--model`          | string | `qwen3-embedding:0.6b`        | Modelo de embedding de Ollama a utilizar con `--rerank`                                                                                               |
+| `--collect-test`   | bool   | `false`                       | Incluir archivos de prueba en el análisis                                                                                                             |
+| `--workers`        | int    | `0` (NumCPU)                  | Máximo de goroutines de análisis concurrentes                                                                                                         |
+| `--verbose`        | bool   | `false`                       | Mostrar información de progreso durante el procesamiento                                                                                              |
 
 ## codeknit completion
 
@@ -123,9 +125,9 @@ codeknit completion <shell>
 
 Shells soportados: `bash`, `zsh`, `fish`, `powershell`.
 
-## Flags globales
+## Opciones globales
 
-| Flag           | Descripción                       |
-| -------------- | --------------------------------- |
-| `--version`    | Mostrar información de la versión |
+| Opción         | Descripción                          |
+| -------------- | ------------------------------------ |
+| `--version`    | Mostrar información de la versión    |
 | `--help`, `-h` | Mostrar ayuda para el comando actual |

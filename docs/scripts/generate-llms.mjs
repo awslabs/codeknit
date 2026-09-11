@@ -25,6 +25,8 @@ const locales = [
 	{ dir: 'zh-cn', label: 'Simplified Chinese' },
 	{ dir: 'ja', label: 'Japanese' },
 	{ dir: 'ko', label: 'Korean' },
+	{ dir: 'th', label: 'Thai' },
+	{ dir: 'id', label: 'Indonesian' },
 ];
 const pageOrder = [
 	'index.mdx',

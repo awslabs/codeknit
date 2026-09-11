@@ -111,6 +111,8 @@ var languages = []lang{
 	{Code: "fr", Name: "French"},
 	{Code: "vi", Name: "Vietnamese"},
 	{Code: "it", Name: "Italian"},
+	{Code: "th", Name: "Thai"},
+	{Code: "id", Name: "Indonesian"},
 }
 
 // Glossary holds do-not-translate terms and fixed translations per language.
@@ -312,8 +314,8 @@ func main() {
 						defer func() { <-sem }()
 
 						glossaryBlock := formatGlossaryForLang(&glossary, l.Code)
-						prompt := fmt.Sprintf("%s\n\nTARGET LANGUAGE: %s\n\nTranslate the following documentation:\n\n%s",
-							glossaryBlock, l.Name, string(enContent))
+						prompt := fmt.Sprintf("%s\n\nTARGET LANGUAGE: %s\nTARGET LOCALE: %s\n\nTranslate the following documentation:\n\n%s",
+							glossaryBlock, l.Name, l.Code, string(enContent))
 
 						fmt.Printf("  [TRANSLATE] %s -> %s ...\n", p.Output, l.Code)
 						content, err := converse(ctx, client, *translateModelID, string(translateSystem), prompt, *maxTokens, 0)

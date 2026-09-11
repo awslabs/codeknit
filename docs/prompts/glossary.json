@@ -30,6 +30,7 @@
     "codeknit completion",
     "--output-mode",
     "--format",
+    "--header-language",
     "--max-lines",
     "--collect-test",
     "--minify",
@@ -100,7 +101,9 @@
       "ko": "출력 모드",
       "fr": "mode de sortie",
       "vi": "chế độ đầu ra",
-      "it": "modalità di output"
+      "it": "modalità di output",
+      "th": "โหมดเอาต์พุต",
+      "id": "mode keluaran"
     },
     "code structure": {
       "es": "estructura de código",
@@ -110,7 +113,9 @@
       "ko": "코드 구조",
       "fr": "structure du code",
       "vi": "cấu trúc mã",
-      "it": "struttura del codice"
+      "it": "struttura del codice",
+      "th": "โครงสร้างโค้ด",
+      "id": "struktur kode"
     },
     "symbol": {
       "es": "símbolo",
@@ -120,7 +125,9 @@
       "ko": "심볼",
       "fr": "symbole",
       "vi": "ký hiệu",
-      "it": "simbolo"
+      "it": "simbolo",
+      "th": "สัญลักษณ์",
+      "id": "simbol"
     },
     "edge": {
       "es": "relación",
@@ -130,7 +137,9 @@
       "ko": "엣지",
       "fr": "arête",
       "vi": "cạnh",
-      "it": "arco"
+      "it": "arco",
+      "th": "เส้นเชื่อม",
+      "id": "sisi"
     },
     "line span": {
       "es": "rango de líneas",
@@ -140,7 +149,9 @@
       "ko": "행 범위",
       "fr": "plage de lignes",
       "vi": "phạm vi dòng",
-      "it": "intervallo di righe"
+      "it": "intervallo di righe",
+      "th": "ช่วงบรรทัด",
+      "id": "rentang baris"
     },
     "graph analysis": {
       "es": "análisis de grafo",
@@ -150,7 +161,9 @@
       "ko": "그래프 분석",
       "fr": "analyse de graphe",
       "vi": "phân tích đồ thị",
-      "it": "analisi del grafo"
+      "it": "analisi del grafo",
+      "th": "การวิเคราะห์กราฟ",
+      "id": "analisis graf"
     },
     "cyclic dependency": {
       "es": "dependencia cíclica",
@@ -160,7 +173,9 @@
       "ko": "순환 의존성",
       "fr": "dépendance cyclique",
       "vi": "phụ thuộc vòng",
-      "it": "dipendenza ciclica"
+      "it": "dipendenza ciclica",
+      "th": "การพึ่งพาแบบวนรอบ",
+      "id": "dependensi siklik"
     },
     "bottleneck": {
       "es": "cuello de botella",
@@ -170,7 +185,9 @@
       "ko": "병목",
       "fr": "goulot d'étranglement",
       "vi": "nút thắt cổ chai",
-      "it": "collo di bottiglia"
+      "it": "collo di bottiglia",
+      "th": "คอขวด",
+      "id": "hambatan"
     },
     "blast radius": {
       "es": "radio de impacto",
@@ -180,7 +197,9 @@
       "ko": "영향 범위",
       "fr": "rayon d'impact",
       "vi": "phạm vi ảnh hưởng",
-      "it": "raggio d'impatto"
+      "it": "raggio d'impatto",
+      "th": "ขอบเขตผลกระทบ",
+      "id": "cakupan dampak"
     },
     "fan-in": {
       "es": "fan-in",
@@ -190,7 +209,9 @@
       "ko": "팬인",
       "fr": "fan-in",
       "vi": "fan-in",
-      "it": "fan-in"
+      "it": "fan-in",
+      "th": "fan-in",
+      "id": "fan-in"
     },
     "fan-out": {
       "es": "fan-out",
@@ -200,7 +221,9 @@
       "ko": "팬아웃",
       "fr": "fan-out",
       "vi": "fan-out",
-      "it": "fan-out"
+      "it": "fan-out",
+      "th": "fan-out",
+      "id": "fan-out"
     },
     "duplicate": {
       "es": "duplicado",
@@ -210,7 +233,9 @@
       "ko": "중복",
       "fr": "doublon",
       "vi": "trùng lặp",
-      "it": "duplicato"
+      "it": "duplicato",
+      "th": "รายการซ้ำ",
+      "id": "duplikat"
     },
     "near-duplicate": {
       "es": "casi duplicado",
@@ -220,7 +245,9 @@
       "ko": "근사 중복",
       "fr": "quasi-doublon",
       "vi": "gần trùng lặp",
-      "it": "quasi duplicato"
+      "it": "quasi duplicato",
+      "th": "รายการที่เกือบซ้ำ",
+      "id": "hampir duplikat"
     },
     "similarity": {
       "es": "similitud",
@@ -230,7 +257,9 @@
       "ko": "유사도",
       "fr": "similarité",
       "vi": "độ tương đồng",
-      "it": "similarità"
+      "it": "similarità",
+      "th": "ความคล้ายคลึง",
+      "id": "kemiripan"
     }
   }
 }

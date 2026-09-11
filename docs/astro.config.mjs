@@ -35,6 +35,8 @@ export default defineConfig({
 				'zh-cn': { label: '简体中文', lang: 'zh-CN' },
 				ja: { label: '日本語', lang: 'ja' },
 				ko: { label: '한국어', lang: 'ko' },
+				th: { label: 'ไทย', lang: 'th' },
+				id: { label: 'Bahasa Indonesia', lang: 'id' },
 			},
 			sidebar: [
 				{

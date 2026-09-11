@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- Added Thai and Indonesian documentation translations, language selection, and agent documentation bundles.
+
 ## [0.4.0] - 2026-09-11
 
 ### Added

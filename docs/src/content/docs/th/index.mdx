@@ -1,0 +1,35 @@
+---
+title: codeknit
+description: เครื่องมือดึงโครงสร้างโค้ดแบบสแตติกสำหรับการรีแฟคเตอร์ด้วย LLM
+template: splash
+hero:
+  tagline: แปลงซอร์สโค้ดเป็นแผนที่โครงสร้างขนาดกะทัดรัดที่ LLM สามารถใช้งานได้จริง
+  actions:
+    - text: เริ่มต้นใช้งาน
+      link: /codeknit/th/getting-started/
+      icon: right-arrow
+    - text: ดูบน GitHub
+      link: https://github.com/awslabs/codeknit
+      variant: minimal
+      icon: github
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="12 ภาษา" icon="translate">
+    รองรับ C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala และ TypeScript
+  </Card>
+  <Card title="เอาต์พุตขนาดกะทัดรัด" icon="document">
+    สร้างไฟล์ `.skt` ด้วยการย่อขนาดและหลายโหมดเอาต์พุต (inline, flat, tree) เพื่อการใช้งานบริบทของ LLM อย่างเหมาะสม
+  </Card>
+  <Card title="การวิเคราะห์กราฟ" icon="random">
+    ตรวจจับการพึ่งพาแบบวนรอบ, ศูนย์กลาง, โค้ดที่ไม่ถูกใช้งาน, god classes, คอขวด และอื่นๆ โดยใช้ขั้นตอนวิธีโครงสร้าง 22 แบบ
+  </Card>
+  <Card title="การตรวจจับรายการซ้ำ" icon="magnifier">
+    ค้นหารายการซ้ำและรายการที่เกือบซ้ำของโค้ดข้ามไฟล์และภาษาโดยใช้การทำ fingerprinting แบบ CTPH
+  </Card>
+  <Card title="พร้อมสำหรับ AI" icon="rocket">
+    รวมทักษะในตัวสำหรับ Kiro และ Claude Code เพื่อให้ผู้ช่วย AI สามารถแปลงและวิเคราะห์โครงสร้างโค้ดได้อย่างอัตโนมัติ
+  </Card>
+</CardGrid>

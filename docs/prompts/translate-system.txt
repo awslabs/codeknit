@@ -18,7 +18,7 @@ TERMINOLOGY:
 
 LOCALE-AWARE LINKS:
 - The site is deployed under a base path of `/codeknit`. Links that start with `/codeknit/` and do NOT already contain a locale segment must be rewritten to include the target locale.
-- Transform `/codeknit/<path>` → `/codeknit/<LOCALE>/<path>` where `<LOCALE>` is the target language code (e.g. `de`, `fr`, `es`, `it`, `ja`, `ko`, `vi`, `zh-cn`).
+- Transform `/codeknit/<path>` → `/codeknit/<LOCALE>/<path>` where `<LOCALE>` is the TARGET LOCALE code (e.g. `de`, `fr`, `es`, `it`, `ja`, `ko`, `vi`, `zh-cn`, `th`, `id`).
 - Examples when translating into German (locale `de`):
   - `/codeknit/getting-started/` → `/codeknit/de/getting-started/`
   - `/codeknit/reference/cli-flags/` → `/codeknit/de/reference/cli-flags/`

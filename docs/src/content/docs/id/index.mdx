@@ -1,0 +1,40 @@
+---
+title: codeknit
+description: Ekstraktor struktur kode statis untuk refactoring berbasis LLM.
+template: splash
+hero:
+  tagline: Parse kode sumber menjadi peta struktural ringkas yang dapat digunakan oleh LLM.
+  actions:
+    - text: Mulai
+      link: /codeknit/id/getting-started/
+      icon: right-arrow
+    - text: Lihat di GitHub
+      link: https://github.com/awslabs/codeknit
+      variant: minimal
+      icon: github
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="12 Bahasa" icon="translate">
+    Mendukung C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala,
+    dan TypeScript.
+  </Card>
+  <Card title="Keluaran Ringkas" icon="document">
+    Menghasilkan file `.skt` dengan minifikasi dan beberapa mode keluaran (inline,
+    flat, tree) untuk penggunaan konteks LLM yang optimal.
+  </Card>
+  <Card title="Analisis Graf" icon="random">
+    Mendeteksi siklus, hub, dead code, god class, hambatan, dan lainnya menggunakan
+    22 algoritma struktural.
+  </Card>
+  <Card title="Deteksi Duplikat" icon="magnifier">
+    Menemukan kode duplikat dan hampir duplikat di seluruh file dan bahasa menggunakan
+    fingerprinting CTPH.
+  </Card>
+  <Card title="Siap AI" icon="rocket">
+    Menyertakan keterampilan bawaan untuk Kiro dan Claude Code agar asisten AI dapat
+    mengurai dan menganalisis struktur kode secara mandiri.
+  </Card>
+</CardGrid>
