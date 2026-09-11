@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"codeknit/internal/config"
 	"codeknit/internal/console"
 
 	"github.com/spf13/cobra"
@@ -22,10 +23,26 @@ var (
 
 // commonOptions holds the flags shared by all subcommands.
 type commonOptions struct {
-	output      string
-	workers     int
-	collectTest bool
-	verbose     bool
+	output         string
+	headerLanguage string
+	workers        int
+	collectTest    bool
+	verbose        bool
+}
+
+func (o *commonOptions) commonConfig(inputPath string) config.Common {
+	return config.Common{
+		InputPath: inputPath, HeaderLanguage: o.headerLanguage,
+		Workers: o.workers, CollectTest: o.collectTest, Verbose: o.verbose,
+	}
+}
+
+func (o *commonOptions) addCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&o.headerLanguage, "header-language", config.DefaultHeaderLanguage,
+		"parser for .h files: c, cpp")
+	cmd.Flags().BoolVar(&o.collectTest, "collect-test", config.DefaultCollectTest, "include test files in analysis")
+	cmd.Flags().IntVar(&o.workers, "workers", config.DefaultWorkers, "max concurrent parsing goroutines (0 = NumCPU)")
+	cmd.Flags().BoolVar(&o.verbose, "verbose", config.DefaultVerbose, "print progress information during processing")
 }
 
 func newRootCmd() *cobra.Command {

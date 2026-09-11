@@ -1,0 +1,16 @@
+[symbols]
+## pkg/store/user_store.go
+S31 type/struct L5-L7 UserStore {exported}
+S32 value/field L6-L6 users: []*models.S7
+S33 callable/function L9-L11 NewUserStore() -> *S31 {exported}
+S34 callable/method L13-L15 Add(u: *models.S7) {exported, receiver=*UserStore}
+S35 callable/method L17-L24 FindByID(id: int) -> *models.S7 {exported, receiver=*UserStore}
+S36 callable/method L26-L28 Count() -> int {exported, receiver=*UserStore}
+
+[edges]
+S31 --contains--> S32, S34, S35, S36
+S31 --references--> S7
+S33 --references--> S31
+S34 --references--> S31, S7
+S35 --references--> S31, S7
+S36 --references--> S31

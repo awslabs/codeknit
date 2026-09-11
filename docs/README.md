@@ -1,49 +1,25 @@
-# Starlight Starter Kit: Basics
+# Codeknit documentation
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+The site uses Astro Starlight. Run these commands from the repository root:
 
+| Command               | Action                                                                        |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `make docs-generate`  | Copy maintained references, then generate English pages with Bedrock          |
+| `make docs-translate` | Copy maintained references, then translate changed English pages with Bedrock |
+| `make docs-build`     | Build the site and `llms*.txt` bundles locally                                |
+| `make docs`           | Generate, translate, and build in sequence                                    |
+| `make docs-preview`   | Start the local preview server                                                |
+
+## Sources and generated output
+
+- `prompts/*.txt` controls model-generated pages registered in `gen/main.go`. Edit the prompt or its source context when changing generated documentation. `DOCS_FORCE=1 make docs` regenerates these pages even when they already exist.
+- `reference/language-support.md` is the maintained source for the tested capability matrix. The generator copies it verbatim to `src/content/docs/reference/language-support.md` on every run, before generation or translation. It is never rewritten by the English model, including with `--force`; a missing or stale output copy is restored. Edit the maintained source, not the output copy. To refresh only the maintained copies without AWS credentials or model calls, run `go run ./docs/gen --skip-generate --skip-translate`.
+- All registered pages, including maintained references, participate in translation and content-hash invalidation. Generated translations live under `src/content/docs/<locale>/`.
+- `astro.config.mjs` defines site navigation. `scripts/generate-llms.mjs` defines the page order in the agent documentation bundles. Add new pages to both. Until translations exist, the site and bundles use English fallback content.
+- `dist/` is disposable build output. The build reads `src/content/docs/` and does not rewrite the Markdown sources.
+
+The deployed GitHub Pages workflow builds checked-in content; it does not call Bedrock. Include the maintained source and its synchronized output copy in a change. Generator regression tests verify they match and that forced generation cannot enqueue the maintained page for model generation:
+
+```bash
+go test ./docs/gen
 ```
-npm create astro@latest -- --template starlight
-```
-
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
-```
-
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
-
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
-
-Static assets, like favicons, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).

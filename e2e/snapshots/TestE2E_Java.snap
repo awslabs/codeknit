@@ -35,7 +35,7 @@ S27 callable/method L32-L34 count() -> int {visibility=public}
 [edges]
 S2 --contains--> S3, S4, S5, S6, S7, S8
 S8 --calls--> S6, S7
-S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15
+S1 --contains--> S2, S9, S15
 S9 --inherits--> S2
 S9 --contains--> S10, S11, S12, S13, S14
 S12 --overrides--> S12
@@ -45,7 +45,7 @@ S13 --calls--> S6
 S9 --references--> S2
 S14 --references--> S9
 S17 --contains--> S18, S19, S20
-S16 --contains--> S17, S18, S19, S20, S21, S22, S23, S24, S25, S26, S27
+S16 --contains--> S17, S21
 S21 --implements--> S17
 S21 --contains--> S22, S23, S24, S25, S26, S27
 S24 --overrides--> S24

@@ -59,6 +59,14 @@ func TypeParams(node *sitter.Node, src []byte, c *Collector, parentName string, 
 			continue
 		}
 
+		// Some grammars group names under one constraint (Go: A, B any).
+		if names := FieldTexts(child, "name", src); len(names) > 0 {
+			for _, name := range names {
+				emitTypeParam(child, src, c, parentName, name, cfg)
+			}
+			continue
+		}
+
 		// Look for the name inside the type parameter wrapper node.
 		name := ChildText(child, cfg.NameKind, src)
 		if name == "" {
@@ -133,6 +141,10 @@ func CollectTypeParamNames(node *sitter.Node, src []byte, cfg TypeParamConfig) [
 	for i := range tpList.ChildCount() {
 		child := tpList.Child(i)
 		if child == nil || child.Kind() != cfg.TypeParamKind {
+			continue
+		}
+		if grouped := FieldTexts(child, "name", src); len(grouped) > 0 {
+			names = append(names, grouped...)
 			continue
 		}
 		name := ChildText(child, cfg.NameKind, src)

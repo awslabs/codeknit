@@ -30,6 +30,27 @@ func ChildText(node *sitter.Node, kind string, src []byte) string {
 	return child.Utf8Text(src)
 }
 
+// FieldText returns the source text of a grammar's named field, or "".
+func FieldText(node *sitter.Node, field string, src []byte) string {
+	child := node.ChildByFieldName(field)
+	if child == nil {
+		return ""
+	}
+	return child.Utf8Text(src)
+}
+
+// FieldTexts returns all occurrences of a named field in source order.
+// Grammars use repeated fields for declarations such as Go's "a, b int".
+func FieldTexts(node *sitter.Node, field string, src []byte) []string {
+	var result []string
+	for i := range node.ChildCount() {
+		if node.FieldNameForChild(uint32(i)) == field {
+			result = append(result, node.Child(i).Utf8Text(src))
+		}
+	}
+	return result
+}
+
 // FindFirstError finds the first ERROR node in the tree and returns its row and column.
 func FindFirstError(node *sitter.Node) (row, col uint) {
 	if node.Kind() == "ERROR" || node.IsError() {

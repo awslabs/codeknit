@@ -107,13 +107,17 @@ func runTUI() (commandRunner, error) {
 }
 
 // newRegistry builds the plugin registry with all supported languages.
-func newRegistry() (*plugin.Registry, time.Duration) {
+func newRegistry(headerLanguage string) (*plugin.Registry, time.Duration) {
 	t := time.Now()
+	cParser, cppParser := clang.NewPlugin(), cpp.NewPlugin()
 	registry := plugin.NewRegistry()
 	registry.Register(typescript.NewPlugin())
 	registry.Register(javascript.NewPlugin())
-	registry.Register(clang.NewPlugin())
-	registry.Register(cpp.NewPlugin())
+	registry.Register(cParser)
+	registry.Register(cppParser)
+	if headerLanguage == "cpp" {
+		registry.RegisterExtensions(cppParser, ".h")
+	}
 	registry.Register(csharp.NewPlugin())
 	registry.Register(golang.NewPlugin())
 	registry.Register(java.NewPlugin())
@@ -138,7 +142,7 @@ func progressCallbacks(con *console.Console) (onScan func(visited, matched int),
 // buildGraphResult runs the shared scan→parse pipeline and prints any warnings.
 // Returns the GraphResult or an error.
 func buildGraphResult(cfg config.Common, con *console.Console) (*pipeline.GraphResult, error) {
-	registry, initDur := newRegistry()
+	registry, initDur := newRegistry(cfg.HeaderLanguage)
 	onScan, onParse := progressCallbacks(con)
 	gr, err := pipeline.BuildGraph(pipeline.BuildOptions{
 		InputPath:   cfg.InputPath,
@@ -255,7 +259,7 @@ func runGraphHotspots(cfg *config.HotspotConfig, con *console.Console) error {
 // runParse executes the full parse pipeline and prints the summary.
 func runParse(cfg *config.ParseConfig, con *console.Console) error {
 	con.SetVerbose(cfg.Verbose)
-	registry, initDur := newRegistry()
+	registry, initDur := newRegistry(cfg.HeaderLanguage)
 
 	onScan, onParse := progressCallbacks(con)
 	res, err := pipeline.Execute(cfg, registry, initDur, onScan, onParse)

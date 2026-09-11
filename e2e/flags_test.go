@@ -221,8 +221,7 @@ def process(request):
 }
 
 // TestE2E_FlatSplitOutput verifies that directory-flat mode with a low --max-lines
-// limit splits output across multiple map_NNN.skt files. The fixture is sized to
-// produce exactly 2 output files at --max-lines 40.
+// limit splits output across multiple bounded map_NNN.skt files.
 func TestE2E_FlatSplitOutput(t *testing.T) {
 	fixtures := map[string]string{
 		"pkg/models/user.go": `package models
@@ -358,13 +357,23 @@ func (s *ProductService) Get(id int) *models.Product {
 	inputDir := writeFixture(t, fixtures)
 	_, outputDir := runcodeknit(t, inputDir, "--max-lines", "40")
 
-	// Verify exactly 2 output files were produced.
+	// The exact count is captured by the snapshots; require actual splitting
+	// and bounded chunks independently of the number of extracted API members.
 	matches, err := filepath.Glob(filepath.Join(outputDir, "map_*.skt"))
 	if err != nil {
 		t.Fatalf("glob: %v", err)
 	}
-	if len(matches) != 2 {
-		t.Fatalf("expected 2 output files, got %d", len(matches))
+	if len(matches) < 2 {
+		t.Fatalf("expected multiple output files, got %d", len(matches))
+	}
+	for _, path := range matches {
+		data, err := os.ReadFile(path) //nolint:gosec // controlled test output
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lines := strings.Count(strings.TrimRight(string(data), "\n"), "\n") + 1; lines > 40 {
+			t.Errorf("%s has %d lines, exceeds limit 40", path, lines)
+		}
 	}
 
 	assertTreeSnapshot(t, outputDir, inputDir)

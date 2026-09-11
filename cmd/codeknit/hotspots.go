@@ -11,16 +11,13 @@ import (
 )
 
 type graphHotspotOptions struct {
-	output            string
-	format            string
-	since             string
-	workers           int
+	format string
+	since  string
+	commonOptions
 	maxCommits        int
 	maxFilesPerCommit int
 	minCoChanges      int
 	topN              int
-	collectTest       bool
-	verbose           bool
 	includeMerges     bool
 }
 
@@ -44,12 +41,7 @@ temporal coupling between files that repeatedly change in the same commits.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := &config.HotspotConfig{
-				Common: config.Common{
-					InputPath:   args[0],
-					Workers:     opts.workers,
-					CollectTest: opts.collectTest,
-					Verbose:     opts.verbose,
-				},
+				Common:            opts.commonConfig(args[0]),
 				Output:            opts.output,
 				Format:            config.OutputFormat(opts.format),
 				Since:             opts.since,
@@ -82,12 +74,7 @@ temporal coupling between files that repeatedly change in the same commits.`,
 		"maximum hotspots and coupling pairs to report")
 	cmd.Flags().BoolVar(&opts.includeMerges, "include-merges", config.DefaultHotspotIncludeMerges,
 		"include merge commits in history metrics")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
-		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
-		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
-		"print progress information during processing")
+	opts.addCommonFlags(cmd)
 
 	return cmd
 }

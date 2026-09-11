@@ -34,8 +34,12 @@ type Child struct{ Base; Age int }
 	if findSymbol(symbols, "Child") == nil {
 		t.Error("missing struct 'Child'")
 	}
-	// Embedded fields are intentionally not extracted as symbols in normal mode.
-	// This is by design — just verify the structs themselves are present.
+	for _, sym := range symbols {
+		if sym.EffectiveScopedName() == "Child.Base" && sym.Properties["embedded"] == "true" {
+			return
+		}
+	}
+	t.Error("missing embedded field Child.Base")
 }
 
 // ============================================================================
@@ -129,11 +133,8 @@ namespace Utils {
 	symbols, _ := parseWith(t, typescript.NewPlugin(), "test.ts", src)
 	ns := findSymbol(symbols, "Utils")
 	if ns == nil {
-		// tree-sitter-typescript may parse namespace declarations with a node
-		// kind not yet in our dispatch table. Log and skip.
-		t.Skip("TypeScript namespace extraction depends on tree-sitter grammar version")
-	}
-	if ns.Kind != "namespace" {
+		t.Fatal("missing namespace 'Utils'")
+	} else if ns.Kind != "namespace" {
 		t.Errorf("Utils kind: got %q, want 'namespace'", ns.Kind)
 	}
 }
@@ -149,8 +150,7 @@ abstract class Shape {
 	shape := findSymbol(symbols, "Shape")
 	if shape == nil {
 		t.Fatal("missing abstract class 'Shape'")
-	}
-	if shape.Properties["abstract"] != "true" {
+	} else if shape.Properties["abstract"] != "true" {
 		t.Error("Shape should be abstract")
 	}
 }
@@ -173,8 +173,7 @@ final class Circle extends Shape {}
 	circle := findSymbol(symbols, "Circle")
 	if circle == nil {
 		t.Fatal("missing final class 'Circle'")
-	}
-	if circle.Properties["final"] != "true" {
+	} else if circle.Properties["final"] != "true" {
 		t.Error("Circle should be final")
 	}
 }
@@ -250,8 +249,7 @@ async fn fetch_data(url: &str) -> String { String::new() }
 	fn := findSymbol(symbols, "fetch_data")
 	if fn == nil {
 		t.Fatal("missing async function 'fetch_data'")
-	}
-	if fn.Properties["async"] != "true" {
+	} else if fn.Properties["async"] != "true" {
 		t.Error("fetch_data should be async")
 	}
 }
@@ -404,8 +402,7 @@ case class Point(x: Int, y: Int)
 	point := findSymbol(symbols, "Point")
 	if point == nil {
 		t.Fatal("missing case class 'Point'")
-	}
-	if point.Properties["case"] != "true" {
+	} else if point.Properties["case"] != "true" {
 		t.Error("Point should have case=true")
 	}
 }

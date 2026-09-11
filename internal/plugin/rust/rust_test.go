@@ -396,7 +396,7 @@ pub struct Point {
 		}
 	}
 	sort.Strings(containsTargets)
-	want := []string{"Point.x", "Point.y"}
+	want := []string{"Point.x#field", "Point.y#field"}
 	if len(containsTargets) != len(want) {
 		t.Fatalf("expected contains targets %v, got %v", want, containsTargets)
 	}

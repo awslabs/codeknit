@@ -6,6 +6,7 @@ package plugin
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"unsafe"
 
 	"codeknit/internal/common/extract"
@@ -111,21 +112,23 @@ type TestConfig struct {
 // BasePlugin provides the shared Parse, Extensions, and TestPatterns
 // implementations used by every language plugin.
 type BasePlugin struct {
-	Exts     []string
-	Extract  ExtractFunc
-	TSLang   unsafe.Pointer
-	TestConf TestConfig
+	LanguageByExtension map[string]unsafe.Pointer
+	Exts                []string
+	Extract             ExtractFunc
+	TSLang              unsafe.Pointer
+	TestConf            TestConfig
 }
 
 // Config holds everything needed to create a BasePlugin.
 type Config struct {
-	Handlers    DispatchTable
-	TokenMap    map[string]byte
-	TSLang      unsafe.Pointer
-	Dataflow    *DataflowConfig
-	Extensions  []string
-	CallableRef CallableRefConfig
-	TestConf    TestConfig
+	LanguageByExtension map[string]unsafe.Pointer
+	Handlers            DispatchTable
+	TokenMap            map[string]byte
+	TSLang              unsafe.Pointer
+	Dataflow            *DataflowConfig
+	Extensions          []string
+	CallableRef         CallableRefConfig
+	TestConf            TestConfig
 }
 
 // NewBasePluginFromConfig creates a BasePlugin from a Config.
@@ -148,10 +151,11 @@ func NewBasePluginFromConfig(cfg *Config) BasePlugin {
 	}
 
 	return BasePlugin{
-		Exts:     cfg.Extensions,
-		TestConf: cfg.TestConf,
-		TSLang:   cfg.TSLang,
-		Extract:  extractFn,
+		LanguageByExtension: cfg.LanguageByExtension,
+		Exts:                cfg.Extensions,
+		TestConf:            cfg.TestConf,
+		TSLang:              cfg.TSLang,
+		Extract:             extractFn,
 	}
 }
 
@@ -172,7 +176,11 @@ func (b *BasePlugin) ParseWithOptions(filePath string, fingerprint bool) (symbol
 	if err != nil {
 		return nil, nil, fmt.Errorf("read %s: %w", filePath, err)
 	}
-	return ParseWithTreeSitter(filePath, src, b.TSLang, b.Extract, fingerprint)
+	lang := b.TSLang
+	if variant, ok := b.LanguageByExtension[filepath.Ext(filePath)]; ok {
+		lang = variant
+	}
+	return ParseWithTreeSitter(filePath, src, lang, b.Extract, fingerprint)
 }
 
 // Registry holds registered language plugins keyed by extension.
@@ -187,7 +195,13 @@ func NewRegistry() *Registry {
 
 // Register adds a language plugin to the registry for each of its extensions.
 func (r *Registry) Register(p LanguagePlugin) {
-	for _, ext := range p.Extensions() {
+	r.RegisterExtensions(p, p.Extensions()...)
+}
+
+// RegisterExtensions selects a parser for specific extensions without changing
+// that parser's configuration or its registrations for other extensions.
+func (r *Registry) RegisterExtensions(p LanguagePlugin, extensions ...string) {
+	for _, ext := range extensions {
 		r.plugins[ext] = p
 	}
 }

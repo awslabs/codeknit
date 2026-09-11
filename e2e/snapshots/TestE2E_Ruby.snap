@@ -49,6 +49,6 @@ S14 --calls--> S16
 S19 --contains--> S20, S21, S22, S23
 S21 --calls--> S23
 S19 --references--> S28
-S25 --contains--> S26, S27, S19, S20, S21, S22, S23, S24, S26, S27, S29, S30, S31
-S28 --contains--> S29, S19, S20, S21, S22, S23, S24, S26, S27, S29, S30, S31
+S25 --contains--> S26, S27, S19, S24, S30, S31
+S28 --contains--> S29, S19, S24, S30, S31
 S26 --calls--> S27

@@ -72,7 +72,7 @@ func ParseFiles(
 				return nil
 			}
 
-			syms, edgs, err := parseFile(p, file, fingerprint)
+			syms, edgs, err := plugin.ParseFile(p, file, fingerprint)
 			if err != nil {
 				var sw *plugin.SyntaxError
 				if errors.As(err, &sw) {
@@ -96,23 +96,6 @@ func ParseFiles(
 	// partial results are still useful.
 	_ = g.Wait()
 	return mergeResults(files, results)
-}
-
-// FingerprintParser is an optional interface for plugins that support
-// fingerprint-aware parsing.
-type FingerprintParser interface {
-	ParseWithOptions(filePath string, fingerprint bool) ([]plugin.Symbol, []plugin.Edge, error)
-}
-
-// parseFile dispatches to ParseWithOptions when fingerprinting is enabled
-// and the plugin supports it, otherwise falls back to Parse.
-func parseFile(p plugin.LanguagePlugin, file string, fingerprint bool) (symbols []plugin.Symbol, edges []plugin.Edge, err error) {
-	if fingerprint {
-		if fp, ok := p.(FingerprintParser); ok {
-			return fp.ParseWithOptions(file, true)
-		}
-	}
-	return p.Parse(file)
 }
 
 // fileResult holds the output of a single file parse for lock-free collection.

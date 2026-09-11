@@ -64,12 +64,7 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := &config.FingerprintConfig{
-				Common: config.Common{
-					InputPath:   args[0],
-					Workers:     opts.workers,
-					CollectTest: opts.collectTest,
-					Verbose:     opts.verbose,
-				},
+				Common:     opts.commonConfig(args[0]),
 				Output:     opts.output,
 				EmbedModel: config.ResolveFingerprintEmbedModel(opts.rerank, opts.model),
 				MinSim:     opts.minSim,
@@ -96,12 +91,7 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 			"(requires: ollama serve && ollama pull qwen3-embedding:0.6b)")
 	cmd.Flags().StringVar(&opts.model, "model", config.DefaultFingerprintModelOverride,
 		"Ollama embedding model to use with --rerank (default: qwen3-embedding:0.6b)")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
-		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
-		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
-		"print progress information during processing")
+	opts.addCommonFlags(cmd)
 
 	return cmd
 }
@@ -110,7 +100,7 @@ are reported. Use --show-all to also include the raw fingerprint listing.`,
 // cobra command and the TUI runner.
 func runFingerprint(cfg *config.FingerprintConfig, con *console.Console) error {
 	con.SetVerbose(cfg.Verbose)
-	registry, initDur := newRegistry()
+	registry, initDur := newRegistry(cfg.HeaderLanguage)
 
 	onScan, onParse := progressCallbacks(con)
 	gr, err := pipeline.BuildGraph(pipeline.BuildOptions{

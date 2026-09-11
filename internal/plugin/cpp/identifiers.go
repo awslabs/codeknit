@@ -579,7 +579,7 @@ func extractPrototype(declNode, funcDecl *sitter.Node, src []byte, c *plugin.Col
 		ScopedName: scopedName,
 		Category:   plugin.CategoryCallable,
 		Kind:       kind,
-		Signature:  name,
+		Signature:  buildFuncSignature(name, extractParamStrings(declNode, src), extractReturnType(declNode, src)),
 		Properties: p.Map(),
 		Span:       nodeSpan(declNode),
 	}
@@ -690,7 +690,7 @@ func extractMethodDecl(node, funcDecl *sitter.Node, src []byte, c *plugin.Collec
 		ScopedName: scopedName,
 		Category:   plugin.CategoryCallable,
 		Kind:       "method",
-		Signature:  name,
+		Signature:  buildFuncSignature(name, extractParamStrings(node, src), extractReturnType(node, src)),
 		Properties: p.Map(),
 		Span:       nodeSpan(node),
 	}

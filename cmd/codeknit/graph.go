@@ -55,12 +55,7 @@ implements) as edges. Open the HTML file in any browser to explore.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := &config.GraphConfig{
-				Common: config.Common{
-					InputPath:   args[0],
-					Workers:     opts.workers,
-					CollectTest: opts.collectTest,
-					Verbose:     opts.verbose,
-				},
+				Common: opts.commonConfig(args[0]),
 				Output: opts.output,
 			}
 			if err := cfg.Validate(); err != nil {
@@ -72,12 +67,7 @@ implements) as edges. Open the HTML file in any browser to explore.`,
 
 	cmd.Flags().StringVarP(&opts.output, "output", "o", config.DefaultGraphOutput,
 		"output HTML file path")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
-		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
-		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
-		"print progress information during processing")
+	opts.addCommonFlags(cmd)
 
 	return cmd
 }
@@ -140,12 +130,7 @@ Algorithms:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := &config.AnalyzeConfig{
-				Common: config.Common{
-					InputPath:   args[0],
-					Workers:     opts.workers,
-					CollectTest: opts.collectTest,
-					Verbose:     opts.verbose,
-				},
+				Common:               opts.commonConfig(args[0]),
 				Output:               opts.output,
 				FanThreshold:         opts.fanThreshold,
 				GodThreshold:         opts.godThreshold,
@@ -163,12 +148,7 @@ Algorithms:
 
 	cmd.Flags().StringVarP(&opts.output, "output", "o", config.DefaultAnalyzeOutput,
 		"output .skt file path")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
-		"include test files in analysis")
-	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
-		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
-		"print progress information during processing")
+	opts.addCommonFlags(cmd)
 	cmd.Flags().IntVar(&opts.fanThreshold, "fan-threshold", config.DefaultAnalyzeFanThreshold,
 		"minimum fan-in or fan-out to flag a hub symbol")
 	cmd.Flags().IntVar(&opts.godThreshold, "god-threshold", config.DefaultAnalyzeGodThreshold,

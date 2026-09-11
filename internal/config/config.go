@@ -39,9 +39,10 @@ const (
 // Shared command defaults. CLI flags, the TUI, validators, and emitters must
 // all consume these values rather than defining their own copies.
 const (
-	DefaultWorkers     = 0
-	DefaultCollectTest = false
-	DefaultVerbose     = false
+	DefaultWorkers        = 0
+	DefaultCollectTest    = false
+	DefaultVerbose        = false
+	DefaultHeaderLanguage = "c"
 
 	DefaultParseOutputMode   = OutputDirectoryFlat
 	DefaultParseOutputFormat = OutputFormatSKT
@@ -112,14 +113,23 @@ func (f OutputFormat) IsValid() bool {
 // It is embedded in each per-command config so that shared validation
 // (input-path existence, worker defaulting) lives in one place.
 type Common struct {
-	InputPath   string
-	Workers     int
-	CollectTest bool
-	Verbose     bool
+	InputPath      string
+	HeaderLanguage string
+	Workers        int
+	CollectTest    bool
+	Verbose        bool
 }
 
 // Validate checks that the shared fields are valid and fills defaults.
 func (c *Common) Validate() error {
+	if c.HeaderLanguage == "" {
+		c.HeaderLanguage = DefaultHeaderLanguage
+	}
+	switch c.HeaderLanguage {
+	case "c", "cpp":
+	default:
+		return fmt.Errorf("invalid header language %q: must be c or cpp", c.HeaderLanguage)
+	}
 	if _, err := os.Stat(c.InputPath); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("input path does not exist: %s", c.InputPath)

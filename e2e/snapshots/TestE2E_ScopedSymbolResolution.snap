@@ -59,7 +59,7 @@ S18 --references--> S16
 S19 --references--> S16
 S20 --references--> S17
 S21 --references--> S17
-S15 --contains--> S16, S17, S18, S19, S20, S21
+S15 --contains--> S16, S17
 S22 --contains--> S23, S24, S25
 S26 --contains--> S27, S28, S29
 S23 --calls--> S30

@@ -196,11 +196,15 @@ func extractDeclSymbol(declNode, innerDecl *sitter.Node, src []byte, c *plugin.C
 	}
 
 	isStatic, isExtern := storageClassProps(declNode, src)
+	signature := name
+	if cat == plugin.CategoryCallable {
+		signature = buildFuncSignature(name, extractParamStrings(declNode, src), extractReturnType(declNode, src))
+	}
 	c.AddSymbol(&plugin.Symbol{
 		Name:       name,
 		Category:   cat,
 		Kind:       kind,
-		Signature:  name,
+		Signature:  signature,
 		Properties: plugin.NewProps().SetBool("static", isStatic).SetBool("extern", isExtern).Map(),
 		Span:       nodeSpan(declNode),
 	})

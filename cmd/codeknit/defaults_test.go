@@ -99,12 +99,14 @@ func TestCommandFlagDefaultsMatchConfig(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := tc.newCmd(con)
+			if flag := cmd.Flags().Lookup("header-language"); flag == nil || flag.DefValue != config.DefaultHeaderLanguage {
+				t.Fatal("missing shared header-language default")
+			}
 			for name, want := range tc.flags {
 				flag := cmd.Flags().Lookup(name)
 				if flag == nil {
 					t.Fatalf("flag %q not found", name)
-				}
-				if flag.DefValue != want {
+				} else if flag.DefValue != want {
 					t.Errorf("%s default: got %q, want %q", name, flag.DefValue, want)
 				}
 			}

@@ -143,21 +143,28 @@ func formatSymbolLine(shortID string, sym *plugin.Symbol, dict *Dictionary) stri
 	}
 
 	propsStr := formatProperties(sym.Properties, dict)
+	// Declarations may span source lines (tuple results, defaults, inline
+	// types). SKT records stay on one physical line; JSON retains the source.
+	signature := escapeLineBreaks(sym.Signature)
 	if propsStr == "" {
 		return fmt.Sprintf("%s %s L%d-L%d %s",
 			shortID,
 			catKind,
 			sym.Span[0], sym.Span[1],
-			sym.Signature,
+			signature,
 		)
 	}
 	return fmt.Sprintf("%s %s L%d-L%d %s %s",
 		shortID,
 		catKind,
 		sym.Span[0], sym.Span[1],
-		sym.Signature,
+		signature,
 		propsStr,
 	)
+}
+
+func escapeLineBreaks(text string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(text, "\r", `\r`), "\n", `\n`)
 }
 
 // formatProperties formats the properties map as {key1, key2, ...} listing keys
@@ -172,7 +179,7 @@ func formatProperties(props map[string]string, dict *Dictionary) string {
 	for k, v := range props {
 		entry := k
 		if v != "true" {
-			entry = k + "=" + v
+			entry = k + "=" + escapeLineBreaks(v)
 		}
 		if dict != nil {
 			entry = dict.Encode(entry)

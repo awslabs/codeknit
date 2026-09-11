@@ -12,6 +12,10 @@ LLMs are great at generating code, but struggle with large-scale refactoring. Th
 
 C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, TypeScript
 
+See the [language capability matrix](docs/src/content/docs/reference/language-support.md) for tested API extraction and known limitations. TypeScript/JavaScript module extensions (`.mts`, `.cts`, `.mjs`, `.cjs`) are supported. TSX uses the JSX-aware TypeScript grammar.
+
+For ambiguous `.h` files, all source-processing commands accept `--header-language c|cpp` (default `c`). Use `--header-language cpp` for C++ headers named `.h`; `.hpp` and `.hxx` already use C++.
+
 ## Installation
 
 ### From prebuilt binaries

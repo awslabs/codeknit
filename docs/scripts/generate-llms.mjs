@@ -37,6 +37,7 @@ const pageOrder = [
 	'guides/ai-assistants.md',
 	'reference/output-format.md',
 	'reference/cli-flags.md',
+	'reference/language-support.md',
 ];
 
 async function main() {
@@ -77,7 +78,15 @@ async function readPages(root, locale) {
 			pages.push(parsePage(source, relativePath));
 		} catch (error) {
 			if (error.code !== 'ENOENT') throw error;
-			throw new Error(`missing ${locale} llms source page: ${path.relative(docsRoot, filePath)}`);
+			if (locale === 'en') {
+				throw new Error(`missing ${locale} llms source page: ${path.relative(docsRoot, filePath)}`);
+			}
+			// Match Starlight's English fallback until a new page is translated.
+			const source = await fs.readFile(path.join(contentRoot, relativePath), 'utf8');
+			const page = parsePage(source, relativePath);
+			page.body = `> This page is not yet translated into ${locale}; English content follows.\n\n${page.body}`;
+			pages.push(page);
+			console.log(`[FALLBACK] ${locale}/${relativePath}: using English source`);
 		}
 	}
 	return pages;

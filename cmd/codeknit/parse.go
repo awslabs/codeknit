@@ -13,15 +13,13 @@ import (
 // parseOptions holds the flag-bound state for the `parse` subcommand.
 // It mirrors the docker CLI pattern: one lowercase options struct per command.
 type parseOptions struct {
-	outputMode  string
-	format      string
-	maxLines    int
-	workers     int
-	collectTest bool
-	verbose     bool
-	minify      bool
-	edges       bool
-	clean       bool
+	outputMode string
+	format     string
+	commonOptions
+	maxLines int
+	minify   bool
+	edges    bool
+	clean    bool
 }
 
 func newParseCmd(con *console.Console) *cobra.Command {
@@ -61,12 +59,7 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 			}
 
 			cfg := &config.ParseConfig{
-				Common: config.Common{
-					InputPath:   args[0],
-					Workers:     opts.workers,
-					CollectTest: opts.collectTest,
-					Verbose:     opts.verbose,
-				},
+				Common:       opts.commonConfig(args[0]),
 				OutputDir:    outputDir,
 				OutputMode:   config.OutputMode(opts.outputMode),
 				OutputFormat: config.OutputFormat(opts.format),
@@ -88,18 +81,12 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 		"output format: skt, json")
 	cmd.Flags().IntVar(&opts.maxLines, "max-lines", config.DefaultParseMaxLines,
 		"maximum lines per output file")
-	cmd.Flags().BoolVar(&opts.collectTest, "collect-test", config.DefaultCollectTest,
-		"include test files in analysis")
+	opts.addCommonFlags(cmd)
 	cmd.Flags().BoolVar(&opts.minify, "minify", config.DefaultParseMinify,
 		"enable dictionary-based output minification")
 	cmd.Flags().BoolVar(&opts.edges, "edges", config.DefaultParseEdges,
 		"include the [edges] section in output (off by default)")
 	cmd.Flags().BoolVar(&opts.clean, "clean", config.DefaultParseClean,
 		"remove stale .skt files from the output directory before writing")
-	cmd.Flags().IntVar(&opts.workers, "workers", config.DefaultWorkers,
-		"max concurrent parsing goroutines (0 = NumCPU)")
-	cmd.Flags().BoolVar(&opts.verbose, "verbose", config.DefaultVerbose,
-		"print progress information during processing")
-
 	return cmd
 }

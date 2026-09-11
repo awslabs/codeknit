@@ -12,5 +12,5 @@ S7 d1 L18-L20 place(request)
 S1 --d3--> S2
 S3 --d3--> S4
 S5 --d3--> S6, S7
-S6 --d2--> S26
+S6 --d2--> S32
 S7 --d2--> S7, S3

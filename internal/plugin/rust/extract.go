@@ -5,18 +5,22 @@ package rust
 
 import "codeknit/internal/plugin"
 
-var handlers = plugin.DispatchTable{
-	"function_item":    plugin.Adapt(extractFunction),
-	"struct_item":      plugin.Adapt(extractStruct),
-	"enum_item":        plugin.Adapt(extractEnum),
-	"trait_item":       plugin.Adapt(extractTrait),
-	"type_item":        plugin.Adapt(extractTypeAlias),
-	"mod_item":         plugin.Adapt(extractMod),
-	"const_item":       plugin.Adapt(extractConst),
-	"use_declaration":  plugin.Adapt(extractUseDecl),
-	"impl_item":        plugin.Adapt(extractImpl),
-	"static_item":      plugin.Adapt(extractStatic),
-	"macro_definition": plugin.Adapt(extractMacro),
+var handlers plugin.DispatchTable
+
+func init() {
+	handlers = plugin.DispatchTable{
+		"function_item":    plugin.Adapt(extractFunction),
+		"struct_item":      plugin.Adapt(extractStruct),
+		"enum_item":        plugin.Adapt(extractEnum),
+		"trait_item":       plugin.Adapt(extractTrait),
+		"type_item":        plugin.Adapt(extractTypeAlias),
+		"mod_item":         plugin.Adapt(extractMod),
+		"const_item":       plugin.Adapt(extractConst),
+		"use_declaration":  plugin.Adapt(extractUseDecl),
+		"impl_item":        plugin.Adapt(extractImpl),
+		"static_item":      plugin.Adapt(extractStatic),
+		"macro_definition": plugin.Adapt(extractMacro),
+	}
 }
 
 var bodyTokenMap = map[string]byte{

@@ -359,8 +359,7 @@ record Point(int x, int y) {}
 	point := findSymbol(symbols, "Point")
 	if point == nil {
 		t.Fatal("missing record 'Point'")
-	}
-	if point.Kind != "record" {
+	} else if point.Kind != "record" {
 		t.Errorf("Point kind: got %q, want 'record'", point.Kind)
 	}
 }
@@ -444,8 +443,7 @@ namespace Ex {
 	person := findSymbol(symbols, "Person")
 	if person == nil {
 		t.Fatal("missing record 'Person'")
-	}
-	if person.Kind != "record" {
+	} else if person.Kind != "record" {
 		t.Errorf("Person kind: got %q, want 'record'", person.Kind)
 	}
 }

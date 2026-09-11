@@ -19,6 +19,7 @@ Cover:
    | Flag | Default | Description |
    --output-mode, directory-flat
    --format, skt, output format: skt or json
+   --header-language, c, parser for .h files: c or cpp (other extensions unchanged)
    --max-lines, 500, max lines per output file
    --collect-test, false, include test files
    --minify, false, dictionary-based compression
@@ -36,6 +37,7 @@ Cover:
    - Minified: codeknit parse ./src --minify
    - With edges: codeknit parse ./src --edges
    - Tree layout: codeknit parse ./src --output-mode directory-tree
+   - C++ .h headers: codeknit parse ./src --header-language cpp
 
 5. Stale output protection: explain that codeknit refuses to write if .skt files exist, use --clean
 
@@ -43,3 +45,4 @@ Cover:
    - Default to directory-flat for most projects
    - Use --minify for large codebases to save tokens
    - By default the [edges] section is omitted; pass --edges when you need relationship data
+   - Link to the tested capability matrix and limitations: ../../reference/language-support/

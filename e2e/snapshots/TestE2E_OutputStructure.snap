@@ -7,21 +7,25 @@ S4 callable/function L8-L9 create_calculator()
 ## pkg/models.go
 S5 module/package L1-L1 pkg
 S6 type/interface L3-L5 Animal {exported}
-S7 type/struct L7-L9 Dog {exported}
-S8 callable/method L11-L13 Speak() -> string {exported, receiver=*Dog}
-S9 callable/function L15-L17 NewDog(name: string) -> *S7 {exported}
+S7 callable/method L4-L4 Speak() -> string {abstract, exported}
+S8 type/struct L7-L9 Dog {exported}
+S9 value/field L8-L8 Name: string {exported}
+S10 callable/method L11-L13 Speak() -> string {exported, receiver=*Dog}
+S11 callable/function L15-L17 NewDog(name: string) -> *S8 {exported}
 ## pkg/service.go
-S10 type/struct L3-L5 Service {exported}
-S11 callable/function L7-L9 NewService(name: string) -> *S10 {exported}
-S12 callable/method L11-L13 Run() -> string {exported, receiver=*Service}
+S12 type/struct L3-L5 Service {exported}
+S13 value/field L4-L4 Name: string {exported}
+S14 callable/function L7-L9 NewService(name: string) -> *S12 {exported}
+S15 callable/method L11-L13 Run() -> string {exported, receiver=*Service}
 
 [edges]
 S1 --contains--> S2, S3
 S4 --calls--> S1
-S7 --contains--> S8
-S8 --references--> S7
-S9 --references--> S7
-S5 --contains--> S6, S7, S8, S9, S10, S11, S12
-S10 --contains--> S12
-S11 --references--> S10
-S12 --references--> S10
+S6 --contains--> S7
+S8 --contains--> S9, S10
+S10 --references--> S8
+S11 --references--> S8
+S5 --contains--> S6, S8, S11, S12, S14
+S12 --contains--> S13, S15
+S14 --references--> S12
+S15 --references--> S12

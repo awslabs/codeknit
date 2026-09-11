@@ -6,6 +6,7 @@ package javascript
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"codeknit/internal/plugin"
@@ -77,7 +78,7 @@ const helper = (x) => x * 2;
 func TestExtensions(t *testing.T) {
 	p := NewPlugin()
 	exts := p.Extensions()
-	if len(exts) != 2 || exts[0] != ".js" || exts[1] != ".jsx" {
-		t.Errorf("expected [.js .jsx], got %v", exts)
+	if strings.Join(exts, ",") != ".js,.jsx,.mjs,.cjs" {
+		t.Errorf("expected [.js .jsx .mjs .cjs], got %v", exts)
 	}
 }

@@ -1,8 +1,8 @@
 [symbols]
 ## include/shapes.hpp
 S1 module/namespace L3-L29 geometry
-S2 callable/method L7-L7 area {abstract, const, virtual, visibility=public}
-S3 callable/method L8-L8 draw {abstract, const, virtual, visibility=public}
+S2 callable/method L7-L7 area() -> double {abstract, const, virtual, visibility=public}
+S3 callable/method L8-L8 draw() -> void {abstract, const, virtual, visibility=public}
 S4 callable/method L9-L9 ~Shape() {virtual, visibility=public}
 S5 type/class L5-L10 Shape {abstract}
 S6 type/struct L12-L15 Point
@@ -18,7 +18,7 @@ S14 type/type_parameter L19-L19 T
 S15 module/namespace L4-L15 utils
 S16 callable/function L7-L11 clamp(value: S17, lo: S17, hi: S17) -> S17
 S17 type/type_parameter L6-L6 T
-S18 callable/function_prototype L13-L13 distance
+S18 callable/function_prototype L13-L13 distance(a: geometry::S6, b: geometry::S6) -> double
 S19 value/variable L17-L17 debugLevel {extern}
 ## src/circle.cpp
 S20 module/namespace L4-L26 geometry
@@ -53,12 +53,12 @@ S6 --contains--> S7, S8
 S13 --contains--> S10, S11, S12, S14
 S14 --references--> S14
 S13 --references--> S14
-S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S16, S17, S18, S19
+S1 --contains--> S5, S6, S9, S13, S16, S18, S19
 S16 --contains--> S17
 S17 --references--> S14
 S16 --references--> S14
 S18 --references--> S6
-S15 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S16, S17, S18, S19
+S15 --contains--> S5, S6, S9, S13, S16, S18, S19
 S26 --inherits--> S5
 S26 --contains--> S21, S22, S23, S24, S25
 S22 --overrides--> S22
@@ -66,7 +66,7 @@ S23 --overrides--> S23
 S27 --calls--> S26
 S26 --references--> S5
 S27 --references--> S26
-S20 --contains--> S21, S22, S23, S24, S25, S26, S27, S28, S29, S30, S31, S32, S33, S34, S35, S36, S37, S38, S39, S40, S41, S42
+S20 --contains--> S26, S27, S28, S29, S30, S33, S34, S40, S42
 S30 --contains--> S31, S32
 S34 --calls--> S33
 S30 --references--> S29

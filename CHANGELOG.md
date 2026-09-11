@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- Added `--header-language c|cpp` to all source-processing CLI commands, retaining C as the default.
+- Added `.mts`, `.cts`, `.mjs`, and `.cjs` file support and a tested language capability matrix.
+
+### Fixed
+
+- Parse TSX with the JSX-aware TypeScript grammar and traverse plain TypeScript namespace wrappers.
+- Preserve Go grouped, unnamed, variadic, function-typed and generic parameters, multiple/named results, generic receiver ownership, and grouped type parameters.
+- Emit Go interface method signatures and Go/Rust named struct fields in normal and fingerprint modes.
+- Traverse Rust inline modules with qualified names and preserve Rust receiver/pattern parameters.
+- Preserve Python annotations, defaults, splats, parameter separators, and return annotations.
+- Traverse C/C++ header guards and C++ linkage wrappers; include signatures for prototypes and method declarations.
+- Preserve scoped modules and attach package containment only to declarations without an existing owner.
+- Escape multiline signatures in SKT while retaining their source formatting in JSON.
+
 ## [0.3.0] - 2026-07-22
 
 ### Added

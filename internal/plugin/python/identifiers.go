@@ -4,6 +4,7 @@
 package python
 
 import (
+	"codeknit/internal/common/extract"
 	"codeknit/internal/plugin"
 
 	sitter "github.com/tree-sitter/go-tree-sitter"
@@ -31,40 +32,27 @@ var richCallTarget = plugin.UnqualifiedCallTargetRich("call",
 	[]string{"attribute"},
 )
 
-// extractParamStrings extracts function parameter names as strings.
-func extractParamStrings(node *sitter.Node, src []byte) []string {
-	params := childByKind(node, "parameters")
+// extractParamStrings preserves annotations, defaults, splats and separators.
+// Only a method's conventional bound receiver is omitted.
+func extractParamStrings(node *sitter.Node, src []byte, skipReceiver bool) []string {
+	params := node.ChildByFieldName("parameters")
 	if params == nil {
 		return nil
 	}
 	var result []string
-	for i := range params.ChildCount() {
-		child := params.Child(i)
-		if child == nil {
+	for i := range params.NamedChildCount() {
+		child := params.NamedChild(i)
+		if child.Kind() == "comment" {
 			continue
 		}
-		switch child.Kind() {
-		case "identifier":
-			name := child.Utf8Text(src)
-			if name != "self" && name != "cls" {
-				result = append(result, name)
-			}
-		case "typed_parameter":
-			name := childText(child, "identifier", src)
-			if name != "" && name != "self" && name != "cls" {
-				result = append(result, name)
-			}
-		case "default_parameter":
-			name := childText(child, "identifier", src)
-			if name != "" && name != "self" && name != "cls" {
-				result = append(result, name)
-			}
-		case "typed_default_parameter":
-			name := childText(child, "identifier", src)
-			if name != "" && name != "self" && name != "cls" {
-				result = append(result, name)
-			}
+		name := childText(child, "identifier", src)
+		if child.Kind() == "identifier" {
+			name = child.Utf8Text(src)
 		}
+		if skipReceiver && i == 0 && (name == "self" || name == "cls") {
+			continue
+		}
+		result = append(result, child.Utf8Text(src))
 	}
 	return result
 }
@@ -109,7 +97,6 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, isMetho
 	}
 
 	scopedName := plugin.MakeScopedName(parentName, name)
-	params := extractParamStrings(node, src)
 	isAsync := childText(node, "async", src) != ""
 
 	p := plugin.NewProps().SetBool("async", isAsync)
@@ -128,12 +115,13 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, isMetho
 		}
 	}
 
+	params := extractParamStrings(node, src, isMethod && p["static"] != "true")
 	sym := plugin.Symbol{
 		Name:       name,
 		ScopedName: scopedName,
 		Category:   plugin.CategoryCallable,
 		Kind:       kind,
-		Signature:  buildFuncSignature(name, params, ""),
+		Signature:  buildFuncSignature(name, params, extract.FieldText(node, "return_type", src)),
 		Properties: p.Map(),
 		Span:       nodeSpan(node),
 	}

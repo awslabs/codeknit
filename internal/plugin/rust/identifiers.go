@@ -4,6 +4,9 @@
 package rust
 
 import (
+	"slices"
+	"strings"
+
 	"codeknit/internal/common/extract"
 	"codeknit/internal/plugin"
 
@@ -17,19 +20,6 @@ var (
 	nodeSpan           = plugin.NodeSpan
 	buildFuncSignature = plugin.BuildFuncSignature
 )
-
-// rustParamConfig describes how Rust parameter nodes are structured.
-var rustParamConfig = plugin.ParamConfig{
-	ParamListKind: "parameters",
-	ParamKinds:    []string{"parameter"},
-	NameKind:      "identifier",
-	TypeExtractor: func(node *sitter.Node, src []byte) string {
-		return plugin.ReturnTypeAfterToken(node, src, ":", nil)
-	},
-}
-
-// rustReturnToken — Rust uses "->" to introduce the return type.
-var rustReturnToken = "->"
 
 // rustTypeParamConfig describes how Rust type parameter nodes are structured.
 var rustTypeParamConfig = extract.TypeParamConfig{
@@ -75,12 +65,55 @@ var richCallTarget = plugin.UnqualifiedCallTargetRich("call_expression",
 
 // extractParamStrings extracts function parameter "name: type" pairs from a parameters node.
 func extractParamStrings(node *sitter.Node, src []byte) []string {
-	return plugin.ExtractTypedParams(node, src, rustParamConfig)
+	params := node.ChildByFieldName("parameters")
+	if params == nil {
+		return nil
+	}
+	var result []string
+	for i := range params.NamedChildCount() {
+		param := params.NamedChild(i)
+		switch param.Kind() {
+		case "self_parameter", "variadic_parameter":
+			result = append(result, param.Utf8Text(src))
+		case "parameter":
+			pattern := extract.FieldText(param, "pattern", src)
+			if hasChildKind(param, "mutable_specifier") {
+				pattern = "mut " + pattern
+			}
+			result = append(result, pattern+": "+extract.FieldText(param, "type", src))
+		}
+	}
+	return result
 }
 
 // extractReturnType extracts the return type from a Rust function_item or function_signature_item.
 func extractReturnType(node *sitter.Node, src []byte) string {
-	return plugin.ReturnTypeAfterToken(node, src, rustReturnToken, nil)
+	return extract.FieldText(node, "return_type", src)
+}
+
+// moduleScope derives an item's lexical module path from its ancestors.
+// No mutable scope is shared between files or recursive extraction calls.
+func moduleScope(node *sitter.Node, src []byte) string {
+	var names []string
+	for parent := node.Parent(); parent != nil; parent = parent.Parent() {
+		if parent.Kind() == "mod_item" {
+			names = append(names, extract.FieldText(parent, "name", src))
+		}
+	}
+	slices.Reverse(names)
+	return strings.Join(names, ".")
+}
+
+// addItem records an item and its immediate module owner, returning its name
+// for use as the scope of fields, methods and type parameters.
+func addItem(node *sitter.Node, src []byte, c *plugin.Collector, sym *plugin.Symbol) string {
+	parent := moduleScope(node, src)
+	sym.ScopedName = plugin.MakeScopedName(parent, sym.Name)
+	c.AddSymbol(sym)
+	if parent != "" {
+		c.AddEdge(plugin.Edge{From: parent, To: sym.ScopedName, Kind: plugin.EdgeContains})
+	}
+	return sym.ScopedName
 }
 
 // ---------------------------------------------------------------------------
@@ -88,14 +121,14 @@ func extractReturnType(node *sitter.Node, src []byte) string {
 // ---------------------------------------------------------------------------
 
 // extractSimpleRustSymbol emits a symbol that has a name, pub flag, category,
-// and kind but no body to recurse into (enum, type alias, mod, const).
+// and kind but no body to recurse into (enum, type alias, const).
 // Mirrors extractSimpleScalaSymbol in the Scala plugin.
 func extractSimpleRustSymbol(node *sitter.Node, src []byte, c *plugin.Collector, nameKind string, cat plugin.SymbolCategory, kind string) {
 	name := childText(node, nameKind, src)
 	if name == "" {
 		return
 	}
-	c.AddSymbol(&plugin.Symbol{
+	addItem(node, src, c, &plugin.Symbol{
 		Name:       name,
 		Category:   cat,
 		Kind:       kind,
@@ -154,7 +187,7 @@ func extractTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, kind, b
 		props.SetBool("unsafe", hasChildKind(node, "unsafe"))
 	}
 
-	c.AddSymbol(&plugin.Symbol{
+	scopedName := addItem(node, src, c, &plugin.Symbol{
 		Name:       name,
 		Category:   plugin.CategoryType,
 		Kind:       kind,
@@ -164,13 +197,13 @@ func extractTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, kind, b
 	})
 
 	// Extract type parameters
-	extract.TypeParams(node, src, c, name, rustTypeParamConfig)
+	extract.TypeParams(node, src, c, scopedName, rustTypeParamConfig)
 
 	if body := childByKind(node, bodyKind); body != nil {
 		if kind == "struct" {
-			extractStructFields(body, src, c, name)
+			extractStructFields(body, src, c, scopedName)
 		} else {
-			extractBlockMethods(body, src, c, name)
+			extractBlockMethods(body, src, c, scopedName)
 		}
 	}
 }
@@ -181,7 +214,7 @@ func extractTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, kind, b
 
 // extractFunction extracts a function_item node.
 func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector) {
-	extractCallable(node, src, c, "function", "")
+	extractCallable(node, src, c, "function", moduleScope(node, src))
 }
 
 // extractStruct extracts a struct_item node.
@@ -207,6 +240,9 @@ func extractTypeAlias(node *sitter.Node, src []byte, c *plugin.Collector) {
 // extractMod extracts a mod_item node.
 func extractMod(node *sitter.Node, src []byte, c *plugin.Collector) {
 	extractSimpleRustSymbol(node, src, c, "identifier", plugin.CategoryModule, "module")
+	if body := node.ChildByFieldName("body"); body != nil {
+		plugin.WalkChildren(body, src, c, handlers, plugin.HandlerContext{})
+	}
 }
 
 // extractConst extracts a const_item node.
@@ -222,7 +258,7 @@ func extractStatic(node *sitter.Node, src []byte, c *plugin.Collector) {
 	if name == "" {
 		return
 	}
-	c.AddSymbol(&plugin.Symbol{
+	addItem(node, src, c, &plugin.Symbol{
 		Name:      name,
 		Category:  plugin.CategoryValue,
 		Kind:      "variable",
@@ -242,7 +278,7 @@ func extractMacro(node *sitter.Node, src []byte, c *plugin.Collector) {
 	if name == "" {
 		return
 	}
-	c.AddSymbol(&plugin.Symbol{
+	addItem(node, src, c, &plugin.Symbol{
 		Name:       name,
 		Category:   plugin.CategoryCallable,
 		Kind:       "macro",
@@ -263,7 +299,7 @@ func extractImpl(node *sitter.Node, src []byte, c *plugin.Collector) {
 		return
 	}
 
-	c.AddSymbol(&plugin.Symbol{
+	scopedName := addItem(node, src, c, &plugin.Symbol{
 		Name:       typeName,
 		Category:   plugin.CategoryType,
 		Kind:       "impl",
@@ -273,14 +309,14 @@ func extractImpl(node *sitter.Node, src []byte, c *plugin.Collector) {
 	})
 
 	// Extract type parameters
-	extract.TypeParams(node, src, c, typeName, rustTypeParamConfig)
+	extract.TypeParams(node, src, c, scopedName, rustTypeParamConfig)
 
 	if traitName != "" {
-		c.AddEdge(plugin.Edge{From: typeName, To: traitName, Kind: plugin.EdgeImplements})
+		c.AddEdge(plugin.Edge{From: scopedName, To: traitName, Kind: plugin.EdgeImplements})
 	}
 
 	if body := childByKind(node, "declaration_list"); body != nil {
-		extractBlockMethods(body, src, c, typeName)
+		extractBlockMethods(body, src, c, scopedName)
 	}
 }
 
@@ -340,7 +376,19 @@ func extractStructFields(body *sitter.Node, src []byte, c *plugin.Collector, str
 		}
 		fieldName := childText(child, "field_identifier", src)
 		if fieldName != "" {
-			scopedName := plugin.MakeScopedName(structName, fieldName)
+			// Rust permits a field and method with the same name. Keep their
+			// internal names distinct so containment cannot resolve to the
+			// method (or vice versa). Display names and signatures stay intact.
+			scopedName := plugin.MakeScopedName(structName, fieldName) + "#field"
+			c.AddSymbol(&plugin.Symbol{
+				Name:       fieldName,
+				ScopedName: scopedName,
+				Category:   plugin.CategoryValue,
+				Kind:       "field",
+				Signature:  fieldName + ": " + extract.FieldText(child, "type", src),
+				Properties: plugin.NewProps().SetBool("pub", isPublic(child)).Map(),
+				Span:       nodeSpan(child),
+			})
 			c.AddEdge(plugin.Edge{From: structName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}

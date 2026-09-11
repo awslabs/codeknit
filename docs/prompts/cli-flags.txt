@@ -6,6 +6,8 @@ description: Complete reference for all codeknit commands and flags.
 
 Cover all commands and their flags:
 
+All five source-processing commands (parse, graph show, graph analyze, graph hotspots, fingerprint) accept --header-language (string, default "c"): c or cpp. Include this flag in EACH command's table. It selects the parser for .h files only; other extensions keep their usual parser. Explain that the default preserves C macro/typedef/union extraction, and C++ projects using .h should select cpp. The TUI uses the default C selection. Link to the tested capability matrix at ../language-support/. Use docs/reference/language-support.md from the source context for capabilities and limitations; do not claim complete language or compiler-semantic coverage.
+
 1. codeknit (no subcommand) — launches the interactive TUI
 
 2. codeknit parse <input-path> [output-dir]:

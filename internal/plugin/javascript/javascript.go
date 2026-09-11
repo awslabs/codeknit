@@ -21,7 +21,7 @@ type Plugin struct {
 func NewPlugin() *Plugin {
 	return &Plugin{
 		BasePlugin: plugin.NewBasePluginFromConfig(&plugin.Config{
-			Extensions:  []string{".js", ".jsx"},
+			Extensions:  []string{".js", ".jsx", ".mjs", ".cjs"},
 			TestConf:    plugin.TestConfig{ContainsDot: []string{".test.", ".spec."}},
 			TSLang:      tsjavascript.Language(),
 			Handlers:    handlers,

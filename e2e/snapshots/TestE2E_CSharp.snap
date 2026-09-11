@@ -39,7 +39,7 @@ S32 callable/method L26-L26 Log(level: string, message: string) -> void
 [edges]
 S2 --contains--> S3, S4, S5, S6
 S7 --contains--> S8, S9
-S1 --contains--> S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20, S21
+S1 --contains--> S2, S7, S10, S11, S15, S21
 S11 --contains--> S12, S13, S14
 S15 --inherits--> S2
 S15 --contains--> S16, S17, S18, S19, S20
@@ -51,4 +51,4 @@ S29 --contains--> S30
 S31 --inherits--> S29
 S31 --contains--> S32
 S25 --calls--> S26, S27
-S22 --contains--> S23, S24, S25, S26, S27, S28, S29, S30, S31, S32
+S22 --contains--> S23, S29, S31

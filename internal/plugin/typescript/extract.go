@@ -37,6 +37,9 @@ func init() {
 		},
 		"variable_declaration": plugin.AdaptExported(extractVariableDeclaration),
 	}
+	// A plain namespace can be wrapped in an expression_statement, while an
+	// exported namespace is wrapped in export_statement.
+	handlers.RegisterContainers("expression_statement")
 }
 
 var bodyTokenMap = func() map[string]byte {

@@ -59,6 +59,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'reference/output-format' },
 						{ slug: 'reference/cli-flags' },
+						{ slug: 'reference/language-support' },
 					],
 				},
 			],

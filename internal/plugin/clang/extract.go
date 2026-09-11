@@ -5,16 +5,21 @@ package clang
 
 import "codeknit/internal/plugin"
 
-var handlers = plugin.DispatchTable{
-	"function_definition":  plugin.Adapt(extractFunction),
-	"struct_specifier":     plugin.Adapt(extractStruct),
-	"enum_specifier":       plugin.Adapt(extractEnum),
-	"preproc_include":      plugin.Adapt(extractInclude),
-	"declaration":          plugin.Adapt(extractDeclaration),
-	"union_specifier":      plugin.Adapt(extractUnion),
-	"type_definition":      plugin.Adapt(extractTypedef),
-	"preproc_def":          plugin.Adapt(extractPreprocDef),
-	"preproc_function_def": plugin.Adapt(extractPreprocFunctionDef),
+var handlers plugin.DispatchTable
+
+func init() {
+	handlers = plugin.DispatchTable{
+		"function_definition":  plugin.Adapt(extractFunction),
+		"struct_specifier":     plugin.Adapt(extractStruct),
+		"enum_specifier":       plugin.Adapt(extractEnum),
+		"preproc_include":      plugin.Adapt(extractInclude),
+		"declaration":          plugin.Adapt(extractDeclaration),
+		"union_specifier":      plugin.Adapt(extractUnion),
+		"type_definition":      plugin.Adapt(extractTypedef),
+		"preproc_def":          plugin.Adapt(extractPreprocDef),
+		"preproc_function_def": plugin.Adapt(extractPreprocFunctionDef),
+	}
+	handlers.RegisterContainers("preproc_if", "preproc_ifdef", "preproc_else", "preproc_elif", "preproc_elifdef")
 }
 
 var bodyTokenMap = map[string]byte{

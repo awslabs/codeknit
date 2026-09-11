@@ -19,6 +19,8 @@ func init() {
 		"declaration":          plugin.AdaptParent(extractDeclaration),
 		"field_declaration":    plugin.AdaptParent(extractFieldDeclaration),
 	}
+	handlers.RegisterContainers("preproc_if", "preproc_ifdef", "preproc_else", "preproc_elif", "preproc_elifdef",
+		"linkage_specification", "declaration_list")
 }
 
 var bodyTokenMap = map[string]byte{

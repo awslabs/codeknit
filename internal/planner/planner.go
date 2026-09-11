@@ -48,7 +48,9 @@ func (p *Planner) Plan(
 		filtered := symbols[:0:0]
 		for i := range symbols {
 			sym := &symbols[i]
-			if sym.Category != plugin.CategoryModule {
+			// Scoped modules are lexical containers (for example Rust inline
+			// modules), not repeated file-level package declarations.
+			if sym.Category != plugin.CategoryModule || sym.ScopedName != "" {
 				filtered = append(filtered, *sym)
 				continue
 			}
@@ -131,6 +133,12 @@ func (p *Planner) Plan(
 	//
 	// Iterate the module map in sorted key order so the resulting edge
 	// sequence is deterministic across runs (Go randomizes map iteration).
+	contained := make(map[string]bool)
+	for _, edge := range sg.Edges {
+		if edge.Kind == plugin.EdgeContains {
+			contained[edge.To] = true
+		}
+	}
 	moduleKeys := make([]dirName, 0, len(moduleCanonFile))
 	for k := range moduleCanonFile {
 		moduleKeys = append(moduleKeys, k)
@@ -159,7 +167,7 @@ func (p *Planner) Plan(
 			}
 			for i := range fileSymbols[fp] {
 				sym := &fileSymbols[fp][i]
-				if sym.Category == plugin.CategoryModule {
+				if sym.Category == plugin.CategoryModule || contained[sym.ID] {
 					continue
 				}
 				sg.Edges = append(sg.Edges, plugin.Edge{

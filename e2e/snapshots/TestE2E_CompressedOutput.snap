@@ -9,6 +9,7 @@
 - d7: references
 - d8: type/class
 - d9: type/struct
+- d10: value/field
 [symbols]
 ## src/handler.py
 S1 d8 L1-L6 Handler
@@ -18,17 +19,21 @@ S4 d0 L8-L9 process(request)
 ## src/models.go
 S5 d5 L1-L1 src
 S6 d9 L3-L6 User {d4}
-S7 d0 L8-L10 NewUser(name: string) -> *S6 {d4}
+S7 d10 L4-L4 Name: string {d4}
+S8 d10 L5-L5 Email: string {d4}
+S9 d0 L8-L10 NewUser(name: string, email: string) -> *S6 {d4}
 ## src/service.go
-S8 d9 L3-L5 Service {d4}
-S9 d0 L7-L9 NewService(name: string) -> *S8 {d4}
-S10 d1 L11-L13 Run() -> string {d4, d6}
+S10 d9 L3-L5 Service {d4}
+S11 d10 L4-L4 Name: string {d4}
+S12 d0 L7-L9 NewService(name: string) -> *S10 {d4}
+S13 d1 L11-L13 Run() -> string {d4, d6}
 
 [edges]
 S1 --d3--> S2, S3
 S3 --d2--> S4
-S7 --d7--> S6
-S5 --d3--> S6, S7, S8, S9, S10
-S8 --d3--> S10
-S9 --d7--> S8
-S10 --d7--> S8
+S6 --d3--> S7, S8
+S9 --d7--> S6
+S5 --d3--> S6, S9, S10, S12
+S10 --d3--> S11, S13
+S12 --d7--> S10
+S13 --d7--> S10

@@ -6,6 +6,8 @@
 package typescript
 
 import (
+	"unsafe"
+
 	"codeknit/internal/common/jsshared"
 	"codeknit/internal/plugin"
 
@@ -21,7 +23,10 @@ type Plugin struct {
 func NewPlugin() *Plugin {
 	return &Plugin{
 		BasePlugin: plugin.NewBasePluginFromConfig(&plugin.Config{
-			Extensions:  []string{".ts", ".tsx"},
+			Extensions: []string{".ts", ".tsx", ".mts", ".cts"},
+			LanguageByExtension: map[string]unsafe.Pointer{
+				".tsx": tstypescript.LanguageTSX(),
+			},
 			TestConf:    plugin.TestConfig{ContainsDot: []string{".test.", ".spec."}},
 			TSLang:      tstypescript.LanguageTypescript(),
 			Handlers:    handlers,

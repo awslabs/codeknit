@@ -1,7 +1,7 @@
 [symbols]
 ## models/animal.py
 S1 type/class L1-L10 Animal
-S2 callable/method L2-L4 __init__(name, sound)
+S2 callable/method L2-L4 __init__(name, sound="...")
 S3 callable/method L6-L7 speak()
 S4 callable/method L9-L10 describe()
 S5 type/class L12-L20 Dog

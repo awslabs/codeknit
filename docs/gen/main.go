@@ -9,7 +9,7 @@
 //
 // Pipeline:
 //  1. Run codeknit parse to extract codebase structure
-//  2. Generate all English pages (incremental — skips existing unless --force)
+//  2. Copy maintained reference pages and generate English pages (incremental)
 //  3. Translate all pages into target languages (incremental)
 //
 // No local GPU required. Uses AWS credentials from the default chain.
@@ -39,9 +39,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 )
 
-// Page defines a documentation page to generate.
+// Page defines a documentation page to generate or copy from a maintained source.
 type Page struct {
-	Prompt string // prompt file name (without .txt)
+	Prompt string // prompt file name (without .txt); empty for maintained pages
+	Source string // maintained source path relative to the repo root; copied verbatim
 	Output string // output path relative to content/docs/ (root locale)
 }
 
@@ -56,6 +57,44 @@ var pages = []Page{
 	{Prompt: "ai-assistants", Output: "guides/ai-assistants.md"},
 	{Prompt: "output-format", Output: "reference/output-format.md"},
 	{Prompt: "cli-flags", Output: "reference/cli-flags.md"},
+	{Source: "docs/reference/language-support.md", Output: "reference/language-support.md"},
+}
+
+// syncSourcePages restores maintained pages on every run, including --force and
+// --skip-generate. They participate in translation but never go through an LLM
+// for English generation.
+func syncSourcePages(contentDir string) error {
+	for _, p := range pages {
+		if p.Source == "" {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Clean(p.Source))
+		if err != nil {
+			return fmt.Errorf("read maintained page %s: %w", p.Source, err)
+		}
+		if len(bytes.TrimSpace(content)) == 0 {
+			return fmt.Errorf("maintained page %s is empty", p.Source)
+		}
+		if err := writeFile(filepath.Join(contentDir, p.Output), string(content)); err != nil {
+			return fmt.Errorf("copy maintained page %s: %w", p.Output, err)
+		}
+	}
+	return nil
+}
+
+func pagesToGenerate(contentDir string, force bool) []Page {
+	var pending []Page
+	for _, p := range pages {
+		if p.Source != "" {
+			continue
+		}
+		if !force && fileExists(filepath.Join(contentDir, p.Output)) {
+			fmt.Printf("  [CACHED] %s\n", p.Output)
+			continue
+		}
+		pending = append(pending, p)
+	}
+	return pending
 }
 
 type lang struct {
@@ -127,6 +166,14 @@ func main() {
 	)
 	flag.Parse()
 
+	if err := syncSourcePages(*contentDir); err != nil {
+		log.Fatalf("syncing maintained documentation: %v", err)
+	}
+	if *skipGenerate && *skipTranslate {
+		fmt.Println("==> Maintained documentation synchronized")
+		return
+	}
+
 	ctx := context.Background()
 
 	// Load AWS config.
@@ -169,28 +216,17 @@ func main() {
 
 	// --- Phase 1: Generate English pages ---
 	if !*skipGenerate {
-		var needsGen int
-		for _, p := range pages {
-			if *force || !fileExists(filepath.Join(*contentDir, p.Output)) {
-				needsGen++
-			}
-		}
-
-		if needsGen == 0 {
+		pending := pagesToGenerate(*contentDir, *force)
+		if len(pending) == 0 {
 			fmt.Println("==> Phase 1: All English pages cached (use --force to regenerate)")
 		} else {
-			fmt.Printf("==> Phase 1: Generating %d English pages with %s\n", needsGen, *genModelID)
+			fmt.Printf("==> Phase 1: Generating %d English pages with %s\n", len(pending), *genModelID)
 
 			sem := make(chan struct{}, *concurrency)
 			var wg sync.WaitGroup
 
-			for _, p := range pages {
+			for _, p := range pending {
 				outPath := filepath.Join(*contentDir, p.Output)
-				if !*force && fileExists(outPath) {
-					fmt.Printf("  [CACHED] %s\n", p.Output)
-					continue
-				}
-
 				wg.Add(1)
 				go func(p Page, outPath string) {
 					defer wg.Done()
@@ -381,6 +417,7 @@ func converse(ctx context.Context, client *bedrockruntime.Client, modelID, syste
 // generation context alongside the codeknit structural output.
 var sourceContextFiles = []string{
 	"README.md",
+	"docs/reference/language-support.md",
 	"skills/codeknit-parse/SKILL.md",
 	"skills/codeknit-parse/OUTPUT-FORMAT.md",
 }
@@ -633,5 +670,7 @@ func writeFile(path, content string) error {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("mkdir %s: %w", dir, err)
 	}
-	return os.WriteFile(path, []byte(content), 0o600)
+	// The local --content flag intentionally selects the output directory;
+	// page filenames and locale directories come from the fixed lists above.
+	return os.WriteFile(filepath.Clean(path), []byte(content), 0o600) //#nosec G703 -- user-selected local output directory
 }

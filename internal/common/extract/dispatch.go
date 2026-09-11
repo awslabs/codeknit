@@ -48,6 +48,17 @@ func AdaptExported(fn func(node *sitter.Node, src []byte, c *Collector, exported
 // DispatchTable maps tree-sitter node kinds to their Handler functions.
 type DispatchTable map[string]Handler
 
+// RegisterContainers makes syntax-only wrappers transparent to extraction.
+// Only explicitly registered wrappers are traversed; function bodies remain
+// opaque so local variables cannot become top-level declarations.
+func (dt DispatchTable) RegisterContainers(kinds ...string) {
+	for _, kind := range kinds {
+		dt[kind] = func(node *sitter.Node, src []byte, c *Collector, ctx HandlerContext) {
+			WalkChildren(node, src, c, dt, ctx)
+		}
+	}
+}
+
 // DispatchMeta holds metadata about the dispatch table entries.
 type DispatchMeta struct {
 	HandlerNames map[string]string

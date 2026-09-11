@@ -4,6 +4,10 @@
 package golang
 
 import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
 	"codeknit/internal/common/extract"
 	"codeknit/internal/plugin"
 
@@ -38,32 +42,16 @@ var goTypeParamConfig = extract.TypeParamConfig{
 	TypeParamsKind: "type_parameter_list",
 	TypeParamKind:  "type_parameter_declaration",
 	NameKind:       "identifier",
-	ConstraintKind: "constraint",
+	ConstraintKind: "type_constraint",
 }
 
 // extractParamStrings extracts function parameter "name: type" pairs from a function_declaration.
 func extractParamStrings(node *sitter.Node, src []byte) []string {
-	paramList := childByKind(node, "parameter_list")
+	paramList := node.ChildByFieldName("parameters")
 	if paramList == nil {
 		return nil
 	}
 	return extractParamPairs(paramList, src)
-}
-
-// extractMethodParamStrings extracts method parameter "name: type" pairs, skipping the receiver parameter_list.
-// In Go, method_declaration has two parameter_lists: first is receiver, second is params.
-func extractMethodParamStrings(node *sitter.Node, src []byte) []string {
-	count := 0
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child != nil && child.Kind() == "parameter_list" {
-			count++
-			if count == 2 {
-				return extractParamPairs(child, src)
-			}
-		}
-	}
-	return nil
 }
 
 // extractParamPairs extracts "name: type" pairs from a parameter_list node.
@@ -71,18 +59,19 @@ func extractParamPairs(paramList *sitter.Node, src []byte) []string {
 	var result []string
 	for i := range paramList.ChildCount() {
 		child := paramList.Child(i)
-		if child == nil || child.Kind() != "parameter_declaration" {
+		if child == nil || (child.Kind() != "parameter_declaration" && child.Kind() != "variadic_parameter_declaration") {
 			continue
 		}
-		name := childText(child, "identifier", src)
-		if name == "" {
-			continue
+		typeName := extract.FieldText(child, "type", src)
+		if child.Kind() == "variadic_parameter_declaration" {
+			typeName = "..." + typeName
 		}
-		typeNode := lastTypedChild(child)
-		if typeNode != nil {
-			result = append(result, name+": "+typeNode.Utf8Text(src))
-		} else {
-			result = append(result, name)
+		names := extract.FieldTexts(child, "name", src)
+		if len(names) == 0 {
+			result = append(result, typeName)
+		}
+		for _, name := range names {
+			result = append(result, name+": "+typeName)
 		}
 	}
 	return result
@@ -91,22 +80,7 @@ func extractParamPairs(paramList *sitter.Node, src []byte) []string {
 // extractReturnType extracts the return type string from a Go function/method declaration.
 // Go return types appear in a result node after the parameter lists.
 func extractReturnType(node *sitter.Node, src []byte) string {
-	// Look for a result type: can be a simple type or a parameter_list (multiple returns).
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		switch child.Kind() {
-		case "type_identifier", "pointer_type", "slice_type", "array_type",
-			"map_type", "channel_type", "interface_type", "struct_type",
-			"qualified_type", "function_type":
-			// Check this comes after the parameter lists (not the receiver type).
-			// In Go AST, result types appear after the last parameter_list.
-			return child.Utf8Text(src)
-		}
-	}
-	return ""
+	return extract.FieldText(node, "result", src)
 }
 
 // isExported returns true if the Go identifier starts with an uppercase letter.
@@ -114,7 +88,8 @@ func isExported(name string) bool {
 	if name == "" {
 		return false
 	}
-	return name[0] >= 'A' && name[0] <= 'Z'
+	first, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(first)
 }
 
 // extractFunction extracts a function_declaration node.
@@ -151,7 +126,7 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector) {
 	receiver := extractReceiver(node, src)
 	recType := receiverTypeName(receiver)
 	scopedName := plugin.MakeScopedName(recType, name)
-	params := extractMethodParamStrings(node, src)
+	params := extractParamStrings(node, src)
 	returnType := extractReturnType(node, src)
 
 	sym := plugin.Symbol{
@@ -181,7 +156,7 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector) {
 // extractReceiver extracts the receiver string from a method_declaration.
 // Returns e.g. "*Greeter" or "Greeter".
 func extractReceiver(node *sitter.Node, src []byte) string {
-	paramList := childByKind(node, "parameter_list")
+	paramList := node.ChildByFieldName("receiver")
 	if paramList == nil {
 		return ""
 	}
@@ -193,41 +168,19 @@ func extractReceiver(node *sitter.Node, src []byte) string {
 		}
 		if child.Kind() == "parameter_declaration" {
 			// The type is the last named child (could be pointer_type or type_identifier).
-			typeNode := lastTypedChild(child)
-			if typeNode != nil {
-				return typeNode.Utf8Text(src)
-			}
+			return extract.FieldText(child, "type", src)
 		}
 	}
 	return ""
 }
 
-// lastTypedChild returns the last child that represents a type in a parameter_declaration.
-func lastTypedChild(node *sitter.Node) *sitter.Node {
-	var last *sitter.Node
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		switch child.Kind() {
-		case "pointer_type", "type_identifier", "qualified_type", "slice_type",
-			"array_type", "map_type", "channel_type", "interface_type", "struct_type":
-			last = child
-		}
-	}
-	return last
-}
-
-// receiverTypeName strips the pointer prefix from a receiver type string.
+// receiverTypeName removes indirection and type arguments for the owner name.
 func receiverTypeName(receiver string) string {
-	if receiver == "" {
-		return ""
+	name := strings.TrimPrefix(receiver, "*")
+	if start := strings.IndexByte(name, '['); start >= 0 {
+		name = name[:start]
 	}
-	if receiver[0] == '*' {
-		return receiver[1:]
-	}
-	return receiver
+	return name
 }
 
 // extractTypeDecl routes a type_declaration to struct/interface/type_alias.
@@ -333,23 +286,34 @@ func extractStructFields(structNode *sitter.Node, src []byte, c *plugin.Collecto
 		if child == nil || child.Kind() != "field_declaration" {
 			continue
 		}
-		fieldName := childText(child, "field_identifier", src)
-		if fieldName != "" {
-			scopedName := plugin.MakeScopedName(structName, fieldName)
-			// Emit field as a symbol only during fingerprinting so Types() can
-			// encode field names into the structural fingerprint. During normal
-			// parse runs the field symbol is not emitted — only the edge is.
-			if c.Fingerprint {
-				c.AddSymbol(&plugin.Symbol{
-					Name:       fieldName,
-					ScopedName: scopedName,
-					Category:   plugin.CategoryValue,
-					Kind:       "field",
-					Signature:  fieldName,
-					Properties: plugin.NewProps().Map(),
-					Span:       nodeSpan(child),
-				})
+		typeName := extract.FieldText(child, "type", src)
+		names := extract.FieldTexts(child, "name", src)
+		embedded := len(names) == 0
+		if embedded {
+			if strings.HasPrefix(child.Utf8Text(src), "*") {
+				typeName = "*" + typeName
 			}
+			name := receiverTypeName(typeName)
+			if dot := strings.LastIndexByte(name, '.'); dot >= 0 {
+				name = name[dot+1:]
+			}
+			names = []string{name}
+		}
+		for _, fieldName := range names {
+			if fieldName == "" {
+				continue
+			}
+			scopedName := plugin.MakeScopedName(structName, fieldName)
+			c.AddSymbol(&plugin.Symbol{
+				Name:       fieldName,
+				ScopedName: scopedName,
+				Category:   plugin.CategoryValue,
+				Kind:       "field",
+				Signature:  fieldName + ": " + typeName,
+				Properties: plugin.NewProps().SetBool("exported", isExported(fieldName)).
+					SetBool("embedded", embedded).Set("tag", extract.FieldText(child, "tag", src)).Map(),
+				Span: nodeSpan(child),
+			})
 			c.AddEdge(plugin.Edge{
 				From: structName,
 				To:   scopedName,
@@ -372,16 +336,25 @@ func extractInterfaceSpecs(ifaceNode *sitter.Node, src []byte, c *plugin.Collect
 			specName := childText(child, "field_identifier", src)
 			if specName != "" {
 				scopedName := plugin.MakeScopedName(ifaceName, specName)
+				c.AddSymbol(&plugin.Symbol{
+					Name:       specName,
+					ScopedName: scopedName,
+					Category:   plugin.CategoryCallable,
+					Kind:       "method",
+					Signature:  buildFuncSignature(specName, extractParamStrings(child, src), extractReturnType(child, src)),
+					Properties: plugin.NewProps().SetBool("exported", isExported(specName)).SetBool("abstract", true).Map(),
+					Span:       nodeSpan(child),
+				})
 				c.AddEdge(plugin.Edge{
 					From: ifaceName,
 					To:   scopedName,
 					Kind: plugin.EdgeContains,
 				})
 			}
-		case "type_identifier":
-			// Interface embedding → implements edge.
-			embeddedName := child.Utf8Text(src)
-			if embeddedName != "" {
+		case "type_elem":
+			// A union or ~T is a type constraint, not an embedded interface.
+			if child.NamedChildCount() == 1 && child.NamedChild(0).Kind() != "negated_type" {
+				embeddedName := child.Utf8Text(src)
 				c.AddEdge(plugin.Edge{
 					From: ifaceName,
 					To:   embeddedName,

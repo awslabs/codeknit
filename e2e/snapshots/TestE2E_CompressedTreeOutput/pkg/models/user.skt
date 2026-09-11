@@ -1,7 +1,11 @@
 [symbols]
 ## pkg/models/user.go
-S23 d11 L3-L7 User {d4}
-S24 d0 L9-L11 NewUser(name: string) -> *S23 {d4}
+S26 d11 L3-L7 User {d4}
+S27 d12 L4-L4 ID: int {d4}
+S28 d12 L5-L5 Name: string {d4}
+S29 d12 L6-L6 Email: string {d4}
+S30 d0 L9-L11 NewUser(name: string, email: string) -> *S26 {d4}
 
 [edges]
-S24 --d9--> S23
+S26 --d3--> S27, S28, S29
+S30 --d9--> S26
