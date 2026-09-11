@@ -1,21 +1,17 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This changelog tracks releases of the Codeknit Go package and CLI. Documentation-only changes, translations, and website dependency updates are excluded.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
-
-### Added
-
-- Added Thai and Indonesian documentation translations, language selection, and agent documentation bundles.
 
 ## [0.4.0] - 2026-09-11
 
 ### Added
 
 - Added `--header-language c|cpp` to all source-processing CLI commands, retaining C as the default.
-- Added `.mts`, `.cts`, `.mjs`, and `.cjs` file support and a tested language capability matrix.
+- Added `.mts`, `.cts`, `.mjs`, and `.cjs` file support.
 
 ### Fixed
 
@@ -33,8 +29,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 
 - Updated go-git to v5.19.2, `golang.org/x/crypto` to v0.53.0, and `golang.org/x/net` to v0.56.0.
-- Refreshed documentation tooling dependencies, including the Astro language server, PostCSS, Prettier, SVGO, and YAML tooling.
-- Updated translated fingerprint guides and CLI references to describe semantic candidate discovery and reranking.
 
 ## [0.3.0] - 2026-07-22
 
@@ -47,8 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 - Improved fingerprint similarity scoring with category-aware comparisons, structural scoring for callables and modules, and payload-aware scoring for types and values.
 - Improved embedding inputs by removing path and symbol-name leakage, stripping comments, adding normalized structural context, and preserving both ends of long symbols with Unicode-safe truncation.
-- Updated CLI, TUI, README, and documentation wording from semantic reranking to semantic matching.
-- Updated the documentation site dependencies for Astro, Starlight, and Sharp.
+- Updated CLI and TUI wording from semantic reranking to semantic matching.
 
 ### Fixed
 
@@ -79,7 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
-- JSON output for `codeknit parse` via `--format json`, including CLI, TUI, docs, and skill documentation.
+- JSON output for `codeknit parse` via `--format json` in the CLI and TUI.
 
 ## [0.1.0] - 2026-06-16
 
@@ -147,7 +140,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Per-command configuration architecture (Docker-style options structs) following the patterns used in kubectl, docker, gh, and hugo
 - Deterministic output: planner iterates module maps in sorted key order so rerunning the tool produces byte-identical output
 - Skill files for AI coding assistants in `skills/codeknit-parse/` and `skills/codeknit-fingerprint/`
-- Generated documentation pipeline (`docs/gen`) using Amazon Bedrock for English and translations into Spanish, French, Italian, German, Japanese, Korean, Vietnamese, and Simplified Chinese
 - Third-party license generation via `make third-party-licenses`
 - Cross-plugin property test enforcing uniform signature format across all supported languages
 
