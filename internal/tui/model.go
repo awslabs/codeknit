@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"codeknit/internal/config"
+	"codeknit/internal/scanpolicy"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -342,6 +343,7 @@ func (m *Model) SelectedCommand() SelectedCommandKind {
 func (m *Model) common() config.Common {
 	w, _ := strconv.Atoi(m.Workers)
 	return config.Common{
+		Scan:        scanpolicy.Options{MaxFileSize: scanpolicy.DefaultMaxFileSize},
 		InputPath:   m.InputPath,
 		Workers:     w,
 		CollectTest: m.CollectTest,

@@ -28,7 +28,7 @@ Do not use it for: "what does this function do", "find callers of X", or other s
 codeknit fingerprint ./src
 
 # Exact duplicates only
-codeknit fingerprint ./src --min-similarity 100
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 
 # Moderately similar code (50-80%)
 codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
@@ -116,7 +116,7 @@ Format: `<symbol-name>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`
 - Start with the default range (65-95%) — it's tuned to surface real duplicates without noise
 - Use `--rerank` to filter false positives via semantic embeddings when the CTPH results are noisy
 - Drop to 50-80% only when hunting for conceptual duplicates across divergent implementations
-- Use `--min-similarity 100` for a quick sanity check before merging two branches or after a bulk copy
+- Use `--min-similarity 100 --max-similarity 100` for a quick sanity check before merging two branches or after a bulk copy
 
 ## Workflow
 
@@ -143,3 +143,9 @@ This makes fingerprint detection robust against rename-refactors and cross-langu
 - Symbols with very short bodies (fewer than 4 tokens after normalization) are skipped — trivial getters and one-liners don't produce useful fingerprints
 - Cross-language matches work for equivalent constructs (a loop is a loop), but language-specific constructs (Go channels, Python decorators) can produce spurious low-similarity matches
 - The similarity score is a heuristic over a rolling hash, not an edit distance on source — treat percentages as a ranking, not an exact metric
+
+## Retrieval and scan limits
+
+Exact normalized-token candidates in the same category are complete even at or above 500 eligible symbols. Other pairs use approximate top-50 structural retrieval at that threshold. Identical tokens are not proof of identical semantics; optional reranking and the selected similarity range can filter exact candidates. Fixed inputs and scores produce deterministic ordering. Embeddings use the parsed source snapshot.
+
+Use repeatable `--include GLOB` / `--exclude GLOB` to select input-relative paths, `--max-file-size BYTES` to change the 10 MiB default (`0` unlimited), and `--strict` to reject scan or parse diagnostics before output publication. Symlinks are skipped and reported. Inspect stderr for partial analyses. The maintained contract and calibration limits are in `docs/reference/analysis-reliability.md`.

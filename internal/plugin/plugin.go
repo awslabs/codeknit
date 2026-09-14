@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"unsafe"
 
 	"codeknit/internal/common/extract"
@@ -101,6 +102,12 @@ type LanguagePlugin interface {
 	Parse(filePath string) ([]Symbol, []Edge, error)
 }
 
+// SourceParser accepts bytes already read within the pipeline's scan boundary.
+// Plugins can implement this alongside LanguagePlugin to avoid reopening files.
+type SourceParser interface {
+	ParseSource(filePath string, source []byte, fingerprint bool) ([]Symbol, []Edge, error)
+}
+
 // TestConfig describes how to detect test files for a language.
 type TestConfig struct {
 	NameSuffixes []string
@@ -170,11 +177,26 @@ func (b *BasePlugin) ParseWithOptions(filePath string, fingerprint bool) (symbol
 	if err != nil {
 		return nil, nil, fmt.Errorf("read %s: %w", filePath, err)
 	}
+	return b.ParseSource(filePath, src, fingerprint)
+}
+
+// ParseSource extracts declarations from a source snapshot without filesystem access.
+func (b *BasePlugin) ParseSource(filePath string, src []byte, fingerprint bool) (symbols []Symbol, edges []Edge, err error) {
 	lang := b.TSLang
 	if variant, ok := b.LanguageByExtension[filepath.Ext(filePath)]; ok {
 		lang = variant
 	}
-	return ParseWithTreeSitter(filePath, src, lang, b.Extract, fingerprint)
+	symbols, edges, err = ParseWithTreeSitter(filePath, src, lang, b.Extract, fingerprint)
+	if fingerprint {
+		lines := strings.Split(string(src), "\n")
+		for i := range symbols {
+			start, end := symbols[i].Span[0]-1, symbols[i].Span[1]
+			if start >= 0 && start < len(lines) && end > start {
+				symbols[i].SourceBody = strings.Join(lines[start:min(end, len(lines))], "\n")
+			}
+		}
+	}
+	return symbols, edges, err
 }
 
 // Registry holds registered language plugins keyed by extension.

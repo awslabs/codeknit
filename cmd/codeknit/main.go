@@ -141,10 +141,11 @@ func progressCallbacks(con *console.Console) (onScan func(visited, matched int),
 
 // buildGraphResult runs the shared scan→parse pipeline and prints any warnings.
 // Returns the GraphResult or an error.
-func buildGraphResult(cfg config.Common, con *console.Console) (*pipeline.GraphResult, error) {
+func buildGraphResult(cfg *config.Common, con *console.Console) (*pipeline.GraphResult, error) {
 	registry, initDur := newRegistry(cfg.HeaderLanguage)
 	onScan, onParse := progressCallbacks(con)
-	gr, err := pipeline.BuildGraph(pipeline.BuildOptions{
+	gr, err := pipeline.BuildGraph(&pipeline.BuildOptions{
+		Scan:        cfg.Scan,
 		InputPath:   cfg.InputPath,
 		Workers:     cfg.Workers,
 		CollectTest: cfg.CollectTest,
@@ -165,7 +166,7 @@ func buildGraphResult(cfg config.Common, con *console.Console) (*pipeline.GraphR
 // runGraphShow executes the graph-show pipeline.
 func runGraphShow(cfg *config.GraphConfig, con *console.Console) error {
 	con.SetVerbose(cfg.Verbose)
-	gr, err := buildGraphResult(cfg.Common, con)
+	gr, err := buildGraphResult(&cfg.Common, con)
 	if err != nil {
 		return err
 	}
@@ -188,7 +189,7 @@ func runGraphShow(cfg *config.GraphConfig, con *console.Console) error {
 // runGraphAnalyze executes the graph-analyze pipeline.
 func runGraphAnalyze(cfg *config.AnalyzeConfig, con *console.Console) error {
 	con.SetVerbose(cfg.Verbose)
-	gr, err := buildGraphResult(cfg.Common, con)
+	gr, err := buildGraphResult(&cfg.Common, con)
 	if err != nil {
 		return err
 	}
@@ -215,7 +216,7 @@ func runGraphAnalyze(cfg *config.AnalyzeConfig, con *console.Console) error {
 // runGraphHotspots executes Git history and structural hotspot analysis.
 func runGraphHotspots(cfg *config.HotspotConfig, con *console.Console) error {
 	con.SetVerbose(cfg.Verbose)
-	gr, err := buildGraphResult(cfg.Common, con)
+	gr, err := buildGraphResult(&cfg.Common, con)
 	if err != nil {
 		return err
 	}

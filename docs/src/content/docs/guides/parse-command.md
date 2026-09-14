@@ -48,11 +48,11 @@ Use `--output-mode` to control how output is structured. Three modes are availab
 | ---------------- | ---------------- | ---------------------------------------------------------------------------- |
 | `--output-mode`  | `directory-flat` | Output mode: `inline`, `directory-flat`, or `directory-tree`                 |
 | `--format`       | `skt`            | Output format: `skt` or `json`                                               |
-| `--max-lines`    | `500`            | Maximum lines per output file in flat/tree modes                             |
+| `--max-lines`    | `500`            | Tree source-chunk limit (minimum 3); flat keeps source blocks intact                             |
 | `--collect-test` | `false`          | Include test files in analysis                                               |
 | `--minify`       | `false`          | Enable dictionary-based compression to reduce token usage                    |
 | `--edges`        | `false`          | Include the `[edges]` section with relationship data (calls, contains, etc.) |
-| `--clean`        | `false`          | Remove existing `.skt` files in the output directory before writing          |
+| `--clean`        | `false`          | Replace previous generated output only after successful generation          |
 | `--workers`      | `NumCPU`         | Maximum number of concurrent parsing goroutines (0 = use all CPU cores)      |
 | `--verbose`      | `false`          | Print progress and timing information during processing                      |
 
@@ -152,13 +152,13 @@ Dependency metrics exclude uncertain relationships. The HTML graph shows their c
 
 If the output directory already contains `.skt` files from a previous run, `codeknit` will refuse to write new output to prevent mixing stale and fresh data.
 
-To override this behavior and clean the output directory before writing, use the `--clean` flag:
+To replace previous generated output only after successful generation, use the `--clean` flag:
 
 ```bash
 codeknit parse ./src --clean
 ```
 
-This ensures a fresh, consistent output set.
+Generation is staged, with backup/rollback and next-run recovery for interrupted publication. Unrelated output-directory entries are preserved unless they conflict with generated paths. JSON mode applies stale-output protection to `codeknit.json`.
 
 When upgrading to `0.5.0`, regenerate the entire output set. Symbol IDs and relationship results can change; do not mix chunks from different runs.
 
@@ -170,3 +170,7 @@ When upgrading to `0.5.0`, regenerate the entire output set. Symbol IDs and rela
 - 🧾 Use `--format json` when a script or integration needs structured data instead of `.skt`.
 - 🧹 Always use `--clean` when re-running on the same output directory.
 - 📁 Use `directory-tree` if you want to correlate `.skt` files directly with source files in your editor.
+
+## Scan and output reliability
+
+Unreleased changes after 0.5.0 add repeatable `--include GLOB` / `--exclude GLOB`, `--max-file-size BYTES` (10 MiB default, `0` unlimited), and `--strict`. Quote input-relative globs. Includes do not override ignore rules or test filtering. Symlinks are skipped and reported. Partial results include diagnostics; strict mode fails before output publication. Tree files retain source extensions (`foo.c.skt`, `foo.h.skt`); parts use `foo.c_partN.skt` and repeat source headers. See [analysis reliability](../../reference/analysis-reliability/) for the full contract.

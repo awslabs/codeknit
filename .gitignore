@@ -33,6 +33,10 @@ docs/src/content/.translation-hashes.json
 # codeknit output file
 *.skt
 skeleton/*.html
+.*.codeknit.lock
+.*.codeknit-backup/
+.*.codeknit-stage-*/
+.codeknit-file-*
 
 # but track snapshot .skt files used by e2e tests
 !e2e/snapshots/**/*.skt

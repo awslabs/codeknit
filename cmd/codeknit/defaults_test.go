@@ -10,6 +10,7 @@ import (
 
 	"codeknit/internal/config"
 	"codeknit/internal/console"
+	"codeknit/internal/scanpolicy"
 
 	"github.com/spf13/cobra"
 )
@@ -101,6 +102,15 @@ func TestCommandFlagDefaultsMatchConfig(t *testing.T) {
 			cmd := tc.newCmd(con)
 			if flag := cmd.Flags().Lookup("header-language"); flag == nil || flag.DefValue != config.DefaultHeaderLanguage {
 				t.Fatal("missing shared header-language default")
+			}
+			for name, want := range map[string]string{
+				"include": "[]", "exclude": "[]", "strict": "false",
+				"max-file-size": strconv.FormatInt(scanpolicy.DefaultMaxFileSize, 10),
+			} {
+				flag := cmd.Flags().Lookup(name)
+				if flag == nil || flag.DefValue != want {
+					t.Errorf("missing or incorrect shared scan flag %s: %+v", name, flag)
+				}
 			}
 			for name, want := range tc.flags {
 				flag := cmd.Flags().Lookup(name)

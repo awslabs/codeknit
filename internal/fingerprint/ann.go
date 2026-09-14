@@ -137,7 +137,13 @@ func (idx *ANNIndex) FindCandidates(k int) []Candidate {
 		candidates = append(candidates, Candidate{I: pk.i, J: pk.j, CosineSim: sim})
 	}
 	sort.Slice(candidates, func(a, b int) bool {
-		return candidates[a].CosineSim > candidates[b].CosineSim
+		if candidates[a].CosineSim != candidates[b].CosineSim {
+			return candidates[a].CosineSim > candidates[b].CosineSim
+		}
+		if candidates[a].I != candidates[b].I {
+			return candidates[a].I < candidates[b].I
+		}
+		return candidates[a].J < candidates[b].J
 	})
 	return candidates
 }
@@ -163,14 +169,23 @@ func (idx *ANNIndex) topK(a, k int) []neighbor {
 		if len(heap) < k {
 			heap = append(heap, neighbor{idx: b, sim: sim})
 			if len(heap) == k {
-				sort.Slice(heap, func(i, j int) bool { return heap[i].sim < heap[j].sim })
+				sortNeighbors(heap)
 			}
 		} else if sim > heap[0].sim {
 			heap[0] = neighbor{idx: b, sim: sim}
-			sort.Slice(heap, func(i, j int) bool { return heap[i].sim < heap[j].sim })
+			sortNeighbors(heap)
 		}
 	}
 	return heap
+}
+
+func sortNeighbors(neighbors []neighbor) {
+	sort.Slice(neighbors, func(i, j int) bool {
+		if neighbors[i].sim != neighbors[j].sim {
+			return neighbors[i].sim < neighbors[j].sim
+		}
+		return neighbors[i].idx > neighbors[j].idx
+	})
 }
 
 // tokenBigramVec builds a fixed-size feature vector from a token stream

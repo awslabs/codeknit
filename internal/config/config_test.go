@@ -39,7 +39,7 @@ func TestValidate_InputPathIsFile(t *testing.T) {
 	}
 }
 
-func TestValidate_CreatesOutputDir(t *testing.T) {
+func TestValidate_DoesNotCreateOutputDir(t *testing.T) {
 	inputDir := t.TempDir()
 	outputDir := filepath.Join(t.TempDir(), "nested", "output")
 
@@ -51,12 +51,8 @@ func TestValidate_CreatesOutputDir(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	info, err := os.Stat(outputDir)
-	if err != nil {
-		t.Fatalf("output directory was not created: %v", err)
-	}
-	if !info.IsDir() {
-		t.Fatal("output path is not a directory")
+	if _, err := os.Stat(outputDir); !os.IsNotExist(err) {
+		t.Fatalf("validation must leave output creation to the publisher: %v", err)
 	}
 }
 

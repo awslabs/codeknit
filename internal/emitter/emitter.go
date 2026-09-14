@@ -6,11 +6,13 @@ package emitter
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"codeknit/internal/config"
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 	"codeknit/internal/plugin"
 )
 
@@ -33,27 +35,86 @@ type Emitter struct{}
 // For inline mode it writes to stdout and returns an empty slice.
 // The SymbolGraph must have its indexes built (via BuildIndexes) before calling Emit.
 func (e *Emitter) Emit(sg *ir.SymbolGraph, opts *EmitOptions) ([]string, error) {
-	if opts.OutputFormat == config.OutputFormatJSON {
-		return e.emitJSON(sg, opts)
+	effective := *opts
+	if effective.MaxLines == 0 {
+		effective.MaxLines = config.DefaultParseMaxLines
 	}
-
-	switch opts.OutputMode {
-	case config.OutputInline:
-		err := e.EmitInline(os.Stdout, sg, opts)
+	if effective.OutputMode == config.OutputInline {
+		if effective.OutputFormat == config.OutputFormatJSON {
+			return e.emitJSON(sg, &effective)
+		}
+		return nil, e.EmitInline(os.Stdout, sg, &effective)
+	}
+	if effective.OutputFormat != config.OutputFormatJSON &&
+		effective.OutputMode == config.OutputDirectoryTree && effective.MaxLines < 3 {
+		return nil, fmt.Errorf("max-lines must be at least 3 for directory-tree SKT output")
+	}
+	if err := validateOutputLocation(effective.InputPath, effective.OutputDir); err != nil {
 		return nil, err
-
-	case config.OutputDirectoryTree:
-		if err := prepareOutputDir(opts.OutputDir, opts.Clean); err != nil {
-			return nil, err
-		}
-		return e.emitDirectoryTree(sg, opts)
-
-	default: // "" or directory-flat
-		if err := prepareOutputDir(opts.OutputDir, opts.Clean); err != nil {
-			return nil, err
-		}
-		return e.emitDirectoryFlat(sg, opts)
 	}
+	managed := func(path string) bool {
+		if effective.OutputFormat == config.OutputFormatJSON {
+			return path == "codeknit.json"
+		}
+		return filepath.Ext(path) == ".skt"
+	}
+	return outputfs.ReplaceDirectory(effective.OutputDir, effective.Clean, managed, func(stage string) ([]string, error) {
+		effective.OutputDir = stage
+		switch {
+		case effective.OutputFormat == config.OutputFormatJSON:
+			return e.emitJSON(sg, &effective)
+		case effective.OutputMode == config.OutputDirectoryTree:
+			return e.emitDirectoryTree(sg, &effective)
+		default:
+			return e.emitDirectoryFlat(sg, &effective)
+		}
+	})
+}
+
+func validateOutputLocation(input, output string) error {
+	if input == "" {
+		return nil
+	}
+	base, err := filepath.Abs(input)
+	if err != nil {
+		return err
+	}
+	if info, statErr := os.Stat(base); statErr == nil && !info.IsDir() {
+		base = filepath.Dir(base)
+	}
+	out, err := filepath.Abs(output)
+	if err != nil {
+		return err
+	}
+	base, err = physicalPath(base)
+	if err != nil {
+		return err
+	}
+	out, err = physicalPath(out)
+	if err != nil {
+		return err
+	}
+	if rel, err := filepath.Rel(out, base); err == nil && (rel == "." || filepath.IsLocal(rel)) {
+		return fmt.Errorf("output directory must not be the source directory or its ancestor")
+	}
+	return nil
+}
+
+// Resolve existing ancestors so symlink aliases cannot hide source/output
+// overlap. The final output directory need not exist yet.
+func physicalPath(path string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return resolved, nil
+	}
+	if !os.IsNotExist(err) || filepath.Dir(path) == path {
+		return "", err
+	}
+	parent, err := physicalPath(filepath.Dir(path))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(parent, filepath.Base(path)), nil
 }
 
 // fileBlock holds the rendered lines for one source file's symbols and edges.

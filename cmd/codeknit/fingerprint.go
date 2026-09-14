@@ -103,7 +103,8 @@ func runFingerprint(cfg *config.FingerprintConfig, con *console.Console) error {
 	registry, initDur := newRegistry(cfg.HeaderLanguage)
 
 	onScan, onParse := progressCallbacks(con)
-	gr, err := pipeline.BuildGraph(pipeline.BuildOptions{
+	gr, err := pipeline.BuildGraph(&pipeline.BuildOptions{
+		Scan:        cfg.Scan,
 		InputPath:   cfg.InputPath,
 		Workers:     cfg.Workers,
 		CollectTest: cfg.CollectTest,

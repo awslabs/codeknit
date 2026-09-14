@@ -10,6 +10,7 @@ import (
 
 	"codeknit/internal/config"
 	"codeknit/internal/console"
+	"codeknit/internal/scanpolicy"
 
 	"github.com/spf13/cobra"
 )
@@ -25,6 +26,7 @@ var (
 type commonOptions struct {
 	output         string
 	headerLanguage string
+	scan           scanpolicy.Options
 	workers        int
 	collectTest    bool
 	verbose        bool
@@ -32,12 +34,17 @@ type commonOptions struct {
 
 func (o *commonOptions) commonConfig(inputPath string) config.Common {
 	return config.Common{
+		Scan:      o.scan,
 		InputPath: inputPath, HeaderLanguage: o.headerLanguage,
 		Workers: o.workers, CollectTest: o.collectTest, Verbose: o.verbose,
 	}
 }
 
 func (o *commonOptions) addCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().StringArrayVar(&o.scan.Include, "include", nil, "include source paths matching a glob (repeatable, relative to input)")
+	cmd.Flags().StringArrayVar(&o.scan.Exclude, "exclude", nil, "exclude source paths matching a glob (repeatable, relative to input)")
+	cmd.Flags().Int64Var(&o.scan.MaxFileSize, "max-file-size", scanpolicy.DefaultMaxFileSize, "maximum source file size in bytes (0 disables the limit)")
+	cmd.Flags().BoolVar(&o.scan.Strict, "strict", false, "fail before writing output if any scan or parse diagnostics occur")
 	cmd.Flags().StringVar(&o.headerLanguage, "header-language", config.DefaultHeaderLanguage,
 		"parser for .h files: c, cpp")
 	cmd.Flags().BoolVar(&o.collectTest, "collect-test", config.DefaultCollectTest, "include test files in analysis")

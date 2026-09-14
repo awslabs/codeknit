@@ -7,6 +7,9 @@ package pipeline
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync/atomic"
@@ -31,13 +34,14 @@ type ParseResult struct {
 // count of files parsed so far.
 // When fingerprint is true, body token extraction is enabled for callable symbols.
 // Non-fatal errors (skipped files, syntax warnings) are collected in
-// ParseResult.Warnings.
+// ParseResult.Skipped and ParseResult.ParseErrors.
 func ParseFiles(
 	files []string,
 	registry *plugin.Registry,
 	workers int,
 	onProgress func(done, total int),
 	fingerprint bool,
+	readOptions ...ReadOptions,
 ) *ParseResult {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
@@ -47,6 +51,14 @@ func ParseFiles(
 	results := make([]fileResult, len(files))
 	total := len(files)
 	var completed int64
+	var reader *sourceReader
+	var openErr error
+	if len(readOptions) > 0 {
+		reader, openErr = openSourceReader(readOptions[0])
+		if reader != nil {
+			defer func() { _ = reader.root.Close() }()
+		}
+	}
 
 	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(workers)
@@ -72,7 +84,22 @@ func ParseFiles(
 				return nil
 			}
 
-			syms, edgs, err := plugin.ParseFile(p, file, fingerprint)
+			var syms []plugin.Symbol
+			var edgs []plugin.Edge
+			err := openErr
+			if err == nil && reader != nil {
+				var source []byte
+				source, err = reader.read(file)
+				if err == nil {
+					if parser, ok := p.(plugin.SourceParser); ok {
+						syms, edgs, err = parser.ParseSource(file, source, fingerprint)
+					} else {
+						err = errors.New("plugin does not support bounded source parsing")
+					}
+				}
+			} else if err == nil {
+				syms, edgs, err = plugin.ParseFile(p, file, fingerprint)
+			}
 			if err != nil {
 				var sw *plugin.SyntaxError
 				if errors.As(err, &sw) {
@@ -96,6 +123,76 @@ func ParseFiles(
 	// partial results are still useful.
 	_ = g.Wait()
 	return mergeResults(files, results)
+}
+
+// ReadOptions binds source reads to the scan root and enforces the size limit
+// again when reading, including files that grow after discovery.
+type ReadOptions struct {
+	Root        string
+	MaxFileSize int64
+}
+
+type sourceReader struct {
+	root *os.Root
+	opts ReadOptions
+}
+
+func openSourceReader(opts ReadOptions) (*sourceReader, error) {
+	root, err := os.OpenRoot(opts.Root)
+	if err != nil {
+		return nil, err
+	}
+	return &sourceReader{root: root, opts: opts}, nil
+}
+
+func (r *sourceReader) read(file string) ([]byte, error) {
+	rel, err := filepath.Rel(r.opts.Root, file)
+	if err != nil || !filepath.IsLocal(rel) {
+		return nil, fmt.Errorf("source %s is outside scan root", file)
+	}
+	info, err := r.root.Lstat(rel)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("source is no longer a regular file; symlinks are not followed")
+	}
+	f, err := r.root.Open(rel)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+	info, err = f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("source is no longer a regular file")
+	}
+	limit := r.opts.MaxFileSize
+	if limit > 0 && info.Size() > limit {
+		return nil, fmt.Errorf("file size %d exceeds max-file-size %d", info.Size(), limit)
+	}
+	var source io.Reader = f
+	if limit > 0 {
+		// Bound the allocation even if the source grows while being read.
+		source = io.LimitReader(f, limit)
+	}
+	data, err := io.ReadAll(source)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && int64(len(data)) == limit {
+		var extra [1]byte
+		n, err := f.Read(extra[:])
+		if n != 0 {
+			return nil, fmt.Errorf("source exceeds max-file-size %d while reading", limit)
+		}
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+	}
+	return data, nil
 }
 
 // fileResult holds the output of a single file parse for lock-free collection.

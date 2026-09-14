@@ -126,3 +126,5 @@ codeknit graph hotspots ./myproject
 codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
 codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```
+
+All five source-processing commands also accept repeatable --include GLOB and --exclude GLOB (gitignore-style patterns relative to input, excludes win, includes do not override .gitignore/test filtering), --max-file-size BYTES (10485760 default, 0 unlimited), and --strict (default false). Symlinks/non-regular files are skipped and reported; ancestor ignore rules are independent of CWD. Scan/parse failures appear on stderr and parse JSON errors / SKT [errors]. Strict mode rejects incomplete analysis before writing output; all-source read failure always fails. Use docs/reference/analysis-reliability.md from the source context for exact guarantees; link to the analysis-reliability reference.

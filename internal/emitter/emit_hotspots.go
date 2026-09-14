@@ -12,6 +12,7 @@ import (
 
 	"codeknit/internal/config"
 	"codeknit/internal/hotspot"
+	"codeknit/internal/outputfs"
 )
 
 // HotspotOptions controls hotspot result serialization.
@@ -41,7 +42,7 @@ func (e *Emitter) EmitHotspots(result *hotspot.Result, opts *HotspotOptions) err
 	if err != nil {
 		return fmt.Errorf("encode hotspots: %w", err)
 	}
-	if err := os.WriteFile(opts.OutputPath, content, 0o600); err != nil {
+	if err := outputfs.WriteFile(opts.OutputPath, content); err != nil {
 		return fmt.Errorf("write hotspots: %w", err)
 	}
 	return nil

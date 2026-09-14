@@ -36,7 +36,7 @@ Cover:
 
 5. Common patterns
    - Default scan: codeknit fingerprint ./src
-   - Exact duplicates only: codeknit fingerprint ./src --min-similarity 100
+   - Exact duplicates only: codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
    - Moderately similar code: codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
    - Semantic reranking: codeknit fingerprint ./src --rerank
    - Semantic reranking with custom model: codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
@@ -56,3 +56,7 @@ Cover:
    - Use --rerank to filter false positives when CTPH results are noisy (requires Ollama with qwen3-embedding:0.6b)
    - Symbols with very short bodies (fewer than 4 normalized tokens) are skipped
    - Cross-language matches work for equivalent constructs but can produce spurious low-similarity matches for language-specific features
+
+All five source-processing commands also accept repeatable --include GLOB and --exclude GLOB (gitignore-style patterns relative to input, excludes win, includes do not override .gitignore/test filtering), --max-file-size BYTES (10485760 default, 0 unlimited), and --strict (default false). Symlinks/non-regular files are skipped and reported; ancestor ignore rules are independent of CWD. Scan/parse failures appear on stderr and parse JSON errors / SKT [errors]. Strict mode rejects incomplete analysis before writing output; all-source read failure always fails. Use docs/reference/analysis-reliability.md from the source context for exact guarantees; link to the analysis-reliability reference.
+
+Document retrieval completeness: below 500 eligible symbols, all same-category pairs are scored. At/above 500, complete exact normalized-token groups are retained independently of approximate top-50 near-duplicate candidates. Exact means identical full token streams in the same category, not identical source or semantic equivalence. The default 65-95 range excludes 100%; exact command needs both --min-similarity 100 --max-similarity 100. Semantic reranking and range filtering can remove exact candidates. Stable inputs/scores have deterministic ordering. The small labeled calibration fixture reports precision and recall separately from similarity and is not a real-world accuracy estimate. Embeddings use the parsed source snapshot. Do not describe ANN retrieval as subquadratic or reranking as eliminating all false positives.

@@ -143,18 +143,18 @@ codeknit
 Flags:
       --output-mode string   output mode: inline, directory-flat, directory-tree (default "directory-flat")
       --format string        output format: skt, json (default "skt")
-      --max-lines int        maximum lines per output file (default 500)
+      --max-lines int        line target for flat output; hard source-chunk limit >=3 for tree (default 500)
       --collect-test         include test files in analysis
       --minify               enable dictionary-based output minification
       --edges                include the [edges] section in output (off by default to save tokens)
-      --clean                remove stale .skt files from the output directory before writing
+      --clean                replace previous generated output after successful generation
       --verbose              print progress information during processing
       --workers int          max concurrent parsing goroutines (0 = NumCPU)
 ```
 
 The output directory defaults to `./skeleton` when not specified. You can override it by passing a second positional argument. In `inline` mode, no output directory is used — results go to stdout.
 
-If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to remove them automatically.
+If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to replace them after successful generation. Tree output preserves source extensions (`foo.c.skt`, `foo.h.skt`); split names include the extension (`foo.c_part1.skt`). Failed generation preserves previous results, and interrupted directory publication is recovered on the next run. JSON mode protects `codeknit.json` in the same way.
 
 With `--edges`, relationships that cannot be established remain visible as `--kind[unresolved]-->` or `--kind[ambiguous]-->` in SKT, with candidate IDs when available. JSON carries the same information in `resolution` and `candidates`. C/C++ includes use `meta/file` and `meta/include` symbols so their edges have short IDs; this does not imply compiler-level header resolution. See the [output format reference](skills/codeknit-parse/OUTPUT-FORMAT.md) for examples. When upgrading to `0.5.0`, regenerate all output chunks together because symbol IDs and relationship results can change.
 
@@ -187,7 +187,7 @@ codeknit parse ./src --max-lines 500 --workers 4
 codeknit fingerprint ./myproject
 
 # Find only exact duplicates
-codeknit fingerprint ./myproject --min-similarity 100
+codeknit fingerprint ./myproject --min-similarity 100 --max-similarity 100
 
 # Find moderately similar code (50-80%)
 codeknit fingerprint ./myproject --min-similarity 50 --max-similarity 80
@@ -221,6 +221,10 @@ Flags:
       --workers int          max concurrent parsing goroutines (0 = NumCPU)
       --verbose              print progress information during processing
 ```
+
+Exact normalized-token candidates are complete across the 500-symbol retrieval threshold. Near-duplicate retrieval at 500 or more eligible symbols is approximate (top-50 neighbors per symbol); similarity scores are heuristic rankings. Use `--min-similarity 100 --max-similarity 100` for exact structural matches. Optional semantic reranking can filter those candidates.
+
+All five source-processing commands accept `--include GLOB` and `--exclude GLOB` (repeatable, relative to the input), `--max-file-size BYTES` (10 MiB by default; `0` disables the limit), and `--strict`. Scans skip and report symlinks, oversized sources, and unreadable paths. Partial results retain diagnostics; strict mode fails before output is written. See the maintained [analysis reliability reference](docs/reference/analysis-reliability.md) for ignore semantics, publication guarantees, and calibration limits.
 
 ### Visualize codebase structure
 

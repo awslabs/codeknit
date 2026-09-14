@@ -262,6 +262,10 @@ func writeFixture(t *testing.T, files map[string]string) string {
 		t.Fatalf("writeFixture: mkdirtemp: %v", err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	// Each fixture is an independent project, unaffected by fixtures/.gitignore.
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o700); err != nil {
+		t.Fatalf("fixture repository boundary: %v", err)
+	}
 	for rel, content := range files {
 		abs := filepath.Join(dir, filepath.FromSlash(rel))
 		if err := os.MkdirAll(filepath.Dir(abs), 0o750); err != nil {
@@ -469,6 +473,10 @@ func writeFixtureForProperty(t *rapid.T, files map[string]string) string {
 	dir, err := os.MkdirTemp(base, "prop-*")
 	if err != nil {
 		t.Fatalf("writeFixtureForProperty: mkdirtemp: %v", err)
+	}
+	// Each fixture is an independent project, unaffected by fixtures/.gitignore.
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o700); err != nil {
+		t.Fatalf("fixture repository boundary: %v", err)
 	}
 	for rel, content := range files {
 		abs := filepath.Join(dir, filepath.FromSlash(rel))

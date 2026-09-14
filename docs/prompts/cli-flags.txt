@@ -18,7 +18,7 @@ All five source-processing commands (parse, graph show, graph analyze, graph hot
    --collect-test (bool, default false): include test files
    --minify (bool, default false): dictionary-based compression
    --edges (bool, default false): include the [edges] section in output (off by default to save tokens)
-   --clean (bool, default false): remove stale .skt files before writing
+   --clean (bool, default false): replace prior generated output only after successful generation
    --workers (int, default 0/NumCPU): max concurrent goroutines
    --verbose (bool, default false): print progress info
 
@@ -72,3 +72,5 @@ All five source-processing commands (parse, graph show, graph analyze, graph hot
    --help / -h: show help
 
 Present each command's flags in a table format.
+
+All five source-processing commands also accept repeatable --include GLOB and --exclude GLOB (gitignore-style patterns relative to input, excludes win, includes do not override .gitignore/test filtering), --max-file-size BYTES (10485760 default, 0 unlimited), and --strict (default false). Symlinks/non-regular files are skipped and reported; ancestor ignore rules are independent of CWD. Scan/parse failures appear on stderr and parse JSON errors / SKT [errors]. Strict mode rejects incomplete analysis before writing output; all-source read failure always fails. Use docs/reference/analysis-reliability.md from the source context for exact guarantees; link to the analysis-reliability reference.

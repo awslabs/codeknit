@@ -134,6 +134,10 @@ type mockPlugin struct {
 
 func (m *mockPlugin) Extensions() []string            { return m.exts }
 func (m *mockPlugin) TestPatterns() plugin.TestConfig { return plugin.TestConfig{} }
+func (m *mockPlugin) ParseSource(file string, _ []byte, _ bool) (symbols []plugin.Symbol, edges []plugin.Edge, err error) {
+	return m.Parse(file)
+}
+
 func (m *mockPlugin) Parse(_ string) (symbols []plugin.Symbol, edges []plugin.Edge, err error) {
 	return m.symbols, m.edges, m.err
 }

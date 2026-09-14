@@ -26,6 +26,7 @@ require (
 	github.com/tree-sitter/tree-sitter-scala v0.24.1
 	github.com/tree-sitter/tree-sitter-typescript v0.23.2
 	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.46.0
 	pgregory.net/rapid v1.3.0
 )
 
@@ -79,6 +80,5 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

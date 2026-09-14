@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 )
 
 // writeTask represents a single file write operation for parallel execution.
@@ -29,37 +30,10 @@ func (e *Emitter) emitDirectoryTree(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 
 	blocks := buildBlocks(sg, dict)
 
-	// Build a map from source file path to its block for quick lookup.
-	// Block file paths are absolute; normalize to relative (matching FileOrder)
-	// by stripping the InputPath prefix when present.
-	blockByFile := make(map[string]fileBlock, len(blocks))
-	for _, b := range blocks {
-		key := b.filePath
-		if opts.InputPath != "" {
-			rel, err := filepath.Rel(opts.InputPath, b.filePath)
-			if err == nil {
-				key = rel
-			}
-		}
-		blockByFile[key] = b
-	}
-
-	// Determine whether InputPath is a single file (not a directory).
-	singleFile := false
-	if info, err := os.Stat(opts.InputPath); err == nil && !info.IsDir() {
-		singleFile = true
-	}
-
-	// Write auxiliary files (dict + errors as separate .skt files in tree mode).
+	// Write auxiliary output into the unpublished staging directory.
 	aux, auxErr := writeAuxFiles(opts, dict, sg)
 	if auxErr != nil {
 		return nil, auxErr
-	}
-
-	// Use FileOrder to determine output structure; fall back to sg.FileOrder from blocks.
-	order := opts.FileOrder
-	if len(order) == 0 {
-		order = sg.FileOrder
 	}
 
 	// Phase 1: prepare all write tasks sequentially (content rendering + path computation).
@@ -67,21 +41,14 @@ func (e *Emitter) emitDirectoryTree(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 	var tasks []writeTask
 	dirs := make(map[string]struct{})
 
-	for _, srcRel := range order {
-		block, ok := blockByFile[srcRel]
-		if !ok {
-			continue
+	for _, block := range blocks {
+		srcRel, err := treeSourcePath(block.filePath, opts.InputPath)
+		if err != nil {
+			return nil, err
 		}
-
-		ext := filepath.Ext(srcRel)
-		outRel := strings.TrimSuffix(srcRel, ext) + ".skt"
-
-		var outBase string
-		if singleFile {
-			outBase = filepath.Join(opts.OutputDir, filepath.Base(outRel))
-		} else {
-			outBase = filepath.Join(opts.OutputDir, outRel)
-		}
+		// Keep the source extension to distinguish foo.c, foo.h and foo.go,
+		// and to reserve dict.skt and warnings.skt for auxiliary output.
+		outBase := filepath.Join(opts.OutputDir, srcRel+".skt")
 
 		content := renderTreeFileContent(block)
 
@@ -106,6 +73,10 @@ func (e *Emitter) emitDirectoryTree(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 				tasks = append(tasks, writeTask{path: partPath, content: partContent})
 			}
 		}
+	}
+
+	if err := validateTreePaths(tasks, aux); err != nil {
+		return nil, err
 	}
 
 	// Phase 2: create all directories up front (sequential — cheap and avoids races).
@@ -137,7 +108,7 @@ func (e *Emitter) emitDirectoryTree(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 			defer wg.Done()
 			for i := range ch {
 				t := tasks[i]
-				if err := os.WriteFile(t.path, []byte(t.content), 0o600); err != nil {
+				if err := outputfs.WriteFile(t.path, []byte(t.content)); err != nil {
 					errs[i] = fmt.Errorf("writing %s: %w", t.path, err)
 					return
 				}
@@ -170,6 +141,41 @@ func (e *Emitter) emitDirectoryTree(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 	return written, nil
 }
 
+// Validate the entire namespace before parallel writes, including directories
+// and auxiliary files. Reject case-only collisions for portable output trees.
+func validateTreePaths(tasks []writeTask, aux auxPaths) error {
+	paths := make(map[string]string, len(tasks)+2)
+	register := func(path string) error {
+		if path == "" {
+			return nil
+		}
+		key := strings.ToLower(filepath.Clean(path))
+		if previous, exists := paths[key]; exists {
+			return fmt.Errorf("tree output collision between %s and %s", previous, path)
+		}
+		paths[key] = path
+		return nil
+	}
+	for _, task := range tasks {
+		if err := register(task.path); err != nil {
+			return err
+		}
+	}
+	for _, path := range []string{aux.Dict, aux.Errors} {
+		if err := register(path); err != nil {
+			return err
+		}
+	}
+	for key, path := range paths {
+		for dir := filepath.Dir(key); dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+			if file, exists := paths[dir]; exists {
+				return fmt.Errorf("tree output %s conflicts with directory needed by %s", file, path)
+			}
+		}
+	}
+	return nil
+}
+
 // renderTreeFileContent renders the output content for a single source file in tree mode.
 func renderTreeFileContent(block fileBlock) string {
 	var lines []string
@@ -191,67 +197,58 @@ func renderTreeFileContent(block fileBlock) string {
 // each not exceeding maxLines. Each part is a self-contained output chunk with proper
 // section headers ([symbols], [edges]).
 func splitTreeContent(block fileBlock, maxLines int) []string {
-	symbolLines := block.symbolLines
-	edgeLines := block.edgeLines
-
+	// Public emitters reject smaller budgets. Keep this helper total as well.
+	if maxLines < 3 {
+		return nil
+	}
+	header := "## " + block.filePath
+	symbols := block.symbolLines
+	if len(symbols) > 0 && strings.HasPrefix(symbols[0], "## ") {
+		header, symbols = symbols[0], symbols[1:]
+	}
+	edges := block.edgeLines
 	var parts []string
-
-	symIdx := 0
-	edgeIdx := 0
-
-	for symIdx < len(symbolLines) || edgeIdx < len(edgeLines) {
-		var lines []string
-		lineCount := 0
-
-		// Add [symbols] header.
-		lines = append(lines, "[symbols]")
-		lineCount++
-
-		// Fill with symbol lines up to maxLines.
-		for symIdx < len(symbolLines) && lineCount < maxLines {
-			lines = append(lines, symbolLines[symIdx])
-			lineCount++
-			symIdx++
-		}
-
-		// If we still have room and there are edge lines, add them.
-		if edgeIdx < len(edgeLines) && lineCount+2 < maxLines {
+	for len(symbols) > 0 {
+		n := min(len(symbols), maxLines-2)
+		lines := append([]string{"[symbols]", header}, symbols[:n]...)
+		symbols = symbols[n:]
+		if len(symbols) == 0 && maxLines-len(lines) >= 3 && len(edges) > 0 {
+			count := min(len(edges), maxLines-len(lines)-2)
 			lines = append(lines, "", "[edges]")
-			lineCount += 2
-			for edgeIdx < len(edgeLines) && lineCount < maxLines {
-				lines = append(lines, edgeLines[edgeIdx])
-				lineCount++
-				edgeIdx++
-			}
+			lines = append(lines, edges[:count]...)
+			edges = edges[count:]
 		}
-
 		parts = append(parts, strings.Join(lines, "\n")+"\n")
 	}
-
-	// If there are remaining edge lines that didn't fit, create additional parts for them.
-	for edgeIdx < len(edgeLines) {
-		var lines []string
-		lineCount := 0
-
-		lines = append(lines, "[symbols]")
-		lineCount++
-
-		lines = append(lines, "", "[edges]")
-		lineCount += 2
-
-		for edgeIdx < len(edgeLines) && lineCount < maxLines {
-			lines = append(lines, edgeLines[edgeIdx])
-			lineCount++
-			edgeIdx++
-		}
-
+	for len(edges) > 0 {
+		n := min(len(edges), maxLines-1)
+		lines := append([]string{"[edges]"}, edges[:n]...)
 		parts = append(parts, strings.Join(lines, "\n")+"\n")
+		edges = edges[n:]
 	}
-
-	// Edge case: if no parts were created (empty block), return one empty part.
 	if len(parts) == 0 {
-		parts = append(parts, "[symbols]\n")
+		parts = append(parts, "[symbols]\n"+header+"\n")
 	}
-
 	return parts
+}
+
+func treeSourcePath(file, input string) (string, error) {
+	base := input
+	if info, err := os.Stat(base); err == nil && !info.IsDir() {
+		base = filepath.Dir(base)
+	}
+	rel := file
+	if base != "" && filepath.IsAbs(file) {
+		var err error
+		rel, err = filepath.Rel(base, file)
+		if err != nil {
+			return "", err
+		}
+	} else if filepath.IsAbs(file) {
+		rel = filepath.Base(file)
+	}
+	if !filepath.IsLocal(rel) || rel == "." {
+		return "", fmt.Errorf("source %q is outside input %q", file, input)
+	}
+	return rel, nil
 }

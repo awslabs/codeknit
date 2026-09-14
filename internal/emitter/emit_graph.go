@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 )
 
 // graphSymbol is the JSON structure for a symbol in the graph HTML.
@@ -62,7 +63,7 @@ func (e *Emitter) EmitGraph(sg *ir.SymbolGraph, outputPath string) error {
 		}
 	}
 
-	if err := os.WriteFile(outputPath, []byte(html), 0o600); err != nil {
+	if err := outputfs.WriteFile(outputPath, []byte(html)); err != nil {
 		return fmt.Errorf("write graph HTML: %w", err)
 	}
 

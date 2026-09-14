@@ -45,31 +45,31 @@ codeknit parse ./src --output-mode directory-tree
 
 The output directory defaults to `./skeleton` for `directory-flat` and `directory-tree` modes. Pass a second argument to override it. In `inline` mode no directory is created. The default output format is `.skt`; pass `--format json` for machine-readable JSON. In directory modes, JSON is written as `codeknit.json`.
 
-If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to remove them automatically.
+If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to replace them only after successful generation. Failed generation preserves the previous output.
 
 | Flag             | Default          | Description                                                           |
 | ---------------- | ---------------- | --------------------------------------------------------------------- |
 | `--output-mode`  | `directory-flat` | `inline`, `directory-flat`, or `directory-tree`                       |
 | `--format`       | `skt`            | Output format: `skt` or `json`                                        |
-| `--max-lines`    | `500`            | Max lines per output file (flat/tree modes)                           |
+| `--max-lines`    | `500`            | Tree source-chunk limit (minimum 3); flat keeps source blocks intact  |
 | `--collect-test` | `false`          | Include test files in analysis                                        |
 | `--minify`       | `false`          | Dictionary-based compression of repeated tokens                       |
 | `--edges`        | `false`          | Include the [edges] section in output (off by default to save tokens) |
-| `--clean`        | `false`          | Remove stale .skt files from output dir before writing                |
+| `--clean`        | `false`          | Replace prior generated output after successful generation            |
 | `--workers`      | `NumCPU`         | Max concurrent parsing goroutines                                     |
 | `--verbose`      | `false`          | Print progress and timing info                                        |
 
 ## Choosing an output mode
 
-| Mode             | Best for                                | Output location                                                                       |
-| ---------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
-| `inline`         | A single file, piping to another tool   | Dumps everything to stdout — only use for single files or very small projects         |
-| `directory-flat` | Most projects (default, recommended)    | `./skeleton/map_001.skt`, `map_002.skt`, ... — chunked, read only what you need       |
-| `directory-tree` | Navigating output alongside source code | `./skeleton/<mirrored path>.skt` — one `.skt` per source file, mirrors the input tree |
+| Mode             | Best for                                | Output location                                                                     |
+| ---------------- | --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `inline`         | A single file, piping to another tool   | Dumps everything to stdout — only use for single files or very small projects       |
+| `directory-flat` | Most projects (default, recommended)    | `./skeleton/map_001.skt`, `map_002.skt`, ... — chunked, read only what you need     |
+| `directory-tree` | Navigating output alongside source code | `./skeleton/<source name with extension>.skt`; split names use `<source>_partN.skt` |
 
-| Format | Best for                           | Output                                                   |
-| ------ | ---------------------------------- | -------------------------------------------------------- |
-| `skt`  | LLM context and human inspection   | `.skt` files or stdout                                   |
+| Format | Best for                           | Output                                                    |
+| ------ | ---------------------------------- | --------------------------------------------------------- |
+| `skt`  | LLM context and human inspection   | `.skt` files or stdout                                    |
 | `json` | Scripts and structured integration | `codeknit.json` in directory modes, or stdout in `inline` |
 
 Rules of thumb:
@@ -139,3 +139,7 @@ The output is a `.skt` file — read it the same way you read parse output.
 7. For re-runs, add `--clean` to remove previous output: `codeknit parse ./src --clean`
 8. For single-file quick inspection only, use `codeknit parse ./file.ts --output-mode inline`
 9. For scripts or integrations, use `codeknit parse ./src --output-mode inline --format json --edges`
+
+## Scan reliability
+
+All source commands support repeatable `--include GLOB` / `--exclude GLOB`, `--max-file-size BYTES` (10 MiB default, `0` unlimited), and `--strict`. Quote globs and make them relative to the input root. Includes do not override ignore rules or test filtering. Symlinks are skipped and reported. Inspect stderr and JSON `errors` / SKT `[errors]`; use `--strict` when incomplete analysis must fail before writing output. See `docs/reference/analysis-reliability.md` for the maintained contract.

@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- Shared `--include`, `--exclude`, `--max-file-size` (10 MiB default), and `--strict` controls for source-processing commands.
+- Scan diagnostics for unreadable paths, skipped symlinks, non-regular sources, and size limits; strict mode rejects incomplete analysis before writing output.
+
+### Changed
+
+- Tree output preserves source extensions (`foo.c.skt`, `foo.h.skt`) and requires at least three lines per source chunk.
+- Generate directory output in staging, preserve unrelated files, and publish with locking, rollback, and recovery after interrupted replacement; replace individual reports without truncating existing files.
+- Disclose approximate near-duplicate retrieval for large inputs; embedding reranking uses the parsed source snapshot.
+
+### Fixed
+
+- Parse single-file inputs correctly and return a failure when no source files can be read.
+- Prevent tree output collisions and chunking hangs; retain source headers and relationships across split files.
+- Prevent nested blocks and same-line neighboring declarations from replacing callable fingerprints.
+- Preserve every exact normalized-token duplicate pair across the 500-symbol retrieval threshold and make tied match ordering deterministic.
+- Apply ancestor ignore rules independently of the working directory, respect repository boundaries, confine source reads, and enforce file-size limits while reading.
+
 ## [0.5.0] - 2026-09-14
 
 ### Changed

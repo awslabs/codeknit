@@ -16,6 +16,7 @@ import (
 	"codeknit/internal/fingerprint"
 	"codeknit/internal/ir"
 	"codeknit/internal/ollama"
+	"codeknit/internal/outputfs"
 	"codeknit/internal/plugin"
 )
 
@@ -82,7 +83,7 @@ func (e *Emitter) EmitFingerprints(sg *ir.SymbolGraph, opts *FingerprintOptions)
 			return nil, fmt.Errorf("create output directory: %w", err)
 		}
 	}
-	if err := os.WriteFile(opts.OutputPath, []byte(content), 0o600); err != nil {
+	if err := outputfs.WriteFile(opts.OutputPath, []byte(content)); err != nil {
 		return nil, fmt.Errorf("write fingerprints: %w", err)
 	}
 
@@ -115,12 +116,8 @@ type fpMatch struct {
 
 // collectFingerprints walks the SymbolGraph and hashes every symbol with
 // body tokens. Symbols whose tokens are too short for fuzzy hashing are skipped.
-// For each entry, the raw source lines are read from disk (when available)
-// so the embedding model can operate on real code rather than pseudo-code.
+// Embedding input uses the same bounded source snapshot as extraction.
 func collectFingerprints(sg *ir.SymbolGraph) []fpEntry {
-	// Cache file contents to avoid re-reading the same file for every symbol.
-	fileCache := make(map[string][]string)
-
 	entries := make([]fpEntry, 0, len(sg.Symbols))
 	for i := range sg.Symbols {
 		sym := &sg.Symbols[i]
@@ -132,56 +129,17 @@ func collectFingerprints(sg *ir.SymbolGraph) []fpEntry {
 			continue
 		}
 
-		src := extractSourceBody(sym.FilePath, sym.Span, fileCache)
-
 		entries = append(entries, fpEntry{
 			filePath:   sym.FilePath,
 			name:       sym.EffectiveScopedName(),
 			fp:         fp,
 			tokens:     sym.BodyTokens,
-			sourceBody: src,
+			sourceBody: sym.SourceBody,
 			span:       sym.Span,
 			category:   sym.Category,
 		})
 	}
 	return entries
-}
-
-// extractSourceBody reads the source lines for a symbol from disk.
-// Returns "" if the file cannot be read or the span is invalid.
-func extractSourceBody(filePath string, span [2]int, cache map[string][]string) string {
-	if span[0] <= 0 || span[1] <= 0 || span[0] > span[1] {
-		return ""
-	}
-
-	lines, ok := cache[filePath]
-	if !ok {
-		data, err := os.ReadFile(filePath) //nolint:gosec // file paths come from the parsed symbol graph
-		if err != nil {
-			cache[filePath] = nil
-			return ""
-		}
-		lines = strings.Split(string(data), "\n")
-		cache[filePath] = lines
-	}
-	if lines == nil {
-		return ""
-	}
-
-	// Span is 1-based [start, end] inclusive.
-	start := span[0] - 1
-	end := span[1]
-	if start < 0 {
-		start = 0
-	}
-	if end > len(lines) {
-		end = len(lines)
-	}
-	if start >= end {
-		return ""
-	}
-
-	return strings.Join(lines[start:end], "\n")
 }
 
 // annThreshold is the minimum number of entries above which the ANN
@@ -195,9 +153,8 @@ const annThreshold = 500
 // both signals — requiring agreement from both reduces false positives from
 // short functions with similar control flow but different semantics.
 //
-// For large codebases (≥500 symbols), an ANN pre-filter narrows the search
-// to the top-K nearest neighbors per symbol, reducing complexity from O(N²)
-// to O(N·K).
+// Large inputs retain every exact token match, then use top-K retrieval for
+// approximate near-duplicate matching. Retrieval itself remains quadratic.
 func findDuplicates(entries []fpEntry, minSim, maxSim int) []fpMatch {
 	if len(entries) >= annThreshold {
 		return findDuplicatesANN(entries, minSim, maxSim)
@@ -215,9 +172,7 @@ func findDuplicatesBrute(entries []fpEntry, minSim, maxSim int) []fpMatch {
 			}
 		}
 	}
-	sort.Slice(matches, func(a, b int) bool {
-		return matches[a].similarity > matches[b].similarity
-	})
+	sortMatches(matches)
 	return matches
 }
 
@@ -225,6 +180,7 @@ func findDuplicatesBrute(entries []fpEntry, minSim, maxSim int) []fpMatch {
 // bigrams to narrow the candidate set to top-K neighbors per symbol, then
 // scores only those candidates with the full CTPH + token-edit pipeline.
 func findDuplicatesANN(entries []fpEntry, minSim, maxSim int) []fpMatch {
+	exactGroups, groupIDs := groupExactFingerprints(entries)
 	groups := make(map[plugin.SymbolCategory][]int)
 	for i := range entries {
 		groups[entries[i].category] = append(groups[entries[i].category], i)
@@ -239,6 +195,22 @@ func findDuplicatesANN(entries []fpEntry, minSim, maxSim int) []fpMatch {
 	})
 
 	var matches []fpMatch
+	for _, indexes := range exactGroups {
+		if len(indexes) < 2 {
+			continue
+		}
+		template, ok := scorePair(entries, indexes[0], indexes[1], minSim, maxSim)
+		if !ok {
+			continue
+		}
+		for a, i := range indexes {
+			for _, j := range indexes[a+1:] {
+				match := template
+				match.i, match.j = i, j
+				matches = append(matches, match)
+			}
+		}
+	}
 	for _, category := range categories {
 		entryIndexes := groups[category]
 		if len(entryIndexes) < 2 {
@@ -261,15 +233,51 @@ func findDuplicatesANN(entries []fpEntry, minSim, maxSim int) []fpMatch {
 		for _, candidate := range idx.FindCandidates(fingerprint.DefaultANNK()) {
 			i := entryIndexes[candidate.I]
 			j := entryIndexes[candidate.J]
+			if groupIDs[i] == groupIDs[j] {
+				continue // all exact pairs were scored independently of top-K
+			}
 			if m, ok := scorePair(entries, i, j, minSim, maxSim); ok {
 				matches = append(matches, m)
 			}
 		}
 	}
-	sort.Slice(matches, func(a, b int) bool {
-		return matches[a].similarity > matches[b].similarity
-	})
+	sortMatches(matches)
 	return matches
+}
+
+// Compare complete normalized token streams, not just fuzzy-hash strings:
+// hash collisions must never create an exact duplicate group.
+func groupExactFingerprints(entries []fpEntry) (groups [][]int, ids []int) {
+	type key struct {
+		category plugin.SymbolCategory
+		tokens   string
+	}
+	byKey := make(map[key]int)
+	ids = make([]int, len(entries))
+	for i := range entries {
+		k := key{entries[i].category, string(entries[i].tokens)}
+		id, ok := byKey[k]
+		if !ok {
+			id = len(groups)
+			byKey[k] = id
+			groups = append(groups, nil)
+		}
+		ids[i] = id
+		groups[id] = append(groups[id], i)
+	}
+	return groups, ids
+}
+
+func sortMatches(matches []fpMatch) {
+	sort.Slice(matches, func(a, b int) bool {
+		if matches[a].similarity != matches[b].similarity {
+			return matches[a].similarity > matches[b].similarity
+		}
+		if matches[a].i != matches[b].i {
+			return matches[a].i < matches[b].i
+		}
+		return matches[a].j < matches[b].j
+	})
 }
 
 // scorePair computes the combined similarity for a single (i, j) pair.
@@ -596,6 +604,9 @@ func renderFingerprints(entries []fpEntry, matches []fpMatch, opts *FingerprintO
 
 	fmt.Fprintf(&b, "[duplicates]\n# similarity range: %d%%-%d%%\n",
 		opts.MinSimilarity, opts.MaxSimilarity)
+	if len(entries) >= annThreshold {
+		fmt.Fprintf(&b, "# retrieval: complete exact token matches; approximate near-duplicate candidates (top-%d per symbol)\n", fingerprint.DefaultANNK())
+	}
 	if opts.EmbedModel != "" {
 		fmt.Fprintf(&b, "# semantic model: %s  ranking: weighted(%.0f%% cosine, %.0f%% token, %.0f%% ctph)  cosine floor: %.2f+  semantic top-k: %d floor: %.2f\n",
 			opts.EmbedModel, weightCosine*100, weightTokenSim*100, weightCTPH*100,

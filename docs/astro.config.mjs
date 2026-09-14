@@ -62,6 +62,7 @@ export default defineConfig({
 						{ slug: 'reference/output-format' },
 						{ slug: 'reference/cli-flags' },
 						{ slug: 'reference/language-support' },
+						{ slug: 'reference/analysis-reliability' },
 					],
 				},
 			],

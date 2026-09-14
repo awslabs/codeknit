@@ -14,6 +14,7 @@ import (
 
 	"codeknit/internal/config"
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 	"codeknit/internal/plugin"
 )
 
@@ -225,7 +226,7 @@ func (e *Emitter) EmitGraphAnalysis(sg *ir.SymbolGraph, opts *AnalysisOptions) e
 		}
 	}
 
-	if err := os.WriteFile(opts.OutputPath, []byte(content), 0o600); err != nil {
+	if err := outputfs.WriteFile(opts.OutputPath, []byte(content)); err != nil {
 		return fmt.Errorf("write graph analysis: %w", err)
 	}
 

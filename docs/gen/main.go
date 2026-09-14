@@ -58,6 +58,7 @@ var pages = []Page{
 	{Prompt: "output-format", Output: "reference/output-format.md"},
 	{Prompt: "cli-flags", Output: "reference/cli-flags.md"},
 	{Source: "docs/reference/language-support.md", Output: "reference/language-support.md"},
+	{Source: "docs/reference/analysis-reliability.md", Output: "reference/analysis-reliability.md"},
 }
 
 // syncSourcePages restores maintained pages on every run, including --force and
@@ -420,6 +421,7 @@ func converse(ctx context.Context, client *bedrockruntime.Client, modelID, syste
 var sourceContextFiles = []string{
 	"README.md",
 	"docs/reference/language-support.md",
+	"docs/reference/analysis-reliability.md",
 	"skills/codeknit-parse/SKILL.md",
 	"skills/codeknit-parse/OUTPUT-FORMAT.md",
 }

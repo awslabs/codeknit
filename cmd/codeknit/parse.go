@@ -80,13 +80,13 @@ and directory-tree modes. For inline mode output is written to stdout.`,
 	cmd.Flags().StringVar(&opts.format, "format", string(config.DefaultParseOutputFormat),
 		"output format: skt, json")
 	cmd.Flags().IntVar(&opts.maxLines, "max-lines", config.DefaultParseMaxLines,
-		"maximum lines per output file")
+		"maximum lines per output file (tree SKT requires at least 3; flat keeps source blocks intact)")
 	opts.addCommonFlags(cmd)
 	cmd.Flags().BoolVar(&opts.minify, "minify", config.DefaultParseMinify,
 		"enable dictionary-based output minification")
 	cmd.Flags().BoolVar(&opts.edges, "edges", config.DefaultParseEdges,
 		"include the [edges] section in output (off by default)")
 	cmd.Flags().BoolVar(&opts.clean, "clean", config.DefaultParseClean,
-		"remove stale .skt files from the output directory before writing")
+		"replace previous generated output after successful generation")
 	return cmd
 }

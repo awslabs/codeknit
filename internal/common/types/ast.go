@@ -29,6 +29,8 @@ type Symbol struct {
 	Category   SymbolCategory
 	Kind       string
 	Signature  string
+	// SourceBody is the parsed source snapshot used for embedding reranking.
+	SourceBody string `json:"-"`
 	BodyTokens []byte
 	Span       [2]int
 	// ByteSpan retains declaration identity when names and line spans overlap.

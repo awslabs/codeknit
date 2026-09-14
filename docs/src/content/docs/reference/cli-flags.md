@@ -5,6 +5,19 @@ description: Complete reference for all codeknit commands and flags.
 
 All source-processing commands accept `--header-language c|cpp` for `.h` files. The default is `c`; choose `cpp` for C++ headers named `.h`. Other extensions are unaffected. See [language support](../language-support/) for the selection policy and tested extraction capabilities.
 
+## Shared scan controls
+
+All five source-processing commands accept these controls in addition to their command-specific flags:
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--include GLOB` | All supported sources | Repeatable, input-relative include patterns. |
+| `--exclude GLOB` | None | Repeatable exclude patterns; exclusions take precedence. |
+| `--max-file-size BYTES` | `10485760` | Source size limit (10 MiB); `0` disables it. |
+| `--strict` | `false` | Reject scan/parse diagnostics before writing results. |
+
+Quote globs. Includes do not override ignore rules or test filtering. Symlinks are skipped and reported. Partial analyses carry diagnostics on stderr and in parse JSON `errors` / SKT `[errors]`. See [analysis reliability](../analysis-reliability/) for scan boundaries and output guarantees. These controls describe unreleased changes after 0.5.0.
+
 ## codeknit
 
 Launches the interactive terminal UI (TUI), which guides you through available commands and options.
@@ -25,11 +38,11 @@ codeknit parse <input-path> [output-dir]
 | ---------------- | ------ | ---------------- | -------------------------------------------------------------------------------------- |
 | `--output-mode`  | string | `directory-flat` | Output mode: `inline`, `directory-flat`, or `directory-tree`                           |
 | `--format`       | string | `skt`            | Output format: `skt` or `json`                                                         |
-| `--max-lines`    | int    | `500`            | Maximum lines per output file (applies to `directory-flat` and `directory-tree` modes) |
+| `--max-lines`    | int    | `500`            | Tree source-chunk limit (minimum 3); flat retains whole source blocks |
 | `--collect-test` | bool   | `false`          | Include test files in analysis                                                         |
 | `--minify`       | bool   | `false`          | Enable dictionary-based output minification                                            |
 | `--edges`        | bool   | `false`          | Include the `[edges]` section in output (off by default to save tokens)                |
-| `--clean`        | bool   | `false`          | Remove stale `.skt` files from the output directory before writing                     |
+| `--clean`        | bool   | `false`          | Replace previous generated output only after successful generation                     |
 | `--workers`      | int    | `0` (NumCPU)     | Maximum concurrent parsing goroutines                                                  |
 | `--verbose`      | bool   | `false`          | Print progress information during processing                                           |
 

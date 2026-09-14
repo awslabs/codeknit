@@ -884,14 +884,14 @@ func TestDirectoryTreeSplit_ExceedsMaxLines(t *testing.T) {
 		}
 	}
 
-	// Verify each part has a [symbols] section.
+	// Every part identifies the section it contains.
 	for _, path := range written {
 		data, err := os.ReadFile(path) //nolint:gosec // test file path
 		if err != nil {
 			t.Fatalf("reading %s: %v", path, err)
 		}
-		if !strings.Contains(string(data), "[symbols]") {
-			t.Errorf("file %s missing [symbols] section", filepath.Base(path))
+		if !strings.Contains(string(data), "[symbols]") && !strings.Contains(string(data), "[edges]") {
+			t.Errorf("file %s missing section header", filepath.Base(path))
 		}
 	}
 }
@@ -950,7 +950,7 @@ func TestDirectoryTreeSplit_SingleFileInput(t *testing.T) {
 			t.Errorf("expected file in %s, got %s", outDir, dir)
 		}
 		base := filepath.Base(path)
-		if !strings.HasPrefix(base, "myfile_part") || !strings.HasSuffix(base, ".skt") {
+		if !strings.HasPrefix(base, "myfile.ts_part") || !strings.HasSuffix(base, ".skt") {
 			t.Errorf("unexpected file name: %s", base)
 		}
 	}
@@ -1007,8 +1007,8 @@ func TestDirectoryTreeNoSplit_UnderMaxLines(t *testing.T) {
 	if strings.Contains(base, "_part") {
 		t.Errorf("file should not be split: %s", base)
 	}
-	if base != "small.skt" {
-		t.Errorf("expected small.skt, got %s", base)
+	if base != "small.ts.skt" {
+		t.Errorf("expected small.ts.skt, got %s", base)
 	}
 }
 
@@ -1222,10 +1222,9 @@ func TestProperty_DirectoryTreeMirroring(t *testing.T) {
 		}
 
 		// For each source file, verify the output mirrors the directory structure
-		// and replaces the extension with .skt.
+		// and appends .skt while retaining the source extension.
 		for _, srcRel := range fileOrder {
-			ext := filepath.Ext(srcRel)
-			expectedRel := strings.TrimSuffix(srcRel, ext) + ".skt"
+			expectedRel := srcRel + ".skt"
 
 			// Check either the exact file exists, or split parts exist (_partN.skt).
 			if writtenRel[expectedRel] {
@@ -1355,7 +1354,7 @@ func TestProperty_DirectoryTreeSplitNaming(t *testing.T) {
 		}
 
 		// (a) Verify files are named <basename>_partN.skt with sequential part numbers starting at 1.
-		partPattern := regexp.MustCompile(`^bigfile_part(\d+)\.skt$`)
+		partPattern := regexp.MustCompile(`^bigfile\.ts_part(\d+)\.skt$`)
 		for i, path := range written {
 			base := filepath.Base(path)
 			matches := partPattern.FindStringSubmatch(base)
@@ -1794,10 +1793,10 @@ func TestErrorsSection_InlineMode(t *testing.T) {
 func TestErrorsSection_TreeMode(t *testing.T) {
 	sg := &ir.SymbolGraph{
 		Symbols: []plugin.Symbol{
-			{ID: "/tmp/src/main.go::main", Name: "main", FilePath: "/tmp/src/main.go", Category: plugin.CategoryCallable, Kind: "function", Signature: "main()", Properties: map[string]string{"exported": "true"}, Span: [2]int{1, 3}},
+			{ID: "main.go::main", Name: "main", FilePath: "main.go", Category: plugin.CategoryCallable, Kind: "function", Signature: "main()", Properties: map[string]string{"exported": "true"}, Span: [2]int{1, 3}},
 		},
 		Errors: []ir.ParseError{
-			{FilePath: "/tmp/src/broken.go", Reason: "syntax error"},
+			{FilePath: "broken.go", Reason: "syntax error"},
 		},
 	}
 	sg.BuildIndexes()

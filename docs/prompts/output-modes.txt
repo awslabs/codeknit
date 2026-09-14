@@ -14,14 +14,14 @@ Cover:
 2. directory-flat (default, recommended):
    - Writes chunked .skt files: map_001.skt, map_002.skt, etc.
    - Default output directory: ./skeleton/
-   - Files are split at --max-lines boundary (default 500)
+   - Flat output splits between source blocks near --max-lines (default 500); one large block can exceed it
    - Best for most projects — read only the files you need
    - With --minify, also produces a dict.skt dictionary file
 
 3. directory-tree:
    - Mirrors the source tree structure
-   - One .skt file per source file
-   - Output at ./skeleton/<mirrored-path>.skt
+   - Append .skt to the full source filename (foo.c.skt and foo.h.skt stay distinct); split names foo.c_part1.skt, foo.c_part2.skt
+   - Output at ./skeleton/<mirrored-source-path-with-extension>.skt
    - Best when you want to look up a specific file's structure quickly
 
 4. inline:
@@ -55,3 +55,5 @@ Cover:
    - Repeated tokens get short codes (d0, d1, ...)
    - Dictionary stored in dict.skt
    - Significant token savings for large codebases
+
+Tree SKT requires --max-lines >=3. Each symbol chunk repeats [symbols] and ## source-path; edge-only chunks carry [edges]. The limit applies to source chunks, not auxiliary dictionary/warning files. JSON is one unsplit document. Directory output is staged; --clean replaces previous generated files only after successful generation. Unrelated entries are preserved or reported as collisions. Publication uses locking, backup/rollback, and next-run recovery after process interruption. Refer to docs/reference/analysis-reliability.md; do not claim atomic directory visibility or power-loss durability.

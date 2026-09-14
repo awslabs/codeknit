@@ -91,7 +91,7 @@ codeknit fingerprint ./src
 
 ```bash
 # Find only exact duplicates
-codeknit fingerprint ./src --min-similarity 100
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 ```
 
 ```bash
@@ -137,3 +137,11 @@ codeknit fingerprint ./src -o duplicates.skt
 - **Short bodies are skipped**: Symbols with fewer than 4 normalized tokens (e.g. simple getters) are ignored to avoid noise.
 - **Cross-language matching works**: Equivalent constructs (e.g., a Python function and a Go function with the same logic) can match, but language-specific patterns may produce spurious low-similarity matches.
 - **A match is a signal, not a verdict**: Treat each match as a prompt to investigate — not automatic proof of duplication.
+
+## Retrieval completeness
+
+Unreleased changes after 0.5.0 retain every same-category exact normalized-token candidate independently of the 500-symbol threshold. Below the threshold, all same-category pairs are scored; at or above it, near-duplicate candidates use approximate top-50 structural retrieval. Near-duplicate results are not exhaustive. Fixed inputs and scores produce deterministic ordering. Exact tokens are not proof of semantic equivalence, and reranking or range filtering can remove exact candidates.
+
+The default 65–95% range excludes 100% matches. Use both `--min-similarity 100 --max-similarity 100` for exact structural matches. Embeddings use the parsed source snapshot. The small labeled regression corpus reports precision and recall separately from similarity; it does not establish real-world accuracy.
+
+Shared scan controls include repeatable `--include GLOB` / `--exclude GLOB`, `--max-file-size BYTES` (10 MiB default, `0` unlimited), and `--strict`. See [analysis reliability](../../reference/analysis-reliability/) for scan diagnostics and candidate guarantees.

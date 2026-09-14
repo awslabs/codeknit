@@ -15,12 +15,6 @@ import (
 // fpSpanKey matches symbols to AST nodes by line span.
 type fpSpanKey struct{ start, end uint }
 
-// fpSpanEntry tracks a symbol index and its category for span matching.
-type fpSpanEntry struct {
-	category types.SymbolCategory
-	idx      int
-}
-
 // ExtractBodyTokens walks the AST to find symbol bodies and initializers,
 // extracting normalized token streams for fingerprinting.
 func (c *Collector) ExtractBodyTokens(root *sitter.Node, src []byte, tokenMap map[string]byte) {
@@ -28,49 +22,55 @@ func (c *Collector) ExtractBodyTokens(root *sitter.Node, src []byte, tokenMap ma
 		return
 	}
 
-	spans := make(map[fpSpanKey]fpSpanEntry, len(c.Symbols))
-	for i := range c.Symbols {
-		cat := c.Symbols[i].Category
-		if cat == types.CategoryCallable || cat == types.CategoryValue {
-			s := c.Symbols[i].Span
-			//nolint:gosec // Span values are always non-negative line numbers.
-			spans[fpSpanKey{uint(s[0]), uint(s[1])}] = fpSpanEntry{idx: i, category: cat}
+	// Match callable bodies by declaration identity. Matching every AST node
+	// on the same line lets nested blocks overwrite the enclosing function.
+	scopes := newSymbolScopes(root, src, c.Symbols)
+	for _, scope := range scopes.declarations {
+		if scope.sym.Category != types.CategoryCallable || len(scope.sym.BodyTokens) > 0 {
+			continue
+		}
+		node := scope.node
+		if value := node.ChildByFieldName("value"); value != nil && declaresCallable(node) {
+			node = value
+		}
+		if body := findBodyChild(node); body != nil {
+			scope.sym.BodyTokens = walkBodyForTokens(body, src, tokenMap)
 		}
 	}
 
-	// Pass 1: Walk callable bodies and value initializers.
-	findSymbolNodes(root, src, tokenMap, spans, c)
+	spans := make(map[fpSpanKey]int, len(c.Symbols))
+	for i := range c.Symbols {
+		cat := c.Symbols[i].Category
+		if cat == types.CategoryValue {
+			s := c.Symbols[i].Span
+			//nolint:gosec // Span values are always non-negative line numbers.
+			spans[fpSpanKey{uint(s[0]), uint(s[1])}] = i
+		}
+	}
 
-	// Pass 2: Walk top-level code not claimed by any symbol.
+	// Walk value initializers, then top-level code not claimed by a symbol.
+	findValueNodes(root, src, tokenMap, spans, c)
+
 	c.extractTopLevelTokens(root, src, tokenMap)
 }
 
-// findSymbolNodes recursively searches for AST nodes whose span matches
-// a tracked symbol, then extracts tokens from the appropriate child.
-func findSymbolNodes(node *sitter.Node, src []byte, tokenMap map[string]byte, spans map[fpSpanKey]fpSpanEntry, c *Collector) {
+// findValueNodes extracts initializer tokens for tracked value declarations.
+func findValueNodes(node *sitter.Node, src []byte, tokenMap map[string]byte, spans map[fpSpanKey]int, c *Collector) {
 	startLine := node.StartPosition().Row + 1
 	endLine := node.EndPosition().Row + 1
 	key := fpSpanKey{startLine, endLine}
 
-	if entry, ok := spans[key]; ok {
-		var tokens []byte
-		switch entry.category {
-		case types.CategoryCallable:
-			if body := findBodyChild(node); body != nil {
-				tokens = walkBodyForTokens(body, src, tokenMap)
-			}
-		case types.CategoryValue:
-			tokens = extractInitializerTokens(node, src, tokenMap)
-		}
+	if idx, ok := spans[key]; ok {
+		tokens := extractInitializerTokens(node, src, tokenMap)
 		if len(tokens) > 0 {
-			c.Symbols[entry.idx].BodyTokens = tokens
+			c.Symbols[idx].BodyTokens = tokens
 		}
 	}
 
 	for i := range node.ChildCount() {
 		child := node.Child(i)
 		if child != nil {
-			findSymbolNodes(child, src, tokenMap, spans, c)
+			findValueNodes(child, src, tokenMap, spans, c)
 		}
 	}
 }

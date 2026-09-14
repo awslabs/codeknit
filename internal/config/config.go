@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"codeknit/internal/scanpolicy"
 )
 
 // OutputMode controls how the parse emitter writes results.
@@ -115,6 +117,7 @@ func (f OutputFormat) IsValid() bool {
 type Common struct {
 	InputPath      string
 	HeaderLanguage string
+	Scan           scanpolicy.Options
 	Workers        int
 	CollectTest    bool
 	Verbose        bool
@@ -122,6 +125,9 @@ type Common struct {
 
 // Validate checks that the shared fields are valid and fills defaults.
 func (c *Common) Validate() error {
+	if err := c.Scan.Validate(); err != nil {
+		return err
+	}
 	if c.HeaderLanguage == "" {
 		c.HeaderLanguage = DefaultHeaderLanguage
 	}
@@ -178,9 +184,6 @@ func (c *ParseConfig) Validate() error {
 		if c.OutputDir == "" {
 			c.OutputDir = DefaultParseOutputDir
 		}
-		if err := os.MkdirAll(c.OutputDir, 0o700); err != nil { //nolint:gosec // 0o700 is least-privilege for directories (execute bit needed for traversal)
-			return fmt.Errorf("failed to create output directory: %s: %w", c.OutputDir, err)
-		}
 	}
 
 	if c.MaxLines == 0 {
@@ -188,6 +191,9 @@ func (c *ParseConfig) Validate() error {
 	}
 	if c.MaxLines < 1 {
 		return fmt.Errorf("max-lines must be at least 1")
+	}
+	if c.OutputMode == OutputDirectoryTree && c.OutputFormat == OutputFormatSKT && c.MaxLines < 3 {
+		return fmt.Errorf("max-lines must be at least 3 for directory-tree SKT output")
 	}
 
 	return nil

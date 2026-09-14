@@ -5,13 +5,13 @@ package emitter
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 )
 
 // emitDirectoryFlat writes numbered map_NNN.skt files into the output directory.
@@ -52,7 +52,7 @@ func (e *Emitter) emitDirectoryFlat(sg *ir.SymbolGraph, opts *EmitOptions) ([]st
 			for i := range ch {
 				name := fmt.Sprintf("map_%03d.skt", i+1)
 				path := filepath.Join(opts.OutputDir, name)
-				if err := os.WriteFile(path, []byte(outputFiles[i]), 0o600); err != nil {
+				if err := outputfs.WriteFile(path, []byte(outputFiles[i])); err != nil {
 					errs[i] = fmt.Errorf("writing %s: %w", path, err)
 					return
 				}

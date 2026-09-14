@@ -4,6 +4,7 @@
 package emitter
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"codeknit/internal/config"
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 	"codeknit/internal/plugin"
 )
 
@@ -58,22 +60,13 @@ func (e *Emitter) emitJSON(sg *ir.SymbolGraph, opts *EmitOptions) ([]string, err
 		return nil, e.emitJSONWithInput(os.Stdout, sg, opts.InputPath)
 	}
 
-	if err := prepareJSONOutput(opts); err != nil {
-		return nil, err
-	}
-
 	path := filepath.Join(opts.OutputDir, "codeknit.json")
-	f, err := os.Create(path) //nolint:gosec // output path is derived from user-selected output dir
-	if err != nil {
-		return nil, fmt.Errorf("create %s: %w", path, err)
-	}
-
-	if err := e.emitJSONWithInput(f, sg, opts.InputPath); err != nil {
-		_ = f.Close()
+	var content bytes.Buffer
+	if err := e.emitJSONWithInput(&content, sg, opts.InputPath); err != nil {
 		return nil, err
 	}
-	if err := f.Close(); err != nil {
-		return nil, fmt.Errorf("close %s: %w", path, err)
+	if err := outputfs.WriteFile(path, content.Bytes()); err != nil {
+		return nil, fmt.Errorf("write %s: %w", path, err)
 	}
 
 	return []string{path}, nil
@@ -209,24 +202,4 @@ func sortedProperties(props map[string]string) map[string]string {
 		out[key] = props[key]
 	}
 	return out
-}
-
-func prepareJSONOutput(opts *EmitOptions) error {
-	if err := os.MkdirAll(opts.OutputDir, 0o700); err != nil { //nolint:gosec // 0o700 is least-privilege for directories
-		return fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
-	}
-
-	path := filepath.Join(opts.OutputDir, "codeknit.json")
-	if _, err := os.Stat(path); err == nil {
-		if !opts.Clean {
-			return fmt.Errorf("output file %s already exists; pass --clean to remove it or choose a different directory", path)
-		}
-		if removeErr := os.Remove(path); removeErr != nil { //nolint:gosec // output path is controlled by codeknit
-			return fmt.Errorf("removing stale output %s: %w", path, removeErr)
-		}
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("checking output file %s: %w", path, err)
-	}
-
-	return nil
 }

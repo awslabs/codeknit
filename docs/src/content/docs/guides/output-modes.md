@@ -11,7 +11,7 @@ Output mode is separate from output format. The default format is `.skt`; pass `
 
 - **Behavior**: Writes chunked `.skt` files such as `map_001.skt`, `map_002.skt`, etc.
 - **Output directory**: `./skeleton/` by default
-- **Splitting**: Files are split when they exceed the `--max-lines` limit (default: 500 lines)
+- **Splitting**: Files split between source blocks near `--max-lines` (default: 500); one large source block can exceed this target
 - **Use case**: Best for most projects. Keeps output organized and readable by limiting file size. You can read only the chunks relevant to your task.
 - **Minification**: When `--minify` is enabled, a `dict.skt` file is also generated in the output directory, containing token mappings for compressed values.
 
@@ -26,15 +26,20 @@ codeknit parse ./src
 
 - **Behavior**: Mirrors the source directory structure exactly.
 - **Output directory**: `./skeleton/` by default
-- **Mapping**: One `.skt` file is created per source file, at a corresponding path.
+- **Mapping**: Append `.skt` to the complete source name: `foo.c.skt` and `foo.h.skt` stay distinct. Large files split into `foo.c_part1.skt`, `foo.c_part2.skt`, and so on.
 - **Use case**: Ideal when you want to quickly look up the structure of a specific file. Useful for navigation alongside the original codebase.
 
 Example:
 
 ```bash
 codeknit parse ./src --output-mode directory-tree
-# Output: ./skeleton/src/handler.skt, ./skeleton/pkg/db.skt, etc.
+# Source: ./src/handler.go and ./src/pkg/db.go
+# Output: ./skeleton/handler.go.skt, ./skeleton/pkg/db.go.skt
 ```
+
+Tree SKT requires `--max-lines` of at least 3. Each symbol chunk repeats its source header; edge-only chunks contain `[edges]`. Source chunks respect the limit, while dictionaries and warning files are separate auxiliary output. These naming and splitting changes follow 0.5.0 and are unreleased.
+
+Directory generation uses staging and replaces old generated output with `--clean` only after successful generation. Existing results survive failed writes; interrupted publication can recover on the next run. See [analysis reliability](../../reference/analysis-reliability/) for the precise guarantees.
 
 ### inline
 

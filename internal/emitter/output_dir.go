@@ -11,40 +11,8 @@ import (
 	"strings"
 
 	"codeknit/internal/ir"
+	"codeknit/internal/outputfs"
 )
-
-// prepareOutputDir ensures the output directory is ready for writing.
-// If clean is true, stale .skt files are removed. Otherwise, the presence
-// of existing .skt files is treated as an error to prevent accidental overwrites.
-func prepareOutputDir(dir string, clean bool) error {
-	if hasSktFiles(dir) {
-		if clean {
-			return cleanSktFiles(dir)
-		}
-		return fmt.Errorf("output directory %s contains .skt files from a previous run; pass --clean to remove them or choose a different directory", dir)
-	}
-	return nil
-}
-
-// hasSktFiles reports whether dir contains any .skt files.
-func hasSktFiles(dir string) bool {
-	info, err := os.Stat(dir)
-	if err != nil || !info.IsDir() {
-		return false
-	}
-	found := false
-	_ = filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !fi.IsDir() && filepath.Ext(path) == ".skt" {
-			found = true
-			return filepath.SkipAll
-		}
-		return nil
-	})
-	return found
-}
 
 // auxPaths holds the file paths of auxiliary .skt files written alongside the
 // main output (dictionary and/or errors).
@@ -64,7 +32,7 @@ func writeAuxFiles(opts *EmitOptions, dict *Dictionary, sg *ir.SymbolGraph) (aux
 		if err := os.MkdirAll(opts.OutputDir, 0o700); err != nil { //nolint:gosec // 0o700 is the least-privilege permission for directories (execute bit required for traversal)
 			return aux, fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
 		}
-		if err := os.WriteFile(aux.Dict, []byte(renderDictSection(dict)), 0o600); err != nil {
+		if err := outputfs.WriteFile(aux.Dict, []byte(renderDictSection(dict))); err != nil {
 			return aux, fmt.Errorf("writing %s: %w", aux.Dict, err)
 		}
 	}
@@ -75,43 +43,12 @@ func writeAuxFiles(opts *EmitOptions, dict *Dictionary, sg *ir.SymbolGraph) (aux
 		if err := os.MkdirAll(opts.OutputDir, 0o700); err != nil { //nolint:gosec // 0o700 is the least-privilege permission for directories (execute bit required for traversal)
 			return aux, fmt.Errorf("creating output directory %s: %w", opts.OutputDir, err)
 		}
-		if err := os.WriteFile(aux.Errors, []byte(errSection), 0o600); err != nil {
+		if err := outputfs.WriteFile(aux.Errors, []byte(errSection)); err != nil {
 			return aux, fmt.Errorf("writing %s: %w", aux.Errors, err)
 		}
 	}
 
 	return aux, nil
-}
-
-// cleanSktFiles removes all .skt files from the output directory tree
-// so that stale output from a previous run doesn't mix with fresh results.
-// Only .skt files are removed — other files are left untouched.
-func cleanSktFiles(dir string) error {
-	info, err := os.Stat(dir)
-	if err != nil || !info.IsDir() {
-		return nil // directory doesn't exist yet — nothing to clean
-	}
-
-	// Collect paths first, then remove — avoids modifying the tree during walk.
-	var toRemove []string
-	walkErr := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !fi.IsDir() && filepath.Ext(path) == ".skt" {
-			toRemove = append(toRemove, path)
-		}
-		return nil
-	})
-	if walkErr != nil {
-		return walkErr
-	}
-	for _, p := range toRemove {
-		if removeErr := os.Remove(p); removeErr != nil { //nolint:gosec // output dir is controlled by codeknit, not user-supplied symlinks
-			return fmt.Errorf("removing stale output %s: %w", p, removeErr)
-		}
-	}
-	return nil
 }
 
 // renderDictSection renders the [dict] section as a string.

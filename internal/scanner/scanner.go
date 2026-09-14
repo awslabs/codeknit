@@ -1,12 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package scanner discovers source code files in a directory tree,
-// applying .gitignore rules, extension filtering, and test-file exclusion.
+// Package scanner discovers source files within an explicit input boundary.
 package scanner
 
 import (
-	"bufio"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,198 +16,245 @@ import (
 	"sync/atomic"
 
 	"codeknit/internal/plugin"
-
+	"codeknit/internal/scanpolicy"
 	gitignore "github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
-// Scanner discovers source code files in a directory tree.
+// Scanner discovers regular source files; symlinks are never followed.
 type Scanner struct {
-	OnProgress   func(visited, matched int)   // called periodically during scan, if non-nil
-	TestPatterns map[string]plugin.TestConfig // extension → test file patterns
-	Extensions   []string                     // registered file extensions from plugins
+	OnProgress   func(visited, matched int)
+	TestPatterns map[string]plugin.TestConfig
+	Extensions   []string
+	Policy       scanpolicy.Options
 	CollectTest  bool
 }
 
-// Scan walks the input path and returns relative file paths that match
-// the registered extensions, honoring .gitignore rules and test-file filtering.
-// If inputPath is a regular file with a supported extension, it returns a
-// single-element list containing the file's basename. If the extension is
-// unsupported, it returns an empty list. If inputPath is a directory, it
-// walks recursively using parallel directory reads.
+// ScanError describes a source or directory omitted from the scan.
+type ScanError struct{ FilePath, Reason string }
+
+func (d ScanError) Error() string { return d.FilePath + ": " + d.Reason }
+
+// Result retains the input base and diagnostics alongside relative file paths.
+type Result struct {
+	Root        string
+	Files       []string
+	Diagnostics []ScanError
+}
+
+// Scan returns discovered files and reports any incomplete traversal as an error.
+// Call ScanDetailed to explicitly handle partial results and their diagnostics.
 func (s *Scanner) Scan(inputPath string) ([]string, error) {
-	absInput, err := filepath.Abs(inputPath)
+	result, err := s.ScanDetailed(inputPath)
 	if err != nil {
 		return nil, err
 	}
+	var issues []error
+	for _, d := range result.Diagnostics {
+		issues = append(issues, d)
+	}
+	return result.Files, errors.Join(issues...)
+}
 
-	extSet := make(map[string]bool, len(s.Extensions))
+// ScanDetailed uses project-relative ignore matching independently of the CWD.
+// Explicit file inputs retain the same size and filesystem-boundary policy.
+func (s *Scanner) ScanDetailed(inputPath string) (*Result, error) {
+	if err := s.Policy.Validate(); err != nil {
+		return nil, err
+	}
+	input, err := filepath.Abs(inputPath)
+	if err != nil {
+		return nil, err
+	}
+	info, err := os.Lstat(input)
+	if err != nil {
+		return nil, err
+	}
+	result := &Result{Root: input}
+	single := !info.IsDir()
+	if single {
+		result.Root = filepath.Dir(input)
+	}
+
+	extensions := make(map[string]bool, len(s.Extensions))
 	for _, ext := range s.Extensions {
-		extSet[ext] = true
+		extensions[ext] = true
 	}
-
-	// If inputPath is a regular file, handle it directly.
-	info, err := os.Stat(absInput)
+	include, exclude := selectionMatcher(s.Policy.Include), selectionMatcher(s.Policy.Exclude)
+	selected := func(rel string, directory bool) bool {
+		parts := strings.Split(filepath.ToSlash(rel), "/")
+		if exclude.Match(parts, directory) {
+			return false
+		}
+		return directory || len(s.Policy.Include) == 0 || include.Match(parts, false)
+	}
+	checkFile := func(path string, info os.FileInfo) *ScanError {
+		switch {
+		case info.Mode()&os.ModeSymlink != 0:
+			return &ScanError{path, "scan: symlink skipped; symlinks are not followed"}
+		case !info.Mode().IsRegular():
+			return &ScanError{path, "scan: non-regular file skipped"}
+		case s.Policy.MaxFileSize > 0 && info.Size() > s.Policy.MaxFileSize:
+			return &ScanError{path, fmt.Sprintf("scan: file size %d exceeds max-file-size %d", info.Size(), s.Policy.MaxFileSize)}
+		}
+		return nil
+	}
+	if single {
+		if issue := checkFile(input, info); issue != nil {
+			result.Diagnostics = append(result.Diagnostics, *issue)
+		} else if extensions[filepath.Ext(input)] && selected(filepath.Base(input), false) {
+			result.Files = []string{filepath.Base(input)}
+		}
+		return result, nil
+	}
+	root, err := os.OpenRoot(input)
 	if err != nil {
 		return nil, err
 	}
-	if !info.IsDir() {
-		ext := filepath.Ext(info.Name())
-		if extSet[ext] {
-			return []string{filepath.Base(absInput)}, nil
+	defer func() { _ = root.Close() }()
+
+	ignoreRoot, patterns, issues := ancestorIgnorePatterns(input)
+	result.Diagnostics = append(result.Diagnostics, issues...)
+	// Git does not descend into excluded ancestors, even when the requested
+	// input starts beneath one or a nested ignore file tries to re-include it.
+	ancestorMatcher := gitignore.NewMatcher(patterns)
+	inputRel, _ := filepath.Rel(ignoreRoot, input)
+	if inputRel != "." {
+		parts := strings.Split(filepath.ToSlash(inputRel), "/")
+		for i := range parts {
+			if ancestorMatcher.Match(parts[:i+1], true) {
+				return result, nil
+			}
 		}
-		return nil, nil
 	}
-
-	relPrefix := absInput + string(filepath.Separator)
-
-	// Parallel directory walker.
-	// Each directory is processed as a work item: read its entries, filter,
-	// collect matched files, and enqueue subdirectories.
 	type dirJob struct {
-		absPath  string
-		patterns []gitignore.Pattern // inherited gitignore patterns for this dir
+		path     string
+		patterns []gitignore.Pattern
 	}
-
-	// Pre-load .gitignore patterns from the CWD down to absInput.
-	// This ensures that when the user scans a subdirectory (e.g.
-	// "codeknit parse src/"), ancestor .gitignore files (like the one
-	// in the project root) are still honored.
-	rootPatterns := collectAncestorGitignorePatterns(absInput)
-
-	var (
-		mu      sync.Mutex
-		results []string
-		visited int64
-	)
-
-	// Use a WaitGroup to track in-flight directory jobs.
-	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var visited atomic.Int64
+	report := func(d ScanError) { mu.Lock(); result.Diagnostics = append(result.Diagnostics, d); mu.Unlock() }
 	jobs := make(chan dirJob, 256)
-
-	numWorkers := runtime.NumCPU()
-	if numWorkers < 4 {
-		numWorkers = 4
-	}
-
-	// processDir handles a single directory job: reads entries, filters,
-	// collects files, and enqueues or recursively processes subdirectories.
-	var processDir func(job dirJob)
-	processDir = func(job dirJob) {
-		defer wg.Done()
-
-		entries, readErr := os.ReadDir(job.absPath)
+	var pending sync.WaitGroup
+	var process func(dirJob)
+	process = func(job dirJob) {
+		defer pending.Done()
+		dirRel, _ := filepath.Rel(input, job.path)
+		directory, readErr := root.Open(dirRel)
 		if readErr != nil {
+			report(ScanError{job.path, "scan: " + readErr.Error()})
 			return
 		}
-
-		var localFiles []string
-		var subDirs []dirJob
-
-		// Build the matcher once for all entries in this directory.
+		entries, readErr := directory.ReadDir(-1)
+		_ = directory.Close()
+		if readErr != nil {
+			report(ScanError{job.path, "scan: " + readErr.Error()})
+			return
+		}
 		matcher := gitignore.NewMatcher(job.patterns)
-
+		var children []dirJob
+		var files []string
 		for _, entry := range entries {
 			name := entry.Name()
-			entryPath := filepath.Join(job.absPath, name)
-
-			// Skip well-known non-source directories.
+			file := filepath.Join(job.path, name)
+			if entry.IsDir() && excludedDirectory(name) {
+				continue
+			}
+			visited.Add(1)
+			rel, _ := filepath.Rel(input, file)
+			ignoredRel, _ := filepath.Rel(ignoreRoot, file)
+			if matcher.Match(strings.Split(filepath.ToSlash(ignoredRel), "/"), entry.IsDir()) ||
+				!selected(rel, entry.IsDir() || entry.Type()&os.ModeSymlink != 0) {
+				continue
+			}
+			if !entry.IsDir() && entry.Type()&os.ModeSymlink == 0 && !extensions[filepath.Ext(name)] {
+				continue
+			}
+			fi, statErr := root.Lstat(rel)
+			if statErr != nil {
+				report(ScanError{file, "scan: " + statErr.Error()})
+				continue
+			}
+			if fi.Mode()&os.ModeSymlink != 0 {
+				report(ScanError{file, "scan: symlink skipped; symlinks are not followed"})
+				continue
+			}
 			if entry.IsDir() {
-				switch name {
-				case ".git", ".hg", ".svn", "node_modules", "__pycache__",
-					".tox", ".mypy_cache", ".pytest_cache", ".venv", "venv":
-					continue
+				sub, issue := readIgnoreFile(filepath.Join(file, ".gitignore"), strings.Split(filepath.ToSlash(ignoredRel), "/"), root)
+				if issue != nil {
+					report(*issue)
 				}
-			}
-
-			atomic.AddInt64(&visited, 1)
-
-			// For files, check extension early.
-			if !entry.IsDir() {
-				ext := filepath.Ext(name)
-				if !extSet[ext] {
-					continue
+				inherited := job.patterns
+				if len(sub) > 0 {
+					inherited = append(append([]gitignore.Pattern(nil), job.patterns...), sub...)
 				}
-			}
-
-			// Check gitignore using go-git's spec-compliant matcher.
-			rel := entryPath[len(relPrefix):]
-			pathSegments := strings.Split(filepath.ToSlash(rel), "/")
-			if matcher.Match(pathSegments, entry.IsDir()) {
+				children = append(children, dirJob{file, inherited})
 				continue
 			}
-
-			if entry.IsDir() {
-				// Build patterns for this subdirectory by appending any
-				// .gitignore found in the child directory.
-				childPatterns := job.patterns
-				gi := filepath.Join(entryPath, ".gitignore")
-				if sub := parseGitignoreFile(gi, pathSegments); len(sub) > 0 {
-					merged := make([]gitignore.Pattern, len(job.patterns)+len(sub))
-					copy(merged, job.patterns)
-					copy(merged[len(job.patterns):], sub)
-					childPatterns = merged
-				}
-				subDirs = append(subDirs, dirJob{absPath: entryPath, patterns: childPatterns})
+			if !s.CollectTest && s.isTestFile(filepath.ToSlash(rel)) {
 				continue
 			}
-
-			// File passed all filters — compute relative path.
-			slashRel := filepath.ToSlash(rel)
-
-			if !s.CollectTest && s.isTestFile(slashRel) {
+			if issue := checkFile(file, fi); issue != nil {
+				report(*issue)
 				continue
 			}
-
-			localFiles = append(localFiles, slashRel)
+			files = append(files, filepath.ToSlash(rel))
 		}
-
-		// Batch-append results under lock.
-		if len(localFiles) > 0 {
-			mu.Lock()
-			results = append(results, localFiles...)
-			mu.Unlock()
-		}
-
-		// Report progress.
+		mu.Lock()
+		result.Files = append(result.Files, files...)
+		matched := len(result.Files)
+		mu.Unlock()
 		if s.OnProgress != nil {
-			mu.Lock()
-			matched := len(results)
-			mu.Unlock()
-			s.OnProgress(int(atomic.LoadInt64(&visited)), matched)
+			s.OnProgress(int(visited.Load()), matched)
 		}
-
-		// Enqueue subdirectories. Use non-blocking send to avoid
-		// deadlock when the channel is full — process overflow inline.
-		wg.Add(len(subDirs))
-		for _, sub := range subDirs {
+		pending.Add(len(children))
+		for _, child := range children {
 			select {
-			case jobs <- sub:
+			case jobs <- child:
 			default:
-				processDir(sub)
+				process(child)
 			}
 		}
 	}
-
-	// Worker: process directories from the jobs channel.
-	for range numWorkers {
+	var workers sync.WaitGroup
+	for range max(4, runtime.NumCPU()) {
+		workers.Add(1)
 		go func() {
+			defer workers.Done()
 			for job := range jobs {
-				processDir(job)
+				process(job)
 			}
 		}()
 	}
-
-	// Seed with root directory.
-	wg.Add(1)
-	jobs <- dirJob{absPath: absInput, patterns: rootPatterns}
-
-	// Wait for all work to complete, then close the channel.
-	wg.Wait()
+	pending.Add(1)
+	jobs <- dirJob{input, patterns}
+	pending.Wait()
 	close(jobs)
+	workers.Wait()
+	sort.Strings(result.Files)
+	sort.Slice(result.Diagnostics, func(i, j int) bool {
+		a, b := result.Diagnostics[i], result.Diagnostics[j]
+		if a.FilePath != b.FilePath {
+			return a.FilePath < b.FilePath
+		}
+		return a.Reason < b.Reason
+	})
+	return result, nil
+}
 
-	// Sort for deterministic output.
-	sort.Strings(results)
-	return results, nil
+func excludedDirectory(name string) bool {
+	switch name {
+	case ".git", ".hg", ".svn", "node_modules", "__pycache__", ".tox", ".mypy_cache", ".pytest_cache", ".venv", "venv":
+		return true
+	}
+	return false
+}
+
+func selectionMatcher(patterns []string) gitignore.Matcher {
+	compiled := make([]gitignore.Pattern, 0, len(patterns))
+	for _, pattern := range patterns {
+		compiled = append(compiled, gitignore.ParsePattern(pattern, nil))
+	}
+	return gitignore.NewMatcher(compiled)
 }
 
 // isTestFile returns true if the relative path matches test file patterns.
@@ -256,81 +303,4 @@ func (s *Scanner) isTestFile(rel string) bool {
 	}
 
 	return false
-}
-
-// parseGitignoreFile reads a .gitignore file and returns parsed patterns using
-// go-git's spec-compliant gitignore implementation. The domain represents the
-// path segments of the directory containing the .gitignore relative to the
-// repository root (nil for the root .gitignore).
-func parseGitignoreFile(path string, domain []string) []gitignore.Pattern {
-	f, err := os.Open(filepath.Clean(path))
-	if err != nil {
-		return nil
-	}
-	defer func() { _ = f.Close() }()
-
-	var patterns []gitignore.Pattern
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := sc.Text()
-		if !strings.HasPrefix(line, "#") && strings.TrimSpace(line) != "" {
-			patterns = append(patterns, gitignore.ParsePattern(line, domain))
-		}
-	}
-	return patterns
-}
-
-// collectAncestorGitignorePatterns walks from the CWD down to absInput,
-// collecting .gitignore patterns from each directory along the straight-line
-// path (inclusive on both ends). Ancestor patterns use a nil domain so they
-// apply globally within the scanned tree.
-func collectAncestorGitignorePatterns(absInput string) []gitignore.Pattern {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return parseGitignoreFile(filepath.Join(absInput, ".gitignore"), nil)
-	}
-	absCwd, err := filepath.EvalSymlinks(cwd)
-	if err != nil {
-		return parseGitignoreFile(filepath.Join(absInput, ".gitignore"), nil)
-	}
-
-	// Resolve symlinks on absInput too so both paths are comparable
-	// (e.g. macOS /var → /private/var).
-	resolvedInput, err := filepath.EvalSymlinks(absInput)
-	if err != nil {
-		resolvedInput = absInput
-	}
-
-	rel, err := filepath.Rel(absCwd, resolvedInput)
-	if err != nil || strings.HasPrefix(rel, "..") {
-		// absInput is not under CWD — fall back to input dir only.
-		return parseGitignoreFile(filepath.Join(absInput, ".gitignore"), nil)
-	}
-
-	// Build directory list from CWD down to absInput (inclusive).
-	dirs := []string{absCwd}
-	if rel != "." {
-		segments := strings.Split(filepath.ToSlash(rel), "/")
-		cur := absCwd
-		for _, seg := range segments {
-			cur = filepath.Join(cur, seg)
-			dirs = append(dirs, cur)
-		}
-	}
-
-	var patterns []gitignore.Pattern
-	for _, dir := range dirs {
-		gi := filepath.Join(dir, ".gitignore")
-		// Ancestors (above absInput) get nil domain — their patterns
-		// apply to all paths in the scan. The absInput dir itself also
-		// gets nil domain, matching the original behavior.
-		var domain []string
-		if dirRel, err := filepath.Rel(absInput, dir); err == nil && dirRel != "." && !strings.HasPrefix(dirRel, "..") {
-			domain = strings.Split(filepath.ToSlash(dirRel), "/")
-		}
-		if sub := parseGitignoreFile(gi, domain); len(sub) > 0 {
-			patterns = append(patterns, sub...)
-		}
-	}
-	return patterns
 }
