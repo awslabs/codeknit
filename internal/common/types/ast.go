@@ -31,6 +31,22 @@ type Symbol struct {
 	Signature  string
 	BodyTokens []byte
 	Span       [2]int
+	// ByteSpan retains declaration identity when names and line spans overlap.
+	ByteSpan [2]uint `json:"-"`
+}
+
+// IsFileMetadata identifies file anchors and include descriptors, which are
+// addressable endpoints but not code declarations.
+func (s *Symbol) IsFileMetadata() bool {
+	return s.Category == CategoryMeta && (s.Kind == "file" || s.Kind == "include")
+}
+
+// DeclarationOffset is a one-based byte offset; zero means no source identity.
+func (s *Symbol) DeclarationOffset() uint {
+	if s.ByteSpan == [2]uint{} {
+		return 0
+	}
+	return s.ByteSpan[0] + 1
 }
 
 // EdgeKind represents the type of relationship between two Symbols.
@@ -52,9 +68,20 @@ const (
 
 // Edge represents a typed, directed relationship between two Symbols.
 type Edge struct {
-	From string
-	To   string
-	Kind EdgeKind
+	From string   `json:"from"`
+	To   string   `json:"to"`
+	Kind EdgeKind `json:"kind"`
+	// Resolution is empty for resolved edges, otherwise "unresolved" or
+	// "ambiguous". Uncertain endpoints must not contribute to dependency metrics.
+	Resolution string `json:"resolution,omitempty"`
+	// TargetName retains the referenced name; for imports it is the original
+	// export name before renaming. Scope qualifies local alias bindings.
+	TargetName string   `json:"-"`
+	Scope      string   `json:"-"`
+	Candidates []string `json:"candidates,omitempty"`
+	// SourceOffset identifies the declaration (or alias scope) by its
+	// one-based starting byte offset. Zero means the origin is unknown.
+	SourceOffset uint `json:"-"`
 }
 
 // EffectiveScopedName returns ScopedName if set, otherwise Name.

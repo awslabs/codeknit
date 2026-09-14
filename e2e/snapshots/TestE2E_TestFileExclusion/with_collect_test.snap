@@ -15,6 +15,6 @@ S8 value/variable L1-L1 helper
 
 [edges]
 S1 --contains--> S2
+S2 --calls[unresolved]--> TestHelper.assertTrue
 S3 --contains--> S4
-S5 --inherits--> S5
 S5 --contains--> S6

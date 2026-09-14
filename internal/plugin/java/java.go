@@ -26,6 +26,7 @@ func NewPlugin() *Plugin {
 		ValueChildKinds: []string{"identifier"},
 		TypeRefKinds:    []string{"type_identifier"},
 		CallTarget:      callTarget,
+		RichCallTarget:  richCallTarget,
 	}
 
 	return &Plugin{

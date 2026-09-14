@@ -142,7 +142,7 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector) {
 
 	// Add contains edge from receiver type to method.
 	if recType != "" {
-		c.AddEdge(plugin.Edge{
+		c.AddEdge(&plugin.Edge{
 			From: recType,
 			To:   scopedName,
 			Kind: plugin.EdgeContains,
@@ -314,7 +314,7 @@ func extractStructFields(structNode *sitter.Node, src []byte, c *plugin.Collecto
 					SetBool("embedded", embedded).Set("tag", extract.FieldText(child, "tag", src)).Map(),
 				Span: nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{
+			c.AddEdge(&plugin.Edge{
 				From: structName,
 				To:   scopedName,
 				Kind: plugin.EdgeContains,
@@ -345,7 +345,7 @@ func extractInterfaceSpecs(ifaceNode *sitter.Node, src []byte, c *plugin.Collect
 					Properties: plugin.NewProps().SetBool("exported", isExported(specName)).SetBool("abstract", true).Map(),
 					Span:       nodeSpan(child),
 				})
-				c.AddEdge(plugin.Edge{
+				c.AddEdge(&plugin.Edge{
 					From: ifaceName,
 					To:   scopedName,
 					Kind: plugin.EdgeContains,
@@ -355,7 +355,7 @@ func extractInterfaceSpecs(ifaceNode *sitter.Node, src []byte, c *plugin.Collect
 			// A union or ~T is a type constraint, not an embedded interface.
 			if child.NamedChildCount() == 1 && child.NamedChild(0).Kind() != "negated_type" {
 				embeddedName := child.Utf8Text(src)
-				c.AddEdge(plugin.Edge{
+				c.AddEdge(&plugin.Edge{
 					From: ifaceName,
 					To:   embeddedName,
 					Kind: plugin.EdgeImplements,
@@ -484,7 +484,7 @@ func extractImportSpec(node *sitter.Node, src []byte, c *plugin.Collector) {
 		}
 	}
 
-	c.AddEdge(plugin.Edge{
+	c.AddEdge(&plugin.Edge{
 		From: localName,
 		To:   path,
 		Kind: plugin.EdgeImports,

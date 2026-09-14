@@ -9,10 +9,11 @@ import "codeknit/internal/common/types"
 
 // Collector accumulates Symbols and Edges during AST extraction.
 type Collector struct {
-	FilePath    string
-	Symbols     []types.Symbol
-	Edges       []types.Edge
-	Fingerprint bool // when true, extract body tokens for fingerprinting
+	includeSymbols map[string]bool
+	FilePath       string
+	Symbols        []types.Symbol
+	Edges          []types.Edge
+	Fingerprint    bool // when true, extract body tokens for fingerprinting
 }
 
 // AddSymbol stamps the collector's FilePath onto the symbol and appends it.
@@ -22,8 +23,8 @@ func (c *Collector) AddSymbol(s *types.Symbol) {
 }
 
 // AddEdge appends an edge to the collector.
-func (c *Collector) AddEdge(e types.Edge) {
-	c.Edges = append(c.Edges, e)
+func (c *Collector) AddEdge(e *types.Edge) {
+	c.Edges = append(c.Edges, *e)
 }
 
 // KnownCallables returns a set of symbol names that have CategoryCallable

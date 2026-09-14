@@ -325,8 +325,8 @@ func (c *AnalyzeConfig) Validate() error {
 	if c.MaxInheritanceDepth <= 0 {
 		c.MaxInheritanceDepth = DefaultAnalyzeMaxInheritanceDepth
 	}
-	if c.TopN <= 0 {
-		c.TopN = DefaultAnalyzeTopN
+	if c.TopN < 0 {
+		return fmt.Errorf("top-n must be non-negative (0 means unlimited)")
 	}
 	if c.BetweennessThreshold <= 0 {
 		c.BetweennessThreshold = DefaultAnalyzeBetweennessThreshold

@@ -75,6 +75,11 @@ func NodeSpan(node *sitter.Node) [2]int {
 	}
 }
 
+// NodeByteSpan returns the half-open byte range occupied by a declaration.
+func NodeByteSpan(node *sitter.Node) [2]uint {
+	return [2]uint{node.StartByte(), node.EndByte()}
+}
+
 // BoolStr returns "true" or "false" as a string.
 func BoolStr(b bool) string {
 	if b {
@@ -125,31 +130,4 @@ func makeSet(kinds []string) map[string]bool {
 		s[k] = true
 	}
 	return s
-}
-
-// deepFindIdentifier searches for the first "identifier" node within maxDepth
-// levels of a node tree.
-func deepFindIdentifier(node *sitter.Node, src []byte, maxDepth int) string {
-	if maxDepth <= 0 {
-		return ""
-	}
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		ck := child.Kind()
-		if ck == "compound_statement" || ck == "block" || ck == "statement_block" || ck == "body" {
-			continue
-		}
-		if ck == "identifier" {
-			return child.Utf8Text(src)
-		}
-		if child.IsNamed() {
-			if id := deepFindIdentifier(child, src, maxDepth-1); id != "" {
-				return id
-			}
-		}
-	}
-	return ""
 }

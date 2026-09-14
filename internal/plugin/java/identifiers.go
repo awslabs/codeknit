@@ -88,6 +88,21 @@ func callTargetName(node *sitter.Node, src []byte) string {
 	return childText(node, "identifier", src)
 }
 
+var richCallTarget plugin.RichCallTargetFunc = func(node *sitter.Node, src []byte) plugin.CallTargetResult {
+	if node.Kind() != "method_invocation" {
+		return plugin.CallTargetResult{}
+	}
+	name := node.ChildByFieldName("name")
+	if name == nil {
+		return plugin.CallTargetResult{}
+	}
+	result := plugin.CallTargetResult{Name: name.Utf8Text(src)}
+	if object := node.ChildByFieldName("object"); object != nil {
+		result.Receiver, result.Qualified = object.Utf8Text(src), true
+	}
+	return result
+}
+
 // extractParamStrings extracts parameter "name: type" pairs from a formal_parameters node.
 func extractParamStrings(node *sitter.Node, src []byte) []string {
 	return plugin.ExtractTypedParams(node, src, javaParamConfig)
@@ -213,14 +228,14 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 	extract.TypeParams(node, src, c, scopedName, javaTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Extract superclass (extends).
 	if sc := childByKind(node, "superclass"); sc != nil {
 		superName := typeIdentText(sc, src)
 		if superName != "" {
-			c.AddEdge(plugin.Edge{From: scopedName, To: superName, Kind: plugin.EdgeInherits})
+			c.AddEdge(&plugin.Edge{From: scopedName, To: superName, Kind: plugin.EdgeInherits})
 		}
 	}
 
@@ -259,7 +274,7 @@ func extractInterface(node *sitter.Node, src []byte, c *plugin.Collector, parent
 	extract.TypeParams(node, src, c, scopedName, javaTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Extract extends_interfaces.
@@ -295,7 +310,7 @@ func extractSimpleType(node *sitter.Node, src []byte, c *plugin.Collector, paren
 	})
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -324,7 +339,7 @@ func extractAnnotationType(node *sitter.Node, src []byte, c *plugin.Collector, p
 	})
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Extract annotation body members (annotation_type_element_declaration).
@@ -357,7 +372,7 @@ func extractRecord(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 	extract.TypeParams(node, src, c, scopedName, javaTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Extract interfaces (implements).
@@ -390,6 +405,7 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 		Signature:  buildFuncSignature(name, params, returnType),
 		Properties: mods,
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	}
 	c.AddSymbol(&sym)
 
@@ -397,12 +413,12 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 	extract.TypeParams(node, src, c, scopedName, javaTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Check for @Override annotation.
 	if hasOverrideAnnotation(node, src) && parentClass != "" {
-		c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: node.StartByte() + 1})
 	}
 }
 
@@ -424,11 +440,12 @@ func extractConstructor(node *sitter.Node, src []byte, c *plugin.Collector, pare
 		Signature:  buildFuncSignature(name, params, ""),
 		Properties: mods,
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	}
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -459,7 +476,7 @@ func extractField(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 			c.AddSymbol(&sym)
 
 			if parentClass != "" {
-				c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+				c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 			}
 		}
 	}
@@ -488,7 +505,7 @@ func extractInterfaceList(node *sitter.Node, src []byte, c *plugin.Collector, cl
 			name = childText(child, "type_identifier", src)
 		}
 		if name != "" {
-			c.AddEdge(plugin.Edge{From: className, To: name, Kind: kind})
+			c.AddEdge(&plugin.Edge{From: className, To: name, Kind: kind})
 		}
 	}
 }
@@ -507,7 +524,7 @@ func extractImport(node *sitter.Node, src []byte, c *plugin.Collector) {
 	// Check for wildcard import: ends with ".*" or has asterisk child.
 	if len(fullPath) > 2 && fullPath[len(fullPath)-2:] == ".*" {
 		modulePath := fullPath[:len(fullPath)-2]
-		c.AddEdge(plugin.Edge{
+		c.AddEdge(&plugin.Edge{
 			From: "*",
 			To:   modulePath,
 			Kind: plugin.EdgeImports,
@@ -525,7 +542,7 @@ func extractImport(node *sitter.Node, src []byte, c *plugin.Collector) {
 	}
 	if lastDot < 0 {
 		// Simple import with no dots — unlikely in Java but handle gracefully.
-		c.AddEdge(plugin.Edge{
+		c.AddEdge(&plugin.Edge{
 			From: fullPath,
 			To:   fullPath,
 			Kind: plugin.EdgeImports,
@@ -535,7 +552,7 @@ func extractImport(node *sitter.Node, src []byte, c *plugin.Collector) {
 
 	localName := fullPath[lastDot+1:]
 	modulePath := fullPath[:lastDot]
-	c.AddEdge(plugin.Edge{
+	c.AddEdge(&plugin.Edge{
 		From: localName,
 		To:   modulePath,
 		Kind: plugin.EdgeImports,

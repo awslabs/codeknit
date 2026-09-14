@@ -14,9 +14,10 @@ import (
 // collectEdges returns all edges matching the given kind.
 func collectEdges(edges []plugin.Edge, kind plugin.EdgeKind) []plugin.Edge {
 	var result []plugin.Edge
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == kind {
-			result = append(result, e)
+			result = append(result, *e)
 		}
 	}
 	return result
@@ -24,7 +25,8 @@ func collectEdges(edges []plugin.Edge, kind plugin.EdgeKind) []plugin.Edge {
 
 // edgeExists checks if a specific from->to edge of the given kind exists.
 func edgeExists(edges []plugin.Edge, from, to string, kind plugin.EdgeKind) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.From == from && e.To == to && e.Kind == kind {
 			return true
 		}
@@ -59,7 +61,8 @@ function dispatch() {
 		t.Logf("  %s/%s %q scoped=%q", s.Category, s.Kind, s.Name, s.ScopedName)
 	}
 	t.Log("=== Edges ===")
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 
@@ -77,13 +80,13 @@ function dispatch() {
 		t.Logf("  %s -> %s", e.From, e.To)
 	}
 
-	if !edgeExists(edges, "propa", "funcA", plugin.EdgeAliases) {
+	if !edgeExists(edges, "handlers.propa", "funcA", plugin.EdgeAliases) {
 		t.Error("missing alias edge: propa -> funcA")
 	}
-	if !edgeExists(edges, "propb", "funcB", plugin.EdgeAliases) {
+	if !edgeExists(edges, "handlers.propb", "funcB", plugin.EdgeAliases) {
 		t.Error("missing alias edge: propb -> funcB")
 	}
-	if !edgeExists(edges, "propc", "funcC", plugin.EdgeAliases) {
+	if !edgeExists(edges, "handlers.propc", "funcC", plugin.EdgeAliases) {
 		t.Error("missing alias edge: propc -> funcC")
 	}
 }
@@ -111,7 +114,8 @@ function dispatch() {
 		t.Logf("  %s/%s %q scoped=%q", s.Category, s.Kind, s.Name, s.ScopedName)
 	}
 	t.Log("=== Edges ===")
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 
@@ -121,10 +125,10 @@ function dispatch() {
 		t.Logf("  %s -> %s", e.From, e.To)
 	}
 
-	if !edgeExists(edges, "propa", "funcA", plugin.EdgeAliases) {
+	if !edgeExists(edges, "handlers.propa", "funcA", plugin.EdgeAliases) {
 		t.Error("missing alias edge: propa -> funcA")
 	}
-	if !edgeExists(edges, "propb", "funcB", plugin.EdgeAliases) {
+	if !edgeExists(edges, "handlers.propb", "funcB", plugin.EdgeAliases) {
 		t.Error("missing alias edge: propb -> funcB")
 	}
 }
@@ -148,7 +152,8 @@ function caller() {
 		t.Logf("  %s/%s %q", s.Category, s.Kind, s.Name)
 	}
 	t.Log("=== Edges ===")
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 
@@ -177,7 +182,8 @@ function caller() {
 	_, edges := parseWith(t, typescript.NewPlugin(), "test.ts", src)
 
 	t.Log("=== All edges ===")
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 

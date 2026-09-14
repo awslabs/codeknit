@@ -73,7 +73,7 @@ var richCallTarget plugin.RichCallTargetFunc = func(node *sitter.Node, src []byt
 	case "identifier":
 		return plugin.CallTargetResult{Name: first.Utf8Text(src)}
 	case "field_expression", "qualified_identifier":
-		return plugin.CallTargetResult{Name: plugin.LastNamedLeaf(first, src), Qualified: true}
+		return plugin.CallTargetResult{Name: plugin.LastNamedLeaf(first, src), Receiver: first.NamedChild(0).Utf8Text(src), Qualified: true}
 	case "template_function":
 		return plugin.CallTargetResult{Name: childText(first, "identifier", src)}
 	default:
@@ -261,6 +261,7 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 		Signature:  buildFuncSignature(name, params, returnType),
 		Properties: p.Map(),
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	}
 	c.AddSymbol(&sym)
 
@@ -268,10 +269,10 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 	extract.TypeParams(node, src, c, scopedName, cppTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 
 		if hasOverrideSpecifier(node, src) {
-			c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+			c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: node.StartByte() + 1})
 		}
 	}
 }
@@ -358,7 +359,7 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 	extract.TypeParams(node, src, c, scopedName, cppTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	extractBaseClasses(node, src, c, scopedName)
@@ -397,7 +398,7 @@ func extractStruct(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 	extract.TypeParams(node, src, c, scopedName, cppTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	extractBaseClasses(node, src, c, scopedName)
@@ -427,7 +428,7 @@ func extractEnum(node *sitter.Node, src []byte, c *plugin.Collector, parentClass
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -546,7 +547,7 @@ func extractDeclaration(node *sitter.Node, src []byte, c *plugin.Collector, pare
 		c.AddSymbol(&sym)
 
 		if parentClass != "" {
-			c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}
 }
@@ -586,7 +587,7 @@ func extractPrototype(declNode, funcDecl *sitter.Node, src []byte, c *plugin.Col
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -612,7 +613,7 @@ func extractGlobalVar(declNode, initDecl *sitter.Node, src []byte, c *plugin.Col
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -653,7 +654,7 @@ func extractFieldDeclaration(node *sitter.Node, src []byte, c *plugin.Collector,
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -693,14 +694,15 @@ func extractMethodDecl(node, funcDecl *sitter.Node, src []byte, c *plugin.Collec
 		Signature:  buildFuncSignature(name, extractParamStrings(node, src), extractReturnType(node, src)),
 		Properties: p.Map(),
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	}
 	c.AddSymbol(&sym)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 
 		if hasOverrideInDecl(node, funcDecl, src) {
-			c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+			c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: node.StartByte() + 1})
 		}
 	}
 }
@@ -764,9 +766,9 @@ func extractBaseClasses(node *sitter.Node, src []byte, c *plugin.Collector, clas
 		// base_class_clause contains type_identifier children for each base class.
 		switch child.Kind() {
 		case "type_identifier":
-			c.AddEdge(plugin.Edge{From: className, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
+			c.AddEdge(&plugin.Edge{From: className, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
 		case "qualified_identifier":
-			c.AddEdge(plugin.Edge{From: className, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
+			c.AddEdge(&plugin.Edge{From: className, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
 		}
 	}
 }
@@ -788,28 +790,4 @@ func scanForPureVirtual(body *sitter.Node, src []byte) bool {
 		}
 	}
 	return false
-}
-
-// extractInclude extracts a preproc_include (#include) node as a references edge.
-func extractInclude(node *sitter.Node, src []byte, c *plugin.Collector) {
-	var target string
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		switch child.Kind() {
-		case "system_lib_string", "string_literal":
-			target = child.Utf8Text(src)
-		}
-	}
-	if target == "" {
-		return
-	}
-
-	c.AddEdge(plugin.Edge{
-		From: c.FilePath,
-		To:   target,
-		Kind: plugin.EdgeReferences,
-	})
 }

@@ -7,7 +7,7 @@ S4 type/class L7-L16 Stats
 S5 callable/method L8-L10 aggregate(values: List[Double]) -> Double
 S6 callable/method L12-L15 median(values: List[Double]) -> Double
 S7 type/object L18-L20 Stats
-S8 callable/method L19-L19 empty() -> S7
+S8 callable/method L19-L19 empty() -> Stats
 ## backend/server.go
 S9 module/package L1-L1 backend
 S10 type/struct L3-L6 Server {exported}
@@ -39,71 +39,94 @@ S31 type/impl L6-L10 Config
 S32 callable/method L7-L9 new(name: String, port: u16) -> Self {pub}
 S33 value/constant L12-L12 DEFAULT_PORT {pub}
 ## native/math.c
-S34 callable/function L3-L5 add(a: int, b: int) -> int
-S35 callable/function L7-L9 multiply(a: int, b: int) -> int
-S36 callable/function L11-L13 square(x: int) -> int {static}
+S34 meta/file L1-L14 math.c
+S35 meta/include L1-L1 <stdio.h> {resolution=unresolved}
+S36 callable/function L3-L5 add(a: int, b: int) -> int
+S37 callable/function L7-L9 multiply(a: int, b: int) -> int
+S38 callable/function L11-L13 square(x: int) -> int {static}
 ## native/vector.cpp
-S37 module/namespace L3-L16 geometry
-S38 value/field L7-L7 x {visibility=public}
-S39 callable/method L9-L9 Vector(x: double, y: double) {visibility=public}
-S40 callable/method L11-L13 length() -> double {visibility=public}
-S41 type/class L5-L14 Vector
+S39 meta/file L1-L17 vector.cpp
+S40 meta/include L1-L1 <string> {resolution=unresolved}
+S41 module/namespace L3-L16 geometry
+S42 value/field L7-L7 x {visibility=public}
+S43 callable/method L9-L9 Vector(x: double, y: double) {visibility=public}
+S44 callable/method L11-L13 length() -> double {visibility=public}
+S45 type/class L5-L14 Vector
 ## scripts/deploy.py
-S42 type/class L1-L6 Deployer
-S43 callable/method L2-L3 __init__(target)
-S44 callable/method L5-L6 run()
-S45 callable/function L8-L9 deploy_to(target)
-S46 value/variable L11-L11 MAX_RETRIES
+S46 type/class L1-L6 Deployer
+S47 callable/method L2-L3 __init__(target)
+S48 callable/method L5-L6 run()
+S49 callable/function L8-L9 deploy_to(target)
+S50 value/variable L11-L11 MAX_RETRIES
 ## scripts/task.rb
-S47 type/class L1-L15 Task
-S48 callable/method L2-L4 initialize(name)
-S49 callable/method L6-L8 run()
-S50 callable/method L12-L14 execute(name) {visibility=private}
-S51 value/constant L17-L17 DEFAULT_TIMEOUT
+S51 type/class L1-L15 Task
+S52 callable/method L2-L4 initialize(name)
+S53 callable/method L6-L8 run()
+S54 callable/method L12-L14 execute(name) {visibility=private}
+S55 value/constant L17-L17 DEFAULT_TIMEOUT
 ## src/Main.java
-S52 module/package L1-L1 com.example
-S53 type/class L3-L17 Main {visibility=public}
-S54 value/field L4-L4 name {visibility=private}
-S55 callable/constructor L6-L8 Main(name: String) {visibility=public}
-S56 callable/method L10-L12 getName() -> String {visibility=public}
-S57 callable/method L14-L16 main(args: String[]) -> void {static, visibility=public}
+S56 module/package L1-L1 com.example
+S57 type/class L3-L17 Main {visibility=public}
+S58 value/field L4-L4 name {visibility=private}
+S59 callable/constructor L6-L8 Main(name: String) {visibility=public}
+S60 callable/method L10-L12 getName() -> String {visibility=public}
+S61 callable/method L14-L16 main(args: String[]) -> void {static, visibility=public}
 ## web/index.php
-S58 type/class L3-L16 Router
-S59 value/property L4-L4 routes {visibility=private}
-S60 callable/method L6-L8 add(path, handler) {visibility=public}
-S61 callable/method L10-L15 dispatch(path) {visibility=public}
-S62 callable/function L18-L20 create_router()
+S62 type/class L3-L16 Router
+S63 value/property L4-L4 routes {visibility=private}
+S64 callable/method L6-L8 add(path, handler) {visibility=public}
+S65 callable/method L10-L15 dispatch(path) {visibility=public}
+S66 callable/function L18-L20 create_router()
 
 [edges]
 S2 --contains--> S3
-S4 --inherits--> S2
-S4 --contains--> S5, S6, S8
-S4 --references--> S2
-S8 --references--> S4
+S4 --inherits[ambiguous]--> S2
+S4 --contains[ambiguous]--> S5, S6, S8
+S6 --calls[unresolved]--> Stats.median.sorted
+S3 --references[unresolved]--> List, Double
+S4 --references[ambiguous]--> S2
+S5 --references[unresolved]--> List, Double
+S6 --references[unresolved]--> List, Double
+S8 --references[ambiguous]--> Stats [candidates=S4, S7]
 S1 --contains--> S2, S4, S7
 S10 --contains--> S11, S12
+S13 --references[unresolved]--> string, int
 S13 --references--> S10
 S9 --contains--> S10, S13
 S15 --contains--> S16
 S17 --inherits--> S15
-S17 --contains--> S18, S19, S20
+S17 --contains[unresolved]--> Service.Service.name, Service.Service.Service, Service.Service.Execute
+S20 --references--> S18
 S14 --contains--> S15, S17
-S21 --implements--> S21
-S22 --inherits--> S22
 S22 --contains--> S23
+S23 --references[unresolved]--> this.props.title
 S22 --references--> S21
 S25 --contains--> S26
-S26 --calls--> S26
-S28 --contains--> S29, S30, S32
-S32 --references--> S28
-S36 --calls--> S35
-S41 --contains--> S38, S39, S40
-S37 --contains--> S41
-S42 --contains--> S43, S44
-S44 --calls--> S45
-S47 --contains--> S48, S49, S50
-S49 --calls--> S50
-S53 --contains--> S54, S55, S56, S57
-S57 --references--> S53
-S52 --contains--> S53
-S58 --contains--> S59, S60, S61
+S24 --calls[unresolved]--> formatDate.date.toISOString
+S26 --calls[unresolved]--> console.log
+S28 --contains[ambiguous]--> S29, S30, S32
+S28 --references[ambiguous]--> String
+S32 --references[unresolved]--> String, Self
+S34 --references[unresolved]--> S35
+S36 --references[unresolved]--> a
+S37 --references[unresolved]--> a
+S38 --calls--> S37
+S39 --references[unresolved]--> S40
+S45 --contains[unresolved]--> Vector.Vector.x, Vector.Vector.Vector, Vector.Vector.length
+S41 --contains--> S45
+S46 --contains--> S47, S48
+S49 --references[unresolved]--> deploy_to.target
+S48 --calls--> S49
+S51 --contains--> S52, S53, S54
+S53 --calls--> S54
+S57 --contains[unresolved]--> Main.Main.name, Main.Main.Main, Main.Main.getName, Main.Main.main
+S60 --references--> S58
+S57 --references[unresolved]--> String
+S59 --references[unresolved]--> String
+S60 --references[unresolved]--> String
+S61 --references[unresolved]--> String
+S61 --references--> S59
+S56 --contains--> S57
+S62 --contains--> S63, S64, S65
+S66 --references--> S62
+S65 --calls[unresolved]--> isset

@@ -30,7 +30,7 @@ func WalkAll(table MyTable) {
 
 	found := false
 	for _, e := range edges {
-		if e.Kind == plugin.EdgeCalls && e.From == "WalkAll" && e.To == "Dispatch" {
+		if e.Kind == plugin.EdgeCalls && e.From == "WalkAll" && e.To == "MyTable.Dispatch" {
 			found = true
 		}
 	}
@@ -39,6 +39,6 @@ func WalkAll(table MyTable) {
 		for _, e := range edges {
 			t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 		}
-		t.Fatalf("expected call edge WalkAll -> Dispatch")
+		t.Fatalf("expected call edge WalkAll -> MyTable.Dispatch")
 	}
 }

@@ -263,7 +263,11 @@ def main():
 	// main calls process (direct call) and should also reference transform
 	// (passed as argument).
 	callsFrom := make(map[string][]string)
+	refsFrom := make(map[string][]string)
 	for _, e := range edges {
+		if e.Kind == plugin.EdgeReferences {
+			refsFrom[e.From] = append(refsFrom[e.From], e.To)
+		}
 		if e.Kind == plugin.EdgeCalls {
 			callsFrom[e.From] = append(callsFrom[e.From], e.To)
 		}
@@ -273,7 +277,7 @@ def main():
 	sort.Strings(mainCalls)
 
 	assertContains(t, mainCalls, "process", "main should call process")
-	assertContains(t, mainCalls, "transform", "main should reference transform as callable arg")
+	assertContains(t, refsFrom["main"], "transform", "main should reference transform as callable arg")
 }
 
 // TestCallableRef_GoCallbackArg verifies callable reference detection in Go.
@@ -294,7 +298,11 @@ func main() {
 	}
 
 	callsFrom := make(map[string][]string)
+	refsFrom := make(map[string][]string)
 	for _, e := range edges {
+		if e.Kind == plugin.EdgeReferences {
+			refsFrom[e.From] = append(refsFrom[e.From], e.To)
+		}
 		if e.Kind == plugin.EdgeCalls {
 			callsFrom[e.From] = append(callsFrom[e.From], e.To)
 		}
@@ -302,7 +310,7 @@ func main() {
 
 	mainCalls := callsFrom["main"]
 	assertContains(t, mainCalls, "apply", "main should call apply")
-	assertContains(t, mainCalls, "transform", "main should reference transform as callable arg")
+	assertContains(t, refsFrom["main"], "transform", "main should reference transform as callable arg")
 }
 
 // TestCallableRef_JSCallbackArg verifies callable reference detection in JavaScript.
@@ -317,7 +325,11 @@ function main() { apply(transform, 42); }
 	}
 
 	callsFrom := make(map[string][]string)
+	refsFrom := make(map[string][]string)
 	for _, e := range edges {
+		if e.Kind == plugin.EdgeReferences {
+			refsFrom[e.From] = append(refsFrom[e.From], e.To)
+		}
 		if e.Kind == plugin.EdgeCalls {
 			callsFrom[e.From] = append(callsFrom[e.From], e.To)
 		}
@@ -325,7 +337,7 @@ function main() { apply(transform, 42); }
 
 	mainCalls := callsFrom["main"]
 	assertContains(t, mainCalls, "apply", "main should call apply")
-	assertContains(t, mainCalls, "transform", "main should reference transform as callable arg")
+	assertContains(t, refsFrom["main"], "transform", "main should reference transform as callable arg")
 }
 
 // TestCallableRef_TSCallbackArg verifies callable reference detection in TypeScript.
@@ -340,7 +352,11 @@ function main(): void { apply(transform, 42); }
 	}
 
 	callsFrom := make(map[string][]string)
+	refsFrom := make(map[string][]string)
 	for _, e := range edges {
+		if e.Kind == plugin.EdgeReferences {
+			refsFrom[e.From] = append(refsFrom[e.From], e.To)
+		}
 		if e.Kind == plugin.EdgeCalls {
 			callsFrom[e.From] = append(callsFrom[e.From], e.To)
 		}
@@ -348,7 +364,7 @@ function main(): void { apply(transform, 42); }
 
 	mainCalls := callsFrom["main"]
 	assertContains(t, mainCalls, "apply", "main should call apply")
-	assertContains(t, mainCalls, "transform", "main should reference transform as callable arg")
+	assertContains(t, refsFrom["main"], "transform", "main should reference transform as callable arg")
 }
 
 // TestCallableRef_IgnoresNonCallableArgs verifies that variable names passed

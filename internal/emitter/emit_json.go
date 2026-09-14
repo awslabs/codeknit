@@ -39,11 +39,13 @@ type jsonSymbol struct {
 }
 
 type jsonEdge struct {
-	From      string `json:"from"`
-	FromShort string `json:"from_short"`
-	To        string `json:"to"`
-	ToShort   string `json:"to_short"`
-	Kind      string `json:"kind"`
+	Resolution string   `json:"resolution,omitempty"`
+	From       string   `json:"from"`
+	FromShort  string   `json:"from_short,omitempty"`
+	To         string   `json:"to"`
+	ToShort    string   `json:"to_short,omitempty"`
+	Kind       string   `json:"kind"`
+	Candidates []string `json:"candidates,omitempty"`
 }
 
 type jsonError struct {
@@ -106,7 +108,9 @@ func buildJSONOutput(sg *ir.SymbolGraph, inputPath string) jsonOutput {
 	for _, fp := range sg.FileOrder {
 		for _, idx := range sg.ByFile[fp] {
 			sym := sg.Symbols[idx]
-			sym.Signature = resolveTypeRefs(sym.Signature, sym.Name, fp, sg.ResolveTypeSID)
+			if !sym.IsFileMetadata() {
+				sym.Signature = resolveTypeRefs(sym.Signature, sym.Name, fp, sg.ResolveTypeSID)
+			}
 			out.Symbols = append(out.Symbols, jsonSymbol{
 				ID:         sym.ID,
 				ShortID:    sg.ShortIDs[sym.ID],
@@ -147,17 +151,12 @@ func displayFilePath(filePath, inputPath string) string {
 
 func buildJSONEdges(sg *ir.SymbolGraph) []jsonEdge {
 	type edgeWithFile struct {
+		edge     *plugin.Edge
 		fromFile string
-		edge     plugin.Edge
 	}
 	edges := make([]edgeWithFile, 0, len(sg.Edges))
-	for _, edge := range sg.Edges {
-		if _, ok := sg.ShortIDs[edge.From]; !ok {
-			continue
-		}
-		if _, ok := sg.ShortIDs[edge.To]; !ok {
-			continue
-		}
+	for i := range sg.Edges {
+		edge := &sg.Edges[i]
 		edges = append(edges, edgeWithFile{fromFile: sg.SymbolFile[edge.From], edge: edge})
 	}
 
@@ -176,14 +175,20 @@ func buildJSONEdges(sg *ir.SymbolGraph) []jsonEdge {
 	})
 
 	out := make([]jsonEdge, 0, len(edges))
-	for _, item := range edges {
-		edge := item.edge
+	for i := range edges {
+		edge := edges[i].edge
+		resolution := sg.EdgeResolution(edge)
+		toShort := sg.ShortIDs[edge.To]
+		if resolution != "" {
+			toShort = ""
+		}
 		out = append(out, jsonEdge{
-			From:      edge.From,
-			FromShort: sg.ShortIDs[edge.From],
-			To:        edge.To,
-			ToShort:   sg.ShortIDs[edge.To],
-			Kind:      string(edge.Kind),
+			From:       edge.From,
+			FromShort:  sg.ShortIDs[edge.From],
+			To:         edge.To,
+			ToShort:    toShort,
+			Resolution: resolution, Candidates: edge.Candidates,
+			Kind: string(edge.Kind),
 		})
 	}
 	return out

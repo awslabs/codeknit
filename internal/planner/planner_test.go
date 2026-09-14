@@ -391,8 +391,7 @@ func TestCrossFileResolution_Proximity(t *testing.T) {
 	}
 }
 
-// TestCrossFileResolution_SingleCandidate verifies that when only one file
-// defines a symbol, cross-file resolution picks it regardless of distance.
+// A unique name in an unrelated package is not evidence of a dependency.
 func TestCrossFileResolution_SingleCandidate(t *testing.T) {
 	fileSymbols := map[string][]plugin.Symbol{
 		"src/api/handler.go": {
@@ -421,18 +420,16 @@ func TestCrossFileResolution_SingleCandidate(t *testing.T) {
 		t.Fatalf("expected 1 edge, got %d", len(sg.Edges))
 	}
 	edge := sg.Edges[0]
-	if edge.To != "lib/deep/nested/utils.go::Format" {
-		t.Errorf("expected edge to resolve to lib/deep/nested/utils.go::Format, got %q", edge.To)
+	if edge.To != "src/api/handler.go::Format" || edge.Resolution != "unresolved" {
+		t.Errorf("expected unrelated package to remain unresolved, got %+v", edge)
 	}
 }
 
-// TestCrossFileResolution_DeterministicTiebreak verifies that when multiple
-// candidates have equal directory distance, the lexicographically smallest
-// global ID wins — making the result deterministic and unique.
-func TestCrossFileResolution_DeterministicTiebreak(t *testing.T) {
+// Equally distant unrelated declarations must never be selected arbitrarily.
+func TestCrossFileResolution_NoArbitraryTiebreak(t *testing.T) {
 	// Two files at equal distance both define "Logger".
 	// pkg/alpha/logger.go and pkg/beta/logger.go are equidistant from src/main.go.
-	// The lexicographically smaller global ID (pkg/alpha/...) must win.
+	// Neither declaration is visible from this package.
 	fileSymbols := map[string][]plugin.Symbol{
 		"src/main.go": {
 			{
@@ -466,8 +463,8 @@ func TestCrossFileResolution_DeterministicTiebreak(t *testing.T) {
 		t.Fatalf("expected 1 edge, got %d", len(sg.Edges))
 	}
 	edge := sg.Edges[0]
-	if edge.To != "pkg/alpha/logger.go::Logger" {
-		t.Errorf("expected deterministic tiebreak to pkg/alpha/logger.go::Logger, got %q", edge.To)
+	if edge.To != "src/main.go::Logger" || edge.Resolution != "unresolved" {
+		t.Errorf("expected unresolved unrelated candidates, got %+v", edge)
 	}
 
 	// Run again to confirm determinism.
@@ -637,9 +634,8 @@ func TestCrossFileResolution_ImportAware(t *testing.T) {
 	}
 }
 
-// TestCrossFileResolution_ImportFallback verifies that when an import doesn't
-// match any candidate, resolution falls back to proximity.
-func TestCrossFileResolution_ImportFallback(t *testing.T) {
+// An unmatched import is authoritative; proximity cannot supply a replacement.
+func TestCrossFileResolution_UnmatchedImport(t *testing.T) {
 	fileSymbols := map[string][]plugin.Symbol{
 		"src/app.go": {
 			{
@@ -675,9 +671,9 @@ func TestCrossFileResolution_ImportFallback(t *testing.T) {
 		t.Fatalf("expected 1 edge, got %d", len(sg.Edges))
 	}
 	edge := sg.Edges[0]
-	// Should fall back to proximity: src/helpers/format.go is closer to src/app.go.
-	if edge.To != "src/helpers/format.go::Format" {
-		t.Errorf("expected proximity fallback to src/helpers/format.go::Format, got %q", edge.To)
+	// Both local declarations are unrelated to the import.
+	if edge.To != "src/app.go::Format" || edge.Resolution != "unresolved" {
+		t.Errorf("expected unmatched import to remain unresolved, got %+v", edge)
 	}
 }
 
@@ -839,19 +835,19 @@ func TestCrossFileResolution_PythonRelativeImport(t *testing.T) {
 //
 // Scenario:
 //
-//	project1/models/user.py  → exports User
+//	project1/models/__init__.py → exports User
 //	project1/app.py          → from models import User
-//	project2/models/user.py  → exports User
+//	project2/models/__init__.py → exports User
 //	project2/app.py          → from models import User
 func TestCrossFileResolution_BareImportDirectoryScoped(t *testing.T) {
 	fileSymbols := map[string][]plugin.Symbol{
-		"project1/models/user.py": {
+		"project1/models/__init__.py": {
 			{Name: "User", Category: plugin.CategoryType, Kind: "class", Signature: "User", Span: [2]int{1, 5}},
 		},
 		"project1/app.py": {
 			{Name: "handler", Category: plugin.CategoryCallable, Kind: "function", Signature: "handler()", Span: [2]int{1, 5}},
 		},
-		"project2/models/user.py": {
+		"project2/models/__init__.py": {
 			{Name: "User", Category: plugin.CategoryType, Kind: "class", Signature: "User", Span: [2]int{1, 5}},
 		},
 		"project2/app.py": {
@@ -885,10 +881,10 @@ func TestCrossFileResolution_BareImportDirectoryScoped(t *testing.T) {
 	}
 
 	for _, c := range calls {
-		if c.from == "project1/app.py::handler" && c.to != "project1/models/user.py::User" {
+		if c.from == "project1/app.py::handler" && c.to != "project1/models/__init__.py::User" {
 			t.Errorf("project1 handler should call project1 User, got %q", c.to)
 		}
-		if c.from == "project2/app.py::handler" && c.to != "project2/models/user.py::User" {
+		if c.from == "project2/app.py::handler" && c.to != "project2/models/__init__.py::User" {
 			t.Errorf("project2 handler should call project2 User, got %q", c.to)
 		}
 	}

@@ -245,7 +245,7 @@ func TestGraphValidate_UsesDefaults(t *testing.T) {
 }
 
 func TestAnalyzeValidate_UsesDefaults(t *testing.T) {
-	cfg := AnalyzeConfig{Common: Common{InputPath: t.TempDir()}}
+	cfg := AnalyzeConfig{Common: Common{InputPath: t.TempDir()}, TopN: DefaultAnalyzeTopN}
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -291,5 +291,16 @@ func TestResolveFingerprintEmbedModel(t *testing.T) {
 				t.Fatalf("got %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestAnalyzeTopNUnlimited(t *testing.T) {
+	cfg := AnalyzeConfig{Common: Common{InputPath: t.TempDir()}, TopN: 0}
+	if err := cfg.Validate(); err != nil || cfg.TopN != 0 {
+		t.Fatalf("unlimited top-n lost: %+v, %v", cfg, err)
+	}
+	cfg.TopN = -1
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("negative top-n accepted")
 	}
 }

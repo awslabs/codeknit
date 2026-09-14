@@ -16,9 +16,7 @@ type DataflowConfig struct {
 	// names from call expression nodes.
 	CallTarget CallTargetFunc
 	// RichCallTarget is like CallTarget but also indicates whether the call
-	// was qualified (e.g. obj.method()). When set, FileCallEdges uses it to
-	// gate qualified calls against known symbols, filtering out language
-	// built-in methods.
+	// was qualified (e.g. obj.method()), preserving its receiver for resolution.
 	RichCallTarget RichCallTargetFunc
 	// AssignmentKinds are node kinds for assignment/declaration statements.
 	AssignmentKinds []string
@@ -38,11 +36,12 @@ type DataflowConfig struct {
 
 // DataflowHints walks a function body and emits EdgeAliases and
 // EdgeReturns edges for dataflow tracking.
-func DataflowHints(node *sitter.Node, src []byte, scopeName string, cfg *DataflowConfig, knownCallables map[string]bool) []types.Edge {
+func DataflowHints(node *sitter.Node, src []byte, cfg *DataflowConfig, symbols []types.Symbol) []types.Edge {
 	if len(cfg.AssignmentKinds) == 0 && len(cfg.ReturnKinds) == 0 {
 		return nil
 	}
 
+	scopes := newSymbolScopes(node, src, symbols)
 	assignSet := makeSet(cfg.AssignmentKinds)
 	pairSet := makeSet(cfg.ObjectPairKinds)
 	returnSet := makeSet(cfg.ReturnKinds)
@@ -50,71 +49,85 @@ func DataflowHints(node *sitter.Node, src []byte, scopeName string, cfg *Dataflo
 	nameSet := makeSet(cfg.NameChildKinds)
 	valueSet := makeSet(cfg.ValueChildKinds)
 
-	funcKinds := map[string]bool{
-		"function_declaration":    true,
-		"method_declaration":      true,
-		"method_definition":       true,
-		"function_definition":     true,
-		"constructor_declaration": true,
-		"function_item":           true,
-		"function_signature_item": true,
-		"method":                  true,
-		"singleton_method":        true,
-		"function_def":            true,
+	var edges []types.Edge
+	type flowKey struct {
+		key    string
+		offset uint
+	}
+	seen := make(map[flowKey]bool)
+	add := func(key string, offset uint, edge types.Edge) {
+		identity := flowKey{key, offset}
+		if !seen[identity] {
+			seen[identity] = true
+			edge.SourceOffset = offset
+			edges = append(edges, edge)
+		}
 	}
 
-	var edges []types.Edge
-	seen := make(map[string]bool)
-
-	var walk func(n *sitter.Node, currentScope string)
-	walk = func(n *sitter.Node, currentScope string) {
+	var walk func(*sitter.Node)
+	walk = func(n *sitter.Node) {
 		kind := n.Kind()
-
-		if funcKinds[kind] {
-			if nameNode := ChildByKind(n, "identifier"); nameNode != nil {
-				currentScope = nameNode.Utf8Text(src)
-			} else if nameNode := ChildByKind(n, "name"); nameNode != nil {
-				currentScope = nameNode.Utf8Text(src)
-			} else {
-				if id := deepFindIdentifier(n, src, 4); id != "" {
-					currentScope = id
-				}
-			}
+		currentScope := ""
+		var sourceOffset uint
+		if owner := scopes.owner(n, true); owner != nil {
+			currentScope = owner.EffectiveScopedName()
+			sourceOffset = owner.DeclarationOffset()
 		}
 
 		if assignSet[kind] {
 			lhs, rhs := extractAssignmentParts(n, src, nameSet, valueSet, identSet)
-			if lhs != "" && rhs != "" && knownCallables[rhs] && !seen[lhs+"="+rhs] {
-				seen[lhs+"="+rhs] = true
-				edges = append(edges, types.Edge{From: lhs, To: rhs, Kind: types.EdgeAliases})
+			if lhs != "" && !declaresCallable(n) {
+				if rhs == "" {
+					rhs = "<unknown>"
+				}
+				key := currentScope + ":" + lhs + "=" + rhs
+				add(key, sourceOffset, types.Edge{From: lhs, To: rhs, Kind: types.EdgeAliases, Scope: currentScope})
 			}
 		}
 
 		if pairSet[kind] {
 			key, val := extractPairParts(n, src, identSet)
-			if key != "" && val != "" && knownCallables[val] && !seen[key+"="+val] {
-				seen[key+"="+val] = true
-				edges = append(edges, types.Edge{From: key, To: val, Kind: types.EdgeAliases})
+			if object := objectBinding(n, src); object != "" {
+				key = object + "." + key
+			}
+			identity := currentScope + ":" + key + "=" + val
+			if key != "" && val != "" {
+				add(identity, sourceOffset, types.Edge{From: key, To: val, Kind: types.EdgeAliases, Scope: currentScope})
 			}
 		}
 
 		if returnSet[kind] && currentScope != "" {
 			val := extractReturnValue(n, src, identSet)
-			if val != "" && knownCallables[val] && !seen["ret:"+currentScope+":"+val] {
-				seen["ret:"+currentScope+":"+val] = true
-				edges = append(edges, types.Edge{From: currentScope, To: val, Kind: types.EdgeReturns})
+			if val != "" {
+				add("ret:"+currentScope+":"+val, sourceOffset, types.Edge{From: currentScope, To: val, Kind: types.EdgeReturns})
 			}
 		}
 
 		for i := range n.ChildCount() {
 			child := n.Child(i)
 			if child != nil {
-				walk(child, currentScope)
+				walk(child)
 			}
 		}
 	}
-	walk(node, scopeName)
+	walk(node)
 	return edges
+}
+
+func declaresCallable(n *sitter.Node) bool {
+	value := n.ChildByFieldName("value")
+	if value == nil {
+		value = n.ChildByFieldName("right")
+	}
+	if value == nil {
+		return false
+	}
+	switch value.Kind() {
+	case "arrow_function", "function_expression", "generator_function", "lambda", "func_literal":
+		return true
+	default:
+		return false
+	}
 }
 
 // qualifiedExprKinds are tree-sitter node kinds that represent qualified
@@ -131,7 +144,7 @@ var qualifiedExprKinds = map[string]bool{
 }
 
 func extractQualifiedName(node *sitter.Node, src []byte) string {
-	return lastNamedLeaf(node, src)
+	return node.Utf8Text(src)
 }
 
 func extractValueName(node *sitter.Node, src []byte, identKinds map[string]bool) string {
@@ -224,6 +237,31 @@ func extractReturnValue(node *sitter.Node, src []byte, identKinds map[string]boo
 					return name
 				}
 			}
+		}
+	}
+	return ""
+}
+
+// objectBinding keeps keys from different object literals in separate namespaces.
+func objectBinding(node *sitter.Node, src []byte) string {
+	suffix := ""
+	for n := node.Parent(); n != nil; n = n.Parent() {
+		switch n.Kind() {
+		case "variable_declarator", "assignment", "short_var_declaration", "assignment_expression":
+			name := n.ChildByFieldName("name")
+			if name == nil {
+				name = n.ChildByFieldName("left")
+			}
+			if name != nil {
+				return name.Utf8Text(src) + suffix
+			}
+			return ""
+		case "pair":
+			if key := n.ChildByFieldName("key"); key != nil {
+				suffix = "." + key.Utf8Text(src) + suffix
+			}
+		case "function_declaration", "function_definition", "method_definition":
+			return ""
 		}
 	}
 	return ""

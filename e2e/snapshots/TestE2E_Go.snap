@@ -43,18 +43,38 @@ S5 --contains--> S6, S7, S8
 S9 --contains--> S10, S11
 S8 --calls--> S7
 S7 --references--> S5
+S7 --references[unresolved]--> string
 S8 --references--> S5
+S8 --references[unresolved]--> string, bool
 S10 --references--> S9
+S10 --references[unresolved]--> string
 S11 --references--> S9
+S11 --references[unresolved]--> string, bool
 S1 --contains--> S2, S5, S9, S12, S16, S17, S18
 S12 --contains--> S13, S14, S15
+S16 --references[unresolved]--> NewUser.u, string, int
 S16 --calls--> S17
+S17 --calls[unresolved]--> len
 S16 --references--> S12
+S17 --references[unresolved]--> string, error
 S20 --contains--> S21, S22, S24, S25
+S24 --calls[unresolved]--> fmt.Errorf
 S24 --calls--> S26
 S25 --calls--> S24, S27
+S25 --calls[unresolved]--> fmt.Errorf
+S26 --calls[unresolved]--> len
+S27 --calls[unresolved]--> fmt.Sprintf
+S23 --references[unresolved]--> string, int
 S23 --references--> S20
 S24 --references--> S20
+S24 --references[unresolved]--> string, bool, error
 S25 --references--> S20
+S25 --references[unresolved]--> string, error
+S26 --references[unresolved]--> string, bool
+S27 --references[unresolved]--> string, int
 S19 --contains--> S20, S23, S26, S27, S28, S29, S30, S31, S32, S33
+S32 --references--> S29
+S32 --references[unresolved]--> Compute.sum, int
 S32 --calls--> S30, S31
+S30 --references[unresolved]--> int
+S31 --references[unresolved]--> int

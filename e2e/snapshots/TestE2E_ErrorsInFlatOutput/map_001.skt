@@ -14,5 +14,6 @@ S8 callable/method L5-L6 handle(request)
 [edges]
 S1 --contains--> S2, S5
 S2 --contains--> S3, S4
+S5 --references[unresolved]--> string
 S5 --references--> S2
 S6 --contains--> S7, S8

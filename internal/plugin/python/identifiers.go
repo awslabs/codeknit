@@ -164,7 +164,7 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector, decoratedP
 				continue
 			}
 			if child.Kind() == "identifier" {
-				c.AddEdge(plugin.Edge{
+				c.AddEdge(&plugin.Edge{
 					From: name,
 					To:   child.Utf8Text(src),
 					Kind: plugin.EdgeInherits,
@@ -192,7 +192,7 @@ func extractClassMembers(body *sitter.Node, src []byte, c *plugin.Collector, cla
 			methodName := childText(child, "identifier", src)
 			if methodName != "" {
 				scopedName := plugin.MakeScopedName(className, methodName)
-				c.AddEdge(plugin.Edge{
+				c.AddEdge(&plugin.Edge{
 					From: className,
 					To:   scopedName,
 					Kind: plugin.EdgeContains,
@@ -211,7 +211,7 @@ func extractClassMembers(body *sitter.Node, src []byte, c *plugin.Collector, cla
 					methodName := childText(gc, "identifier", src)
 					if methodName != "" {
 						scopedName := plugin.MakeScopedName(className, methodName)
-						c.AddEdge(plugin.Edge{
+						c.AddEdge(&plugin.Edge{
 							From: className,
 							To:   scopedName,
 							Kind: plugin.EdgeContains,
@@ -254,14 +254,14 @@ func extractNestedClass(node *sitter.Node, src []byte, c *plugin.Collector, pare
 	}
 
 	// Contains edge from parent class.
-	c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+	c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 
 	// Extract inheritance edges.
 	if argList := childByKind(node, "argument_list"); argList != nil {
 		for i := range argList.ChildCount() {
 			child := argList.Child(i)
 			if child != nil && child.Kind() == "identifier" {
-				c.AddEdge(plugin.Edge{From: scopedName, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
+				c.AddEdge(&plugin.Edge{From: scopedName, To: child.Utf8Text(src), Kind: plugin.EdgeInherits})
 			}
 		}
 	}
@@ -357,13 +357,13 @@ func extractImportStmt(node *sitter.Node, src []byte, c *plugin.Collector) {
 			if dot := indexByte(modulePath, '.'); dot >= 0 {
 				localName = modulePath[:dot]
 			}
-			c.AddEdge(plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
 		case "aliased_import":
 			// import foo as bar → local name is "bar"
 			modulePath := childText(child, "dotted_name", src)
 			alias := childText(child, "identifier", src)
 			if modulePath != "" && alias != "" {
-				c.AddEdge(plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports})
 			}
 		}
 	}
@@ -402,14 +402,14 @@ func extractImportFromStmt(node *sitter.Node, src []byte, c *plugin.Collector) {
 				continue
 			}
 			name := child.Utf8Text(src)
-			c.AddEdge(plugin.Edge{From: name, To: modulePath, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: name, To: modulePath, Kind: plugin.EdgeImports})
 		case "aliased_import":
 			alias := childText(child, "identifier", src)
 			if alias != "" {
-				c.AddEdge(plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports, TargetName: childText(child, "dotted_name", src)})
 			}
 		case "wildcard_import":
-			c.AddEdge(plugin.Edge{From: "*", To: modulePath, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: "*", To: modulePath, Kind: plugin.EdgeImports})
 		}
 	}
 }

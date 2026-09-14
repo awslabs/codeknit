@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+
+- Preserve uncertain relationships in JSON and SKT; show excluded relationship counts in graph analysis and HTML.
+- Use native SKT edge annotations for uncertainty, with grouped targets and candidate short IDs.
+- Give C/C++ file and include endpoints symbols so include relationships use short IDs instead of repeated paths; retain unresolved status and exclude this metadata from dependency metrics.
+
+### Fixed
+
+- Resolve relationships using imports, lexical scope, and package identity instead of arbitrary name or proximity matches; preserve qualified calls and renamed imports.
+- Respect shadowed receivers before resolving namespace imports, and restrict Python package imports to declarations in the imported module or package initializer.
+- Preserve call ownership for same-line and overloaded declarations and isolate their scoped aliases; distinguish callback and return-value references from actual calls.
+- Resolve override targets through inherited declarations instead of emitting self-links; preserve uncertainty for missing or competing targets.
+- Correct TypeScript heritage edges, analyze all inheritance parents, count unique dependency neighbors, and prevent containment from making unused siblings reachable.
+- Use the strongest dependency path for change-propagation scores and honor `graph analyze --top-n 0`.
+
 ## [0.4.0] - 2026-09-11
 
 ### Added

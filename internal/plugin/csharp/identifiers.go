@@ -52,6 +52,9 @@ var callTarget plugin.CallTargetFunc = func(node *sitter.Node, src []byte) strin
 	return childText(node, "identifier", src)
 }
 
+var richCallTarget = plugin.UnqualifiedCallTargetRich("invocation_expression",
+	[]string{"identifier", "identifier_name"}, []string{"member_access_expression"})
+
 // extractParamStrings extracts parameter "name: type" pairs from a parameter_list node.
 func extractParamStrings(node *sitter.Node, src []byte) []string {
 	return plugin.ExtractTypedParams(node, src, csParamConfig)
@@ -265,12 +268,12 @@ func extractTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 	extract.TypeParams(node, src, c, scopedName, csTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	baseNames := extractBaseListNames(node, src)
 	for _, base := range baseNames {
-		c.AddEdge(plugin.Edge{From: scopedName, To: base, Kind: edgeKind})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: base, Kind: edgeKind})
 	}
 
 	if body := childByKind(node, "declaration_list"); body != nil {
@@ -315,7 +318,7 @@ func extractSimpleCSharpDecl(node *sitter.Node, src []byte, c *plugin.Collector,
 	})
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -353,17 +356,18 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 		Signature:  buildFuncSignature(name, params, returnType),
 		Properties: mods,
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	})
 
 	// Extract type parameters
 	extract.TypeParams(node, src, c, scopedName, csTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	if mods["override"] == "true" && parentClass != "" {
-		c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: node.StartByte() + 1})
 	}
 }
 
@@ -396,7 +400,7 @@ func extractField(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 			})
 
 			if parentClass != "" {
-				c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+				c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 			}
 		}
 	}
@@ -425,10 +429,11 @@ func extractConstructor(node *sitter.Node, src []byte, c *plugin.Collector, pare
 		Signature:  buildFuncSignature(name, params, ""),
 		Properties: mods,
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	})
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -455,12 +460,12 @@ func extractRecord(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 	extract.TypeParams(node, src, c, scopedName, csTypeParamConfig)
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	baseNames := extractBaseListNames(node, src)
 	for _, base := range baseNames {
-		c.AddEdge(plugin.Edge{From: scopedName, To: base, Kind: plugin.EdgeInherits})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: base, Kind: plugin.EdgeInherits})
 	}
 
 	if body := childByKind(node, "declaration_list"); body != nil {
@@ -496,7 +501,7 @@ func extractEvent(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 			Span:       nodeSpan(node),
 		})
 		if parentClass != "" {
-			c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}
 }
@@ -535,7 +540,7 @@ func extractOperator(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 	})
 
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -556,7 +561,7 @@ func extractUsingDirective(node *sitter.Node, src []byte, c *plugin.Collector) {
 			qn = childText(node, "identifier_name", src)
 		}
 		if alias != "" && qn != "" {
-			c.AddEdge(plugin.Edge{From: alias, To: qn, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: alias, To: qn, Kind: plugin.EdgeImports})
 		}
 		return
 	}
@@ -572,6 +577,6 @@ func extractUsingDirective(node *sitter.Node, src []byte, c *plugin.Collector) {
 		ns = childText(node, "identifier", src)
 	}
 	if ns != "" {
-		c.AddEdge(plugin.Edge{From: "*", To: ns, Kind: plugin.EdgeImports})
+		c.AddEdge(&plugin.Edge{From: "*", To: ns, Kind: plugin.EdgeImports})
 	}
 }

@@ -33,25 +33,45 @@ S26 callable/method L27-L30 remove(name: String) -> void {visibility=public}
 S27 callable/method L32-L34 count() -> int {visibility=public}
 
 [edges]
-S2 --contains--> S3, S4, S5, S6, S7, S8
+S2 --contains[unresolved]--> Animal.Animal.name, Animal.Animal.sound, Animal.Animal.Animal, Animal.Animal.getName, Animal.Animal.speak, Animal.Animal.describe
+S6 --references--> S3
 S8 --calls--> S6, S7
+S2 --references[unresolved]--> String
+S5 --references[unresolved]--> String
+S6 --references[unresolved]--> String
+S7 --references[unresolved]--> String
+S8 --references[unresolved]--> String
 S1 --contains--> S2, S9, S15
 S9 --inherits--> S2
-S9 --contains--> S10, S11, S12, S13, S14
-S12 --overrides--> S12
-S14 --overrides--> S14
-S12 --calls--> S6
-S13 --calls--> S6
+S9 --implements[unresolved]--> Comparable
+S9 --contains[unresolved]--> Dog.Dog.age, Dog.Dog.Dog, Dog.Dog.speak, Dog.Dog.fetch, Dog.Dog.compareTo
+S12 --overrides[unresolved]--> super.speak
+S14 --overrides[unresolved]--> super.compareTo
+S13 --references[unresolved]--> Dog.fetch.item, String
+S12 --calls[unresolved]--> getName
+S13 --calls[unresolved]--> getName
+S14 --calls[unresolved]--> Integer.compare
 S9 --references--> S2
-S14 --references--> S9
+S9 --references[unresolved]--> Comparable
+S11 --references[unresolved]--> String
+S12 --references[unresolved]--> String
+S14 --references--> S11
 S17 --contains--> S18, S19, S20
+S18 --references[unresolved]--> String
+S19 --references[unresolved]--> String
+S20 --references[unresolved]--> String
 S16 --contains--> S17, S21
 S21 --implements--> S17
-S21 --contains--> S22, S23, S24, S25, S26, S27
-S24 --overrides--> S24
-S25 --overrides--> S25
-S26 --overrides--> S26
-S24 --calls--> S22
-S26 --calls--> S22
-S27 --calls--> S22
+S21 --contains[unresolved]--> AnimalServiceImpl.AnimalServiceImpl.registry, AnimalServiceImpl.AnimalServiceImpl.AnimalServiceImpl, AnimalServiceImpl.AnimalServiceImpl.register, AnimalServiceImpl.AnimalServiceImpl.find, AnimalServiceImpl.AnimalServiceImpl.remove, AnimalServiceImpl.AnimalServiceImpl.count
+S24 --overrides[unresolved]--> super.register
+S25 --overrides[unresolved]--> super.find
+S26 --overrides[unresolved]--> super.remove
+S25 --references[unresolved]--> entry, String
+S24 --calls[unresolved]--> AnimalServiceImpl.registry.add
+S25 --calls[unresolved]--> entry.equals
+S26 --calls[unresolved]--> AnimalServiceImpl.registry.remove
+S27 --calls[unresolved]--> AnimalServiceImpl.registry.size
 S21 --references--> S17
+S21 --references[unresolved]--> List, String, ArrayList
+S24 --references[unresolved]--> String
+S26 --references[unresolved]--> String

@@ -27,7 +27,7 @@ const handlers = {
 
 	aliases := collectAliases(edges)
 	sort.Strings(aliases)
-	want := []string{"order=processOrder", "refund=processRefund"}
+	want := []string{"handlers.order=processOrder", "handlers.refund=processRefund", "handlers=<unknown>"}
 	if !sliceEqual(aliases, want) {
 		t.Fatalf("expected aliases %v, got %v", want, aliases)
 	}
@@ -68,7 +68,8 @@ function getHandler() {
 
 func collectAliases(edges []plugin.Edge) []string {
 	var out []string
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == plugin.EdgeAliases {
 			out = append(out, e.From+"="+e.To)
 		}
@@ -77,7 +78,8 @@ func collectAliases(edges []plugin.Edge) []string {
 }
 
 func hasAlias(edges []plugin.Edge, from, to string) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == plugin.EdgeAliases && e.From == from && e.To == to {
 			return true
 		}
@@ -86,7 +88,8 @@ func hasAlias(edges []plugin.Edge, from, to string) bool {
 }
 
 func hasReturn(edges []plugin.Edge, from, to string) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == plugin.EdgeReturns && e.From == from && e.To == to {
 			return true
 		}
@@ -96,7 +99,8 @@ func hasReturn(edges []plugin.Edge, from, to string) bool {
 
 func logEdges(t *testing.T, edges []plugin.Edge) {
 	t.Helper()
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 }

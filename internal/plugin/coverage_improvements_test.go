@@ -56,7 +56,8 @@ func findSymbolByKind(symbols []plugin.Symbol, name, kind string) *plugin.Symbol
 
 // hasEdge checks if an edge exists with the given from, to, and kind.
 func hasEdge(edges []plugin.Edge, from, to string, kind plugin.EdgeKind) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.From == from && e.To == to && e.Kind == kind {
 			return true
 		}
@@ -103,7 +104,8 @@ type Pair<K, V> = { key: K; value: V };
 
 	// Check contains edges
 	foundContains := false
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.To == "Container.T" && e.Kind == plugin.EdgeContains {
 			foundContains = true
 		}
@@ -168,7 +170,8 @@ class MyClass {
 
 	// Contains edges for fields
 	fieldContains := 0
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.From == "MyClass" && e.Kind == plugin.EdgeContains {
 			fieldContains++
 		}

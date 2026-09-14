@@ -139,6 +139,9 @@ func callTargetName(node *sitter.Node, src []byte) string {
 	}
 }
 
+var richCallTarget = plugin.UnqualifiedCallTargetRich("call_expression",
+	[]string{"identifier"}, []string{"field_expression"})
+
 // extendsTypes extracts the parent type names from an extends_clause node.
 // The first type after "extends" is the superclass; types after "with" keywords
 // are traits (implements). This uses the anonymous "with" keyword nodes in the
@@ -248,15 +251,15 @@ func extractScalaTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, pa
 	extract.TypeParams(node, src, c, scopedName, scalaTypeParamConfig)
 
 	if parentName != "" {
-		c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	superclass, traits := extendsTypes(node, src)
 	if superclass != "" {
-		c.AddEdge(plugin.Edge{From: scopedName, To: superclass, Kind: plugin.EdgeInherits})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: superclass, Kind: plugin.EdgeInherits})
 	}
 	for _, t := range traits {
-		c.AddEdge(plugin.Edge{From: scopedName, To: t, Kind: plugin.EdgeImplements})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: t, Kind: plugin.EdgeImplements})
 	}
 
 	if body := childByKind(node, "template_body"); body != nil {
@@ -302,6 +305,7 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, parentN
 		Signature:  buildFuncSignature(name, params, returnType),
 		Properties: mods,
 		Span:       nodeSpan(node),
+		ByteSpan:   plugin.NodeByteSpan(node),
 	}
 	c.AddSymbol(&sym)
 
@@ -309,10 +313,10 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, parentN
 	extract.TypeParams(node, src, c, scopedName, scalaTypeParamConfig)
 
 	if parentName != "" {
-		c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 		// Check for override modifier.
 		if mods["override"] == "true" {
-			c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+			c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: node.StartByte() + 1})
 		}
 	}
 }
@@ -339,7 +343,7 @@ func extractSimpleScalaSymbol(node *sitter.Node, src []byte, c *plugin.Collector
 	})
 
 	if parentName != "" {
-		c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -376,13 +380,13 @@ func extractImport(node *sitter.Node, src []byte, c *plugin.Collector) {
 		modulePath := path[:dot]
 		if localName == "_" {
 			// Wildcard import: import scala.collection.mutable._
-			c.AddEdge(plugin.Edge{From: "*", To: modulePath, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: "*", To: modulePath, Kind: plugin.EdgeImports})
 		} else {
-			c.AddEdge(plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
+			c.AddEdge(&plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
 		}
 	} else {
 		// Simple import with no dots.
-		c.AddEdge(plugin.Edge{From: path, To: path, Kind: plugin.EdgeImports})
+		c.AddEdge(&plugin.Edge{From: path, To: path, Kind: plugin.EdgeImports})
 	}
 }
 

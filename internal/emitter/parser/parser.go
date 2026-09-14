@@ -26,6 +26,8 @@ func ParseOutput(readers []io.Reader, minified bool) (*ir.SymbolGraph, error) {
 
 	// shortID → full symbol ID mapping (built during symbol parsing).
 	shortToFull := make(map[string]string)
+	symbolCounts := make(map[string]int)
+	var edgeLines []string
 
 	for _, r := range readers {
 		data, err := io.ReadAll(r)
@@ -86,15 +88,16 @@ func ParseOutput(readers []io.Reader, minified bool) (*ir.SymbolGraph, error) {
 				if err != nil {
 					return nil, fmt.Errorf("parsing symbol line %q: %w", line, err)
 				}
+				count := symbolCounts[sym.ID]
+				symbolCounts[sym.ID] = count + 1
+				if count > 0 {
+					sym.ID = fmt.Sprintf("%s#%d", sym.ID, count)
+				}
 				shortToFull[shortID] = sym.ID
 				sg.Symbols = append(sg.Symbols, sym)
 
 			case "edges":
-				edges, err := parseEdgeLine(trimmed, shortToFull, dict, minified)
-				if err != nil {
-					return nil, fmt.Errorf("parsing edge line %q: %w", line, err)
-				}
-				sg.Edges = append(sg.Edges, edges...)
+				edgeLines = append(edgeLines, trimmed)
 
 			case "errors":
 				// Format: "- filepath: reason"
@@ -112,6 +115,15 @@ func ParseOutput(readers []io.Reader, minified bool) (*ir.SymbolGraph, error) {
 		}
 	}
 
+	// Resolve IDs after all files/chunks have supplied their symbols. Candidate
+	// lists can refer to declarations emitted later in the stream.
+	for _, line := range edgeLines {
+		edges, err := parseEdgeLine(line, shortToFull, dict, minified)
+		if err != nil {
+			return nil, fmt.Errorf("parsing edge line %q: %w", line, err)
+		}
+		sg.Edges = append(sg.Edges, edges...)
+	}
 	return sg, nil
 }
 
@@ -154,10 +166,11 @@ func parseSymbolLine(
 	}
 	category := plugin.SymbolCategory(parts[0])
 	kind := parts[1]
+	sym.Category, sym.Kind = category, kind
 
 	// Extract name from signature (the part before the first '(' or the whole signature).
 	name := signature
-	if idx := strings.Index(signature, "("); idx >= 0 {
+	if idx := strings.Index(signature, "("); idx >= 0 && !sym.IsFileMetadata() {
 		name = signature[:idx]
 	}
 
@@ -206,53 +219,4 @@ func parseProperties(s string, dict map[string]string, minified bool) map[string
 		}
 	}
 	return props
-}
-
-// edgeLineRe matches an edge line: "FROM --kind--> TO1, TO2, ..."
-var edgeLineRe = regexp.MustCompile(`^(\S+)\s+--(\w+)-->\s+(.+)$`)
-
-// parseEdgeLine parses a single edge line which may contain multiple targets.
-// When minified is true, the edge kind is decoded through the dictionary.
-func parseEdgeLine(line string, shortToFull, dict map[string]string, minified bool) ([]plugin.Edge, error) {
-	m := edgeLineRe.FindStringSubmatch(line)
-	if m == nil {
-		return nil, fmt.Errorf("line does not match edge format")
-	}
-
-	fromShort := m[1]
-	kindStr := m[2]
-	targetsStr := m[3]
-
-	// Decode edge kind if minified.
-	if minified {
-		if decoded, ok := dict[kindStr]; ok {
-			kindStr = decoded
-		}
-	}
-	kind := plugin.EdgeKind(kindStr)
-
-	fromFull, ok := shortToFull[fromShort]
-	if !ok {
-		fromFull = fromShort
-	}
-
-	targets := strings.Split(targetsStr, ", ")
-	edges := make([]plugin.Edge, 0, len(targets))
-	for _, toShort := range targets {
-		toShort = strings.TrimSpace(toShort)
-		if toShort == "" {
-			continue
-		}
-		toFull, ok := shortToFull[toShort]
-		if !ok {
-			toFull = toShort
-		}
-		edges = append(edges, plugin.Edge{
-			From: fromFull,
-			To:   toFull,
-			Kind: kind,
-		})
-	}
-
-	return edges, nil
 }

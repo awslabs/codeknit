@@ -7,4 +7,5 @@ S5 callable/function L8-L10 NewUser(name: string, email: string) -> *S2 {exporte
 
 [edges]
 S2 --contains--> S3, S4
+S5 --references[unresolved]--> string
 S5 --references--> S2

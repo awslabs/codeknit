@@ -32,13 +32,27 @@ S26 callable/function L16-L19 decrement() {exported}
 S27 callable/function L21-L23 getCount() {exported}
 
 [edges]
+S6 --references[unresolved]--> S5
+S3 --calls[unresolved]--> Object.assign
 S3 --calls--> S4
 S7 --contains--> S8, S9
 S10 --inherits--> S7
 S10 --contains--> S11, S12
 S13 --inherits--> S7
 S13 --contains--> S14
+S8 --references[unresolved]--> this.sound
+S11 --references[unresolved]--> this.name
+S12 --references[unresolved]--> Dog.fetch.item
+S14 --references[unresolved]--> this.name
 S9 --calls--> S8
+S15 --references[unresolved]--> add.a
+S16 --references[unresolved]--> multiply.a
+S20 --references[unresolved]--> accumulate.accumulator
 S17 --calls--> S15, S16
 S18 --calls--> S16, S15, S17
 S20 --calls--> S15
+S25 --references[unresolved]--> S24
+S26 --references[unresolved]--> S24
+S27 --references[unresolved]--> S24
+S22 --calls[unresolved]--> String
+S23 --calls[unresolved]--> f, g

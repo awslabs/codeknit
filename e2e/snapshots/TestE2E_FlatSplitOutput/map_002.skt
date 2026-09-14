@@ -1,29 +1,34 @@
 [symbols]
+## pkg/service/product_service.go
+S13 module/package L1-L1 service
+S14 type/struct L5-L7 ProductService {exported}
+S15 value/field L6-L6 store: *ProductStore
+S16 callable/function L9-L11 NewProductService() -> *S14 {exported}
+S17 callable/method L13-L16 Create(name: string, price: float64) -> *models.Product {exported, receiver=*ProductService}
+S18 callable/method L18-L20 Get(id: int) -> *models.Product {exported, receiver=*ProductService}
 ## pkg/service/user_service.go
 S19 type/struct L5-L7 UserService {exported}
-S20 value/field L6-L6 store: *S31
+S20 value/field L6-L6 store: *UserStore
 S21 callable/function L9-L11 NewUserService() -> *S19 {exported}
-S22 callable/method L13-L16 Register(name: string, email: string) -> *models.S7 {exported, receiver=*UserService}
-S23 callable/method L18-L20 Lookup(id: int) -> *models.S7 {exported, receiver=*UserService}
+S22 callable/method L13-L16 Register(name: string, email: string) -> *models.User {exported, receiver=*UserService}
+S23 callable/method L18-L20 Lookup(id: int) -> *models.User {exported, receiver=*UserService}
 S24 callable/method L22-L24 Delete(id: int) -> bool {exported, receiver=*UserService}
-## pkg/store/product_store.go
-S25 module/package L1-L1 store
-S26 type/struct L5-L7 ProductStore {exported}
-S27 value/field L6-L6 products: []*models.S2
-S28 callable/function L9-L11 NewProductStore() -> *S26 {exported}
-S29 callable/method L13-L15 Add(p: *models.S2) {exported, receiver=*ProductStore}
-S30 callable/method L17-L24 FindByID(id: int) -> *models.S2 {exported, receiver=*ProductStore}
 
 [edges]
+S14 --contains--> S15, S17, S18
+S17 --references[unresolved]--> ProductService.Create.p, string, float64, Product
+S17 --calls[unresolved]--> models.NewProduct
+S16 --references--> S14
+S17 --references--> S14
+S18 --references--> S14
+S18 --references[unresolved]--> int, Product
+S13 --contains--> S14, S16, S19, S21
 S19 --contains--> S20, S22, S23, S24
-S19 --references--> S31
+S22 --references[unresolved]--> UserService.Register.u, string, User
+S22 --calls[unresolved]--> models.NewUser
 S21 --references--> S19
-S22 --references--> S19, S7
-S23 --references--> S19, S7
+S22 --references--> S19
+S23 --references--> S19
+S23 --references[unresolved]--> int, User
 S24 --references--> S19
-S26 --contains--> S27, S29, S30
-S26 --references--> S2
-S28 --references--> S26
-S29 --references--> S26, S2
-S30 --references--> S26, S2
-S25 --contains--> S26, S28, S31, S33
+S24 --references[unresolved]--> int, bool

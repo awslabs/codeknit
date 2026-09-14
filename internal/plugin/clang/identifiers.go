@@ -256,7 +256,7 @@ func extractStructFields(body *sitter.Node, src []byte, c *plugin.Collector, par
 		fieldName := childText(child, "field_identifier", src)
 		if fieldName != "" {
 			scopedName := plugin.MakeScopedName(parentName, fieldName)
-			c.AddEdge(plugin.Edge{
+			c.AddEdge(&plugin.Edge{
 				From: parentName,
 				To:   scopedName,
 				Kind: plugin.EdgeContains,
@@ -343,29 +343,4 @@ func extractPreprocDef(node *sitter.Node, src []byte, c *plugin.Collector) {
 // extractPreprocFunctionDef extracts a preproc_function_def (#define NAME(...) ...) node.
 func extractPreprocFunctionDef(node *sitter.Node, src []byte, c *plugin.Collector) {
 	extractMacroSymbol(node, src, c, plugin.CategoryCallable, "macro_function")
-}
-
-// extractInclude extracts a preproc_include (#include) node as a references edge.
-func extractInclude(node *sitter.Node, src []byte, c *plugin.Collector) {
-	// The include path is in a system_lib_string or string_literal child.
-	var target string
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		switch child.Kind() {
-		case "system_lib_string", "string_literal":
-			target = child.Utf8Text(src)
-		}
-	}
-	if target == "" {
-		return
-	}
-
-	c.AddEdge(plugin.Edge{
-		From: c.FilePath,
-		To:   target,
-		Kind: plugin.EdgeReferences,
-	})
 }

@@ -151,6 +151,8 @@ var validEdgeKinds = map[plugin.EdgeKind]bool{
 	plugin.EdgeOverrides:  true,
 	plugin.EdgeImports:    true,
 	plugin.EdgeDecorates:  true,
+	plugin.EdgeAliases:    true,
+	plugin.EdgeReturns:    true,
 }
 
 // Property 1: Registry round-trip
@@ -699,7 +701,7 @@ func callEdgeLangCases() []callEdgeCase {
 				plugin:   java.NewPlugin(),
 			},
 			callerName:  "Foo.caller",
-			callTargets: []string{"helper", "println"},
+			callTargets: []string{"helper", "System.out.println"},
 		},
 		{
 			langCase: langCase{
@@ -739,7 +741,7 @@ func callEdgeLangCases() []callEdgeCase {
 				plugin:   csharp.NewPlugin(),
 			},
 			callerName:  "Foo.Caller",
-			callTargets: []string{"Helper", "WriteLine"},
+			callTargets: []string{"Helper", "Console.WriteLine"},
 		},
 		{
 			langCase: langCase{

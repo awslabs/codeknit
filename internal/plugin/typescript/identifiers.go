@@ -88,57 +88,42 @@ func extractReturnTypeString(node *sitter.Node, src []byte) string {
 	return ""
 }
 
-// extractHeritageNames extracts base type names from extends/implements clauses as strings.
-func extractHeritageNames(node *sitter.Node, src []byte) []string {
-	heritage := childByKind(node, "class_heritage")
-	if heritage == nil {
-		return extractHeritageNamesFromChildren(node, src)
-	}
-	return extractHeritageNamesFromChildren(heritage, src)
-}
-
-// extractHeritageNamesFromChildren extracts type names from extends/implements clause children.
-func extractHeritageNamesFromChildren(node *sitter.Node, src []byte) []string {
-	var result []string
-	for i := range node.ChildCount() {
-		child := node.Child(i)
-		if child == nil {
-			continue
-		}
-		kind := child.Kind()
-		switch kind {
-		case "extends_clause", "implements_clause", "extends_type_clause":
-			for j := range child.ChildCount() {
-				gc := child.Child(j)
-				if gc == nil {
+// extractHeritageEdges visits only explicit heritage clauses. A declaration's
+// own name and generic arguments are never base types.
+func extractHeritageEdges(node *sitter.Node, src []byte, owner string) []plugin.Edge {
+	var edges []plugin.Edge
+	var walk func(*sitter.Node)
+	walk = func(n *sitter.Node) {
+		for i := range n.NamedChildCount() {
+			child := n.NamedChild(i)
+			kind := plugin.EdgeInherits
+			switch child.Kind() {
+			case "class_heritage":
+				walk(child)
+				continue
+			case "implements_clause":
+				kind = plugin.EdgeImplements
+			case "extends_clause", "extends_type_clause":
+			default:
+				continue
+			}
+			for j := range child.NamedChildCount() {
+				base := child.NamedChild(j)
+				if base.Kind() == "type_arguments" {
 					continue
 				}
-				switch gc.Kind() {
-				case "identifier", "type_identifier":
-					result = append(result, gc.Utf8Text(src))
-				case "generic_type":
-					name := childText(gc, "type_identifier", src)
-					if name == "" {
-						name = childText(gc, "identifier", src)
-					}
-					if name != "" {
-						result = append(result, name)
+				if base.Kind() == "generic_type" {
+					base = base.ChildByFieldName("name")
+					if base == nil {
+						continue
 					}
 				}
-			}
-		case "identifier", "type_identifier":
-			result = append(result, child.Utf8Text(src))
-		case "generic_type":
-			name := childText(child, "type_identifier", src)
-			if name == "" {
-				name = childText(child, "identifier", src)
-			}
-			if name != "" {
-				result = append(result, name)
+				edges = append(edges, plugin.Edge{From: owner, To: base.Utf8Text(src), Kind: kind})
 			}
 		}
 	}
-	return result
+	walk(node)
+	return edges
 }
 
 // callTarget is the CallTargetFunc for TypeScript.
@@ -180,7 +165,8 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, exporte
 			SetBool("exported", exported).
 			SetBool("async", hasChildKeyword(node, "async", src)).
 			Map(),
-		Span: nodeSpan(node),
+		Span:     nodeSpan(node),
+		ByteSpan: plugin.NodeByteSpan(node),
 	})
 
 	// Extract type parameters
@@ -212,9 +198,7 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector, exported b
 	// Extract type parameters
 	extract.TypeParams(node, src, c, name, tsTypeParamConfig)
 
-	for _, baseName := range extractHeritageNames(node, src) {
-		c.AddEdge(plugin.Edge{From: name, To: baseName, Kind: plugin.EdgeInherits})
-	}
+	c.Edges = append(c.Edges, extractHeritageEdges(node, src, name)...)
 
 	if body := childByKind(node, "class_body"); body != nil {
 		extractClassMembers(body, src, c, name)
@@ -274,13 +258,14 @@ func extractTSMethod(child *sitter.Node, src []byte, c *plugin.Collector, classN
 			SetBool("abstract", hasChildKeyword(child, "abstract", src)).
 			SetBool("override", isOverride).
 			Map(),
-		Span: nodeSpan(child),
+		Span:     nodeSpan(child),
+		ByteSpan: plugin.NodeByteSpan(child),
 	})
 
-	c.AddEdge(plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
+	c.AddEdge(&plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
 
 	if isOverride {
-		c.AddEdge(plugin.Edge{From: scopedName, To: scopedName, Kind: plugin.EdgeOverrides})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: "super." + name, Kind: plugin.EdgeOverrides, Resolution: "unresolved", SourceOffset: child.StartByte() + 1})
 	}
 
 	// Emit decorator edges for the method.
@@ -311,7 +296,7 @@ func extractTSField(child *sitter.Node, src []byte, c *plugin.Collector, classNa
 		Span: nodeSpan(child),
 	})
 
-	c.AddEdge(plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
+	c.AddEdge(&plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
 
 	// Emit decorator edges for the field.
 	extractTSDecoratorEdges(child, src, c, scopedName)
@@ -360,9 +345,7 @@ func extractInterface(node *sitter.Node, src []byte, c *plugin.Collector, export
 	// Extract type parameters
 	extract.TypeParams(node, src, c, name, tsTypeParamConfig)
 
-	for _, baseName := range extractHeritageNames(node, src) {
-		c.AddEdge(plugin.Edge{From: name, To: baseName, Kind: plugin.EdgeImplements})
-	}
+	c.Edges = append(c.Edges, extractHeritageEdges(node, src, name)...)
 }
 
 // extractTypeAlias extracts a type_alias_declaration node.
@@ -542,7 +525,7 @@ func extractObjectMethods(obj *sitter.Node, src []byte, c *plugin.Collector, par
 					Map(),
 				Span: nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 		// pair with arrow/function value: { handler: (req) => { ... } }
 		if child.Kind() == "pair" {
@@ -571,7 +554,7 @@ func extractObjectMethods(obj *sitter.Node, src []byte, c *plugin.Collector, par
 					Map(),
 				Span: nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}
 }

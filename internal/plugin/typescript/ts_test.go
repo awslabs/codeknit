@@ -131,7 +131,7 @@ func TestParseSource_CallEdges(t *testing.T) {
 		}
 	}
 	sort.Strings(callTargets)
-	want := []string{"bar", "baz"}
+	want := []string{"bar", "baz", "utils.format"}
 	sort.Strings(want)
 	if len(callTargets) != len(want) {
 		t.Fatalf("expected call targets %v, got %v", want, callTargets)
@@ -158,6 +158,38 @@ func TestParseSource_HeritageEdges(t *testing.T) {
 	sort.Strings(heritageTargets)
 	if len(heritageTargets) != 2 || heritageTargets[0] != "Animal" || heritageTargets[1] != "Pet" {
 		t.Errorf("expected heritage targets [Animal, Pet], got %v", heritageTargets)
+	}
+}
+
+func TestHeritageEdgesHaveCorrectKinds(t *testing.T) {
+	src := []byte(`
+class Plain {}
+class Child extends Base<string> implements First, Second {}
+interface Combined extends First, Second {}
+`)
+	_, edges, err := parseSource(t, "test.ts", src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[[2]string]plugin.EdgeKind{
+		{"Child", "Base"}:      plugin.EdgeInherits,
+		{"Child", "First"}:     plugin.EdgeImplements,
+		{"Child", "Second"}:    plugin.EdgeImplements,
+		{"Combined", "First"}:  plugin.EdgeInherits,
+		{"Combined", "Second"}: plugin.EdgeInherits,
+	}
+	for _, edge := range edges {
+		if edge.Kind != plugin.EdgeInherits && edge.Kind != plugin.EdgeImplements {
+			continue
+		}
+		key := [2]string{edge.From, edge.To}
+		if want[key] != edge.Kind {
+			t.Errorf("invented or misclassified heritage: %+v", edge)
+		}
+		delete(want, key)
+	}
+	if len(want) > 0 {
+		t.Errorf("missing heritage edges: %v", want)
 	}
 }
 

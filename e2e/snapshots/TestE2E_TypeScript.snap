@@ -32,33 +32,45 @@ S26 value/variable L1-L1 counter
 S27 callable/function L3-L6 increment() -> number {exported}
 S28 callable/function L8-L11 decrement() -> number {exported}
 S29 callable/function L13-L15 reset() -> void {exported}
-S30 callable/function L17-L19 identity(value: S33) -> S33 {exported}
+S30 callable/function L17-L19 identity(value: T) -> T {exported}
 S31 type/type_parameter L17-L17 T
-S32 callable/function L21-L23 map(arr: S33[], fn: (item: S33) => U) -> S34[] {exported}
+S32 callable/function L21-L23 map(arr: T[], fn: (item: T) => U) -> S34[] {exported}
 S33 type/type_parameter L21-L21 T
 S34 type/type_parameter L21-L21 U
 S35 callable/arrow_function L25-L29 clamp(value: number, low: number, high: number) -> number {exported}
 
 [edges]
+S9 --references[unresolved]--> S7
 S8 --references--> S3
 S9 --references--> S3
-S10 --implements--> S10
-S11 --implements--> S11, S10
-S12 --inherits--> S10
+S11 --inherits--> S10
+S12 --implements--> S10
 S12 --contains--> S13, S14, S15
 S16 --inherits--> S12
 S16 --contains--> S17
 S18 --inherits--> S16
 S18 --contains--> S19
-S19 --overrides--> S19
+S19 --overrides--> S17
+S13 --references[unresolved]--> this.name
+S14 --references[unresolved]--> this.email
+S17 --references[unresolved]--> this.role
+S19 --references[unresolved]--> this.role
+S15 --calls[unresolved]--> JSON.stringify
 S15 --calls--> S13, S14
 S11 --references--> S10
 S12 --references--> S10
+S21 --references[unresolved]--> formatMessage.name
+S25 --references[unresolved]--> fetchName.userId, Promise
 S20 --calls--> S21
 S21 --calls--> S22
 S24 --calls--> S25, S20
+S24 --references[unresolved]--> Promise
 S30 --contains--> S31
 S32 --contains--> S33, S34
-S32 --calls--> S32
-S31 --references--> S31
-S34 --references--> S31, S34
+S27 --references[unresolved]--> S26
+S28 --references[unresolved]--> S26
+S30 --references[unresolved]--> identity.value
+S35 --references[unresolved]--> low, high, value
+S32 --calls[unresolved]--> "src/utils/helpers.ts::T[].map"
+S30 --references--> S31
+S32 --references--> S33, S34

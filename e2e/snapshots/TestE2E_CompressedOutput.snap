@@ -32,8 +32,11 @@ S13 d1 L11-L13 Run() -> string {d4, d6}
 S1 --d3--> S2, S3
 S3 --d2--> S4
 S6 --d3--> S7, S8
+S9 --d7[unresolved]--> string
 S9 --d7--> S6
 S5 --d3--> S6, S9, S10, S12
 S10 --d3--> S11, S13
+S13 --d7[unresolved]--> s.Name, string
+S12 --d7[unresolved]--> string
 S12 --d7--> S10
 S13 --d7--> S10

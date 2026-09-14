@@ -12,7 +12,7 @@ func init() {
 		"function_definition":  plugin.Adapt(extractFunction),
 		"struct_specifier":     plugin.Adapt(extractStruct),
 		"enum_specifier":       plugin.Adapt(extractEnum),
-		"preproc_include":      plugin.Adapt(extractInclude),
+		"preproc_include":      plugin.Adapt(plugin.ExtractInclude),
 		"declaration":          plugin.Adapt(extractDeclaration),
 		"union_specifier":      plugin.Adapt(extractUnion),
 		"type_definition":      plugin.Adapt(extractTypedef),

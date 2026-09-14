@@ -31,7 +31,7 @@ S26 type/enum L1-L6 LogLevel {pub}
 S27 type/struct L8-L12 Config {pub}
 S28 value/field L9-L9 name: String {pub}
 S29 value/field L10-L10 port: u16 {pub}
-S30 value/field L11-L11 log_level: S26 {pub}
+S30 value/field L11-L11 log_level: LogLevel {pub}
 S31 type/impl L14-L27 Config
 S32 callable/method L15-L21 default_config() -> Self {pub}
 S33 callable/method L23-L26 with_port(mut self, port: u16) -> Self {pub}
@@ -52,18 +52,31 @@ S46 value/constant L34-L34 MAX_TOKEN_LEN {pub}
 
 [edges]
 S3 --contains--> S4
+S4 --references[unresolved]--> String
+S5 --references[unresolved]--> String
 S8 --contains--> S9, S10
-S11 --contains--> S12, S13, S15, S16, S18, S19
-S11 --implements--> S8
-S20 --contains--> S21, S23, S24
-S20 --implements--> S8
-S15 --references--> S11
-S11 --references--> S8
-S20 --references--> S8
-S27 --contains--> S28, S29, S30, S32, S33
-S27 --references--> S26
-S32 --references--> S27
-S37 --contains--> S38, S39, S41, S42, S43
+S11 --contains[ambiguous]--> S12, S13, S15, S16, S18, S19
+S11 --implements[ambiguous]--> S8
+S20 --contains[ambiguous]--> S21, S23, S24
+S20 --implements[ambiguous]--> S8
+S16 --calls[unresolved]--> self.name.len
+S9 --references[unresolved]--> String
+S11 --references[ambiguous]--> String
+S15 --references[unresolved]--> String, Self
+S18 --references[unresolved]--> String
+S20 --references[ambiguous]--> String
+S23 --references[unresolved]--> String
+S27 --contains[ambiguous]--> S28, S29, S30, S32, S33
+S32 --calls[unresolved]--> String.from
+S27 --references[ambiguous]--> String, S26
+S32 --references[unresolved]--> Self
+S33 --references[unresolved]--> Self
+S37 --contains[ambiguous]--> S38, S39, S41, S42, S43
 S42 --calls--> S44
 S43 --calls--> S42, S45
-S41 --references--> S37
+S43 --calls[unresolved]--> Some
+S44 --calls[unresolved]--> str.is_empty
+S37 --references[ambiguous]--> String
+S41 --references[unresolved]--> String, Self
+S43 --references[unresolved]--> Option, String
+S45 --references[unresolved]--> String

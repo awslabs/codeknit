@@ -39,16 +39,19 @@ S32 callable/method L26-L26 Log(level: string, message: string) -> void
 [edges]
 S2 --contains--> S3, S4, S5, S6
 S7 --contains--> S8, S9
+S6 --references--> S4
 S1 --contains--> S2, S7, S10, S11, S15, S21
+S11 --implements[unresolved]--> IEquatable
 S11 --contains--> S12, S13, S14
 S15 --inherits--> S2
 S15 --contains--> S16, S17, S18, S19, S20
-S18 --overrides--> S18
+S18 --overrides--> S5
 S18 --calls--> S19
-S20 --calls--> S5
+S20 --calls[unresolved]--> u.Validate
 S23 --contains--> S24, S25, S26, S27, S28
 S29 --contains--> S30
 S31 --inherits--> S29
 S31 --contains--> S32
+S26 --references[unresolved]--> UserService.CreateUser.name
 S25 --calls--> S26, S27
 S22 --contains--> S23, S29, S31

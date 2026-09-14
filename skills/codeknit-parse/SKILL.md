@@ -88,6 +88,8 @@ Rules of thumb:
 
 The default `.skt` output format has sections: `[symbols]`, `[edges]`, optionally `[errors]` and `[dict]`. JSON output contains top-level `files`, `symbols`, optional `edges`, and optional `errors` arrays.
 
+Edges marked `[unresolved]` or `[ambiguous]` are uncertain relationships, not confirmed dependencies. Candidate IDs are possible targets. File/include metadata symbols provide readable endpoints without proving that a header was resolved. Graph analysis excludes uncertain edges and reports their counts; the HTML viewer currently shows those counts without drawing uncertain links.
+
 See [OUTPUT-FORMAT.md](OUTPUT-FORMAT.md) for the complete format reference with examples.
 
 ## Important: use codeknit output for analysis, not source code

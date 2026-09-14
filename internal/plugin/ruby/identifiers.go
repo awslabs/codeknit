@@ -90,12 +90,23 @@ var callTarget = plugin.FilterCallTarget(
 	"private", "protected", "public",
 )
 
-// richCallTarget is the RichCallTargetFunc for Ruby.
-// Ruby's UnqualifiedCallTarget has no qualified kinds (nil), so all calls are
-// treated as unqualified. No rich variant needed — use the plain callTarget
-// wrapped as a RichCallTargetFunc with Qualified always false.
+// richCallTarget retains Ruby's explicit receiver and method fields.
 var richCallTarget plugin.RichCallTargetFunc = func(node *sitter.Node, src []byte) plugin.CallTargetResult {
-	return plugin.CallTargetResult{Name: callTarget(node, src)}
+	if node.Kind() != "call" {
+		return plugin.CallTargetResult{}
+	}
+	name := node.ChildByFieldName("method")
+	if name == nil {
+		return plugin.CallTargetResult{}
+	}
+	result := plugin.CallTargetResult{Name: name.Utf8Text(src)}
+	if result.Name == "private" || result.Name == "protected" || result.Name == "public" {
+		return plugin.CallTargetResult{}
+	}
+	if receiver := node.ChildByFieldName("receiver"); receiver != nil {
+		result.Receiver, result.Qualified = receiver.Utf8Text(src), true
+	}
+	return result
 }
 
 // extractParamStrings extracts method parameter names.
@@ -197,7 +208,7 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector) {
 	if sup := childByKind(node, "superclass"); sup != nil {
 		superName := superclassName(sup, src)
 		if superName != "" {
-			c.AddEdge(plugin.Edge{
+			c.AddEdge(&plugin.Edge{
 				From: name,
 				To:   superName,
 				Kind: plugin.EdgeInherits,
@@ -278,7 +289,7 @@ func extractClassMembers(body *sitter.Node, src []byte, c *plugin.Collector, par
 				Span:       nodeSpan(child),
 			}
 			c.AddSymbol(&sym)
-			c.AddEdge(plugin.Edge{
+			c.AddEdge(&plugin.Edge{
 				From: parentName,
 				To:   scopedName,
 				Kind: plugin.EdgeContains,
@@ -300,7 +311,7 @@ func extractClassMembers(body *sitter.Node, src []byte, c *plugin.Collector, par
 				Span:       nodeSpan(child),
 			}
 			c.AddSymbol(&sym)
-			c.AddEdge(plugin.Edge{
+			c.AddEdge(&plugin.Edge{
 				From: parentName,
 				To:   scopedName,
 				Kind: plugin.EdgeContains,
@@ -448,7 +459,7 @@ func extractRequire(node *sitter.Node, src []byte, c *plugin.Collector) {
 				if idx := plugin.LastSepIndex(modulePath, "/"); idx >= 0 {
 					localName = modulePath[idx+1:]
 				}
-				c.AddEdge(plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
 			}
 		}
 	}

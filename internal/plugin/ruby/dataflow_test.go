@@ -51,7 +51,8 @@ end
 }
 
 func hasAliasTo(edges []plugin.Edge, to string) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == plugin.EdgeAliases && e.To == to {
 			return true
 		}
@@ -60,7 +61,8 @@ func hasAliasTo(edges []plugin.Edge, to string) bool {
 }
 
 func hasReturn(edges []plugin.Edge, from, to string) bool {
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		if e.Kind == plugin.EdgeReturns && e.From == from && e.To == to {
 			return true
 		}
@@ -70,7 +72,8 @@ func hasReturn(edges []plugin.Edge, from, to string) bool {
 
 func logEdges(t *testing.T, edges []plugin.Edge) {
 	t.Helper()
-	for _, e := range edges {
+	for edgeIndex := range edges {
+		e := &edges[edgeIndex]
 		t.Logf("  %s --%s--> %s", e.From, e.Kind, e.To)
 	}
 }

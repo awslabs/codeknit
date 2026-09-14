@@ -58,7 +58,7 @@ func DecoratorEdges(decoratedParent *sitter.Node, src []byte, c *Collector, targ
 		}
 		name := nameFunc(child, src)
 		if name != "" {
-			c.AddEdge(types.Edge{
+			c.AddEdge(&types.Edge{
 				From: name,
 				To:   targetName,
 				Kind: types.EdgeDecorates,

@@ -22,7 +22,7 @@ S18 callable/method L11-L11 checkEmail(addr: String) -> Boolean {visibility=priv
 S19 callable/method L13-L13 display() -> String
 S20 callable/method L15-L15 formatName(n: String) -> String {visibility=private}
 S21 type/object L18-L22 User
-S22 callable/method L19-L19 create(name: String, email: String) -> S21
+S22 callable/method L19-L19 create(name: String, email: String) -> User
 S23 value/val L21-L21 DEFAULT_NAME
 S24 value/variable L24-L24 userCount
 ## src/services/AuthService.scala
@@ -35,7 +35,7 @@ S30 callable/method L10-L10 verifyToken(token: String) -> Boolean {visibility=pr
 S31 callable/method L12-L15 refresh(token: String) -> Option[String]
 S32 callable/method L17-L17 generateToken() -> String {visibility=private}
 S33 type/object L20-L24 AuthService
-S34 callable/method L21-L21 default() -> S33
+S34 callable/method L21-L21 default() -> AuthService
 S35 value/val L23-L23 MAX_TOKEN_LEN
 ## src/utils/Helpers.scala
 S36 module/package L1-L1 com.example.utils
@@ -53,37 +53,67 @@ S45 type/class L20-L20 Failure {case}
 S2 --contains--> S3, S4
 S5 --inherits--> S2
 S5 --contains--> S6, S7
-S6 --overrides--> S6
+S6 --overrides--> S3
 S8 --inherits--> S2
 S8 --contains--> S9
-S9 --overrides--> S9
+S9 --overrides--> S3
 S10 --inherits--> S2
 S10 --contains--> S11
-S11 --overrides--> S11
+S11 --overrides--> S3
+S3 --references[unresolved]--> String
+S4 --references[unresolved]--> String
+S5 --references[unresolved]--> String, Int
 S5 --references--> S2
+S6 --references[unresolved]--> String
+S7 --references[unresolved]--> String
+S8 --references[unresolved]--> String
 S8 --references--> S2
+S9 --references[unresolved]--> String
+S10 --references[unresolved]--> String, Boolean
 S10 --references--> S2
+S11 --references[unresolved]--> String
 S1 --contains--> S2, S5, S8, S10, S12, S13, S16, S21, S24
 S13 --contains--> S14, S15
-S16 --inherits--> S13
-S16 --contains--> S17, S18, S19, S20, S22, S23
-S17 --overrides--> S17
+S16 --inherits[ambiguous]--> S13
+S16 --implements[ambiguous]--> Serializable
+S16 --contains[ambiguous]--> S17, S18, S19, S20, S22, S23
+S17 --overrides[unresolved]--> super.validate
 S17 --calls--> S18
+S18 --calls[unresolved]--> String.contains
 S19 --calls--> S20
-S16 --references--> S13
-S22 --references--> S16
+S13 --references[unresolved]--> Int
+S15 --references[unresolved]--> Boolean
+S16 --references[ambiguous]--> Int, String, S13, Serializable
+S17 --references[unresolved]--> Boolean
+S18 --references[unresolved]--> String, Boolean
+S19 --references[unresolved]--> String
+S20 --references[unresolved]--> String
+S22 --references[unresolved]--> String
+S22 --references[ambiguous]--> User [candidates=S16, S21]
 S26 --contains--> S27
-S28 --inherits--> S26
-S28 --contains--> S29, S30, S31, S32, S34, S35
-S29 --overrides--> S29
+S28 --inherits[ambiguous]--> S26
+S28 --contains[ambiguous]--> S29, S30, S31, S32, S34, S35
+S29 --overrides[unresolved]--> super.authenticate
 S29 --calls--> S30
 S31 --calls--> S29, S32
-S28 --references--> S26
-S34 --references--> S28
+S31 --calls[unresolved]--> Some
+S27 --references[unresolved]--> String, Boolean
+S28 --references[ambiguous]--> String, Int, S26
+S29 --references[unresolved]--> String, Boolean
+S30 --references[unresolved]--> String, Boolean
+S31 --references[unresolved]--> String, Option
+S32 --references[unresolved]--> String
+S34 --references[ambiguous]--> AuthService [candidates=S28, S33]
 S25 --contains--> S26, S28, S33
 S37 --contains--> S38, S39, S40, S41
 S44 --inherits--> S43
 S45 --inherits--> S43
+S38 --references[unresolved]--> Any, Boolean
+S39 --references[unresolved]--> Int
+S37 --references[unresolved]--> Int
+S42 --references[unresolved]--> String
+S44 --references[unresolved]--> String
 S44 --references--> S43
+S45 --references[unresolved]--> String
 S45 --references--> S43
 S36 --contains--> S37, S42, S43, S44, S45

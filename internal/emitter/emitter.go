@@ -67,27 +67,7 @@ type fileBlock struct {
 // indexes in the SymbolGraph. No index-building or resolution happens here;
 // the IR carries everything needed.
 func buildBlocks(sg *ir.SymbolGraph, dict *Dictionary) []fileBlock {
-	// Pre-group resolved edges by source file in a single pass.
-	type resolvedEdge struct {
-		fromSID string
-		toSID   string
-		kind    plugin.EdgeKind
-	}
-	edgesByFile := make(map[string][]resolvedEdge, len(sg.FileOrder))
-	for _, edge := range sg.Edges {
-		fromSID, fromOK := sg.ShortIDs[edge.From]
-		toSID, toOK := sg.ShortIDs[edge.To]
-		if !fromOK || !toOK {
-			continue
-		}
-		fp := sg.SymbolFile[edge.From]
-		edgesByFile[fp] = append(edgesByFile[fp], resolvedEdge{fromSID, toSID, edge.Kind})
-	}
-
-	type edgeGroupKey struct {
-		from string
-		kind plugin.EdgeKind
-	}
+	edgesByFile := buildEdgeLines(sg, dict)
 
 	blocks := make([]fileBlock, 0, len(sg.FileOrder))
 	for _, fp := range sg.FileOrder {
@@ -98,35 +78,16 @@ func buildBlocks(sg *ir.SymbolGraph, dict *Dictionary) []fileBlock {
 		for _, idx := range idxs {
 			sym := sg.Symbols[idx]
 			sid := sg.ShortIDs[sym.ID]
-			sym.Signature = resolveTypeRefs(sym.Signature, sym.Name, fp, sg.ResolveTypeSID)
+			if !sym.IsFileMetadata() {
+				sym.Signature = resolveTypeRefs(sym.Signature, sym.Name, fp, sg.ResolveTypeSID)
+			}
 			lines = append(lines, formatSymbolLine(sid, &sym, dict))
-		}
-
-		// Group edges by (fromSID, kind) and collect target SIDs.
-		edgeGroups := make(map[edgeGroupKey][]string)
-		var edgeOrder []edgeGroupKey
-		for _, re := range edgesByFile[fp] {
-			key := edgeGroupKey{from: re.fromSID, kind: re.kind}
-			if _, exists := edgeGroups[key]; !exists {
-				edgeOrder = append(edgeOrder, key)
-			}
-			edgeGroups[key] = append(edgeGroups[key], re.toSID)
-		}
-
-		edgeLines := make([]string, 0, len(edgeOrder))
-		for _, key := range edgeOrder {
-			targets := edgeGroups[key]
-			kindStr := string(key.kind)
-			if dict != nil {
-				kindStr = dict.Encode(kindStr)
-			}
-			edgeLines = append(edgeLines, fmt.Sprintf("%s --%s--> %s", key.from, kindStr, strings.Join(targets, ", ")))
 		}
 
 		blocks = append(blocks, fileBlock{
 			filePath:    fp,
 			symbolLines: lines,
-			edgeLines:   edgeLines,
+			edgeLines:   edgesByFile[fp],
 		})
 	}
 

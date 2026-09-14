@@ -1,14 +1,16 @@
 [symbols]
 ## pkg/service/user_service.go
-S36 d11 L5-L7 UserService {d4}
-S37 d12 L6-L6 users: []*models.S26
+S36 d10 L5-L7 UserService {d4}
+S37 d11 L6-L6 users: []*models.User
 S38 d0 L9-L11 NewUserService() -> *S36 {d4}
-S39 d1 L13-L17 Create(name: string, email: string) -> *models.S26 {d4, d8}
-S40 d1 L19-L26 FindByID(id: int) -> *models.S26 {d4, d8}
+S39 d1 L13-L17 Create(name: string, email: string) -> *models.User {d4, d7}
+S40 d1 L19-L26 FindByID(id: int) -> *models.User {d4, d7}
 
 [edges]
 S36 --d3--> S37, S39, S40
-S36 --d9--> S26
-S38 --d9--> S36
-S39 --d9--> S36, S26
-S40 --d9--> S36, S26
+S39 --d8[unresolved]--> UserService.Create.u, string, User
+S40 --d8[unresolved]--> u, int, User
+S39 --d2[unresolved]--> models.NewUser, append
+S38 --d8--> S36
+S39 --d8--> S36
+S40 --d8--> S36

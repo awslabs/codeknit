@@ -1,26 +1,24 @@
 [symbols]
 ## pkg/models/user.go
-S11 d9 L3-L7 User {d4}
-S12 d10 L4-L4 ID: int {d4}
-S13 d10 L5-L5 Name: string {d4}
-S14 d10 L6-L6 Email: string {d4}
+S11 d8 L3-L7 User {d4}
+S12 d9 L4-L4 ID: int {d4}
+S13 d9 L5-L5 Name: string {d4}
+S14 d9 L6-L6 Email: string {d4}
 S15 d0 L9-L11 NewUser(name: string, email: string) -> *S11 {d4}
 S16 d0 L13-L15 ValidateUser(u: *S11) -> bool {d4}
 ## pkg/service/order_service.py
-S17 d8 L1-L14 OrderService
+S17 d7 L1-L14 OrderService
 S18 d1 L2-L3 __init__()
 S19 d1 L5-L8 place(user_id, total)
 S20 d1 L10-L14 get(order_id)
-## pkg/service/user_service.py
-S21 d8 L1-L15 UserService
-S22 d1 L2-L3 __init__()
-S23 d1 L5-L6 create(name, email)
-S24 d1 L8-L12 find_by_id(user_id)
-S25 d1 L14-L15 delete(user_id)
 
 [edges]
 S11 --d3--> S12, S13, S14
-S15 --d7--> S11
-S16 --d7--> S11
+S15 --d6[unresolved]--> string
+S15 --d6--> S11
+S16 --d6--> S11
+S16 --d6[unresolved]--> bool
 S17 --d3--> S18, S19, S20
-S21 --d3--> S22, S23, S24, S25
+S19 --d6[unresolved]--> OrderService.place.order
+S20 --d6[unresolved]--> o
+S19 --d2[unresolved]--> OrderService.place.self.orders.append

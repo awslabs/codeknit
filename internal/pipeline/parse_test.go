@@ -6,6 +6,7 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -95,7 +96,7 @@ func edgeSlicesEqual(a, b []plugin.Edge) bool {
 	sa := sortedEdges(a)
 	sb := sortedEdges(b)
 	for i := range sa {
-		if sa[i] != sb[i] {
+		if !reflect.DeepEqual(sa[i], sb[i]) {
 			return false
 		}
 	}

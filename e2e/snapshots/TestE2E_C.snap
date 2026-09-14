@@ -6,42 +6,67 @@ S3 type/typedef L4-L4 size_type
 S4 type/struct L6-L10 AppConfig
 S5 type/enum L12-L17 LogLevel
 S6 callable/function_prototype L19-L19 config_init() -> void
-S7 callable/function_prototype L20-L20 config_load() -> S11
+S7 callable/function_prototype L20-L20 config_load() -> int
 S8 value/variable L22-L22 verbose_flag {extern}
 ## include/utils.h
-S9 value/macro L3-L4 PI
-S10 callable/macro_function L4-L5 SQUARE
-S11 type/typedef L6-L6 int
-S12 type/union L8-L12 Value
-S13 callable/function_prototype L14-L14 string_length() -> S11
-S14 callable/function_prototype L15-L15 string_copy() -> void
+S9 meta/file L1-L16 utils.h
+S10 meta/include L1-L1 "config.h" {resolution=unresolved}
+S11 value/macro L3-L4 PI
+S12 callable/macro_function L4-L5 SQUARE
+S13 type/typedef L6-L6 int
+S14 type/union L8-L12 Value
+S15 callable/function_prototype L14-L14 string_length() -> S13
+S16 callable/function_prototype L15-L15 string_copy() -> void
 ## src/config.c
-S15 value/variable L5-L5 default_port {static}
-S16 value/variable L7-L7 verbose_flag
-S17 callable/function L9-L13 config_init() -> void
-S18 callable/function L15-L21 config_load() -> S11
-S19 callable/function L23-L26 config_reset() -> void {static}
+S17 meta/file L1-L27 config.c
+S18 meta/include L1-L1 "config.h" {resolution=unresolved}
+S19 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+S20 meta/include L3-L3 <string.h> {resolution=unresolved}
+S21 value/variable L5-L5 default_port {static}
+S22 value/variable L7-L7 verbose_flag
+S23 callable/function L9-L13 config_init() -> void
+S24 callable/function L15-L21 config_load() -> int
+S25 callable/function L23-L26 config_reset() -> void {static}
 ## src/main.c
-S20 value/macro L5-L6 EXIT_OK
-S21 type/enum L7-L10 Status
-S22 type/struct L12-L15 Context
-S23 callable/function L17-L19 print_banner() -> void {static}
-S24 callable/function L21-L27 main(argc: S11) -> S11
+S26 meta/file L1-L28 main.c
+S27 meta/include L1-L1 "config.h" {resolution=unresolved}
+S28 meta/include L2-L2 "utils.h" {resolution=unresolved}
+S29 meta/include L3-L3 <stdio.h> {resolution=unresolved}
+S30 value/macro L5-L6 EXIT_OK
+S31 type/enum L7-L10 Status
+S32 type/struct L12-L15 Context
+S33 callable/function L17-L19 print_banner() -> void {static}
+S34 callable/function L21-L27 main(argc: int) -> int
 ## src/utils.c
-S25 value/macro L4-L5 INTERNAL_BUF
-S26 callable/function L8-L14 string_length() -> S11
-S27 callable/function L16-L21 string_copy() -> void
-S28 callable/function L23-L25 compare_int() -> S11 {static}
+S35 meta/file L1-L26 utils.c
+S36 meta/include L1-L1 "utils.h" {resolution=unresolved}
+S37 meta/include L2-L2 <stdlib.h> {resolution=unresolved}
+S38 value/macro L4-L5 INTERNAL_BUF
+S39 callable/function L8-L14 string_length() -> int
+S40 callable/function L16-L21 string_copy() -> void
+S41 callable/function L23-L25 compare_int() -> int {static}
 
 [edges]
+S4 --contains[unresolved]--> AppConfig.port, AppConfig.max_connections
 S6 --references--> S4
 S7 --references--> S4
-S18 --calls--> S17, S26
-S19 --calls--> S17
-S17 --references--> S4
-S18 --references--> S4
-S19 --references--> S4
-S24 --calls--> S17, S23
-S22 --references--> S4, S21
-S24 --references--> S22
-S27 --calls--> S26
+S9 --references[unresolved]--> S10
+S14 --contains[unresolved]--> Value.i, Value.f, Value.c
+S17 --references[unresolved]--> S18, S19, S20
+S24 --calls--> S23
+S24 --calls[unresolved]--> string_length
+S25 --calls--> S23
+S23 --references[unresolved]--> AppConfig
+S24 --references[unresolved]--> AppConfig
+S25 --references[unresolved]--> AppConfig
+S26 --references[unresolved]--> S27, S28, S29
+S32 --contains[unresolved]--> Context.config, Context.status
+S34 --references--> S30, S32
+S33 --calls[unresolved]--> printf
+S34 --calls[unresolved]--> config_init, printf
+S34 --calls--> S33
+S32 --references[unresolved]--> AppConfig
+S32 --references--> S31
+S35 --references[unresolved]--> S36, S37
+S39 --references[unresolved]--> string_length.len
+S40 --calls--> S39

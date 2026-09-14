@@ -20,12 +20,18 @@ S15 callable/method L11-L13 Run() -> string {exported, receiver=*Service}
 
 [edges]
 S1 --contains--> S2, S3
+S2 --references[unresolved]--> Calculator.add.a
+S3 --references[unresolved]--> Calculator.multiply.a
 S4 --calls--> S1
 S6 --contains--> S7
 S8 --contains--> S9, S10
 S10 --references--> S8
+S10 --references[unresolved]--> string
+S11 --references[unresolved]--> string
 S11 --references--> S8
 S5 --contains--> S6, S8, S11, S12, S14
 S12 --contains--> S13, S15
+S15 --references[unresolved]--> s.Name, string
+S14 --references[unresolved]--> string
 S14 --references--> S12
 S15 --references--> S12

@@ -231,7 +231,9 @@ extern "C" { int read_value(int key); }
 					}
 					for _, pair := range tc.contains {
 						want := plugin.Edge{From: pair[0], To: pair[1], Kind: plugin.EdgeContains}
-						if !slices.Contains(edges, want) {
+						if !slices.ContainsFunc(edges, func(e plugin.Edge) bool {
+							return e.From == want.From && e.To == want.To && e.Kind == want.Kind
+						}) {
 							t.Errorf("missing containment %v", want)
 						}
 					}

@@ -3242,7 +3242,11 @@
       updateHulls();
       const total = GRAPH_DATA.symbols.length, shown = currentVisibleIds.size;
       const countEl = document.getElementById("node-count");
-      countEl.textContent = showCount ? (shown === total ? `${total} symbols` : `${shown} / ${total} symbols`) : "";
+      const symbolCount = showCount ? (shown === total ? `${total} symbols` : `${shown} / ${total} symbols`) : "";
+      const uncertainCount = (GRAPH_DATA.uncertain || []).length;
+      const uncertainty = uncertainCount ? `${uncertainCount} unresolved or ambiguous relationships` : "";
+      countEl.textContent = [symbolCount, uncertainty].filter(Boolean).join(" · ");
+      countEl.title = uncertainty ? "Uncertain relationships are excluded from the displayed links." : "";
       requestDraw();
     }
 

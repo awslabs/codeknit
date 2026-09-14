@@ -111,7 +111,7 @@ func emitTypeParam(node *sitter.Node, src []byte, c *Collector, parentName, name
 	})
 
 	if parentName != "" {
-		c.AddEdge(types.Edge{
+		c.AddEdge(&types.Edge{
 			From: parentName,
 			To:   scopedName,
 			Kind: types.EdgeContains,

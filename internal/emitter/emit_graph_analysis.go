@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -30,7 +31,7 @@ type AnalysisOptions struct {
 	TopN int
 	// BetweennessThreshold is the minimum betweenness centrality value to report.
 	BetweennessThreshold float64
-	// PropagationCutoff is the minimum probability to continue change propagation.
+	// PropagationCutoff is the minimum heuristic score to continue propagation.
 	PropagationCutoff float64
 }
 
@@ -45,93 +46,6 @@ func DefaultAnalysisOptions() *AnalysisOptions {
 		BetweennessThreshold: config.DefaultAnalyzeBetweennessThreshold,
 		PropagationCutoff:    config.DefaultAnalyzePropagationCutoff,
 	}
-}
-
-// --- shared graph context ---
-
-// graphCtx holds pre-computed adjacency lists and lookups shared by all algorithms.
-type graphCtx struct {
-	sg            *ir.SymbolGraph
-	adj           map[string][]string       // outgoing (non-contains)
-	radj          map[string][]string       // incoming (non-contains)
-	containsAdj   map[string][]string       // parent → children (contains edges only)
-	containsRev   map[string]string         // child → parent (contains edges only)
-	inheritEdges  map[string]string         // child → parent (inherits/implements)
-	sidInfo       map[string]*plugin.Symbol // SID → symbol
-	sidToPkg      map[string]string         // SID → package directory
-	fanOut        map[string]int
-	fanIn         map[string]int
-	containsCount map[string]int
-	pkgEdges      map[[2]string]int // [fromPkg, toPkg] → edge count
-	allSIDs       []string          // sorted list of all SIDs
-}
-
-func buildGraphCtx(sg *ir.SymbolGraph) *graphCtx {
-	g := &graphCtx{
-		sg:            sg,
-		adj:           make(map[string][]string),
-		radj:          make(map[string][]string),
-		fanOut:        make(map[string]int),
-		fanIn:         make(map[string]int),
-		containsCount: make(map[string]int),
-		containsAdj:   make(map[string][]string),
-		containsRev:   make(map[string]string),
-		inheritEdges:  make(map[string]string),
-		sidInfo:       make(map[string]*plugin.Symbol, len(sg.Symbols)),
-		sidToPkg:      make(map[string]string, len(sg.Symbols)),
-		pkgEdges:      make(map[[2]string]int),
-	}
-
-	for i := range sg.Symbols {
-		sym := &sg.Symbols[i]
-		if sid, ok := sg.ShortIDs[sym.ID]; ok {
-			g.sidInfo[sid] = sym
-			g.sidToPkg[sid] = filepath.Dir(sym.FilePath)
-		}
-	}
-
-	g.allSIDs = make([]string, 0, len(g.sidInfo))
-	for sid := range g.sidInfo {
-		g.allSIDs = append(g.allSIDs, sid)
-	}
-	sort.Strings(g.allSIDs)
-
-	for _, edge := range sg.Edges {
-		fromSID, fromOK := sg.ShortIDs[edge.From]
-		toSID, toOK := sg.ShortIDs[edge.To]
-		if !fromOK || !toOK {
-			continue
-		}
-
-		switch edge.Kind {
-		case plugin.EdgeContains:
-			g.containsCount[fromSID]++
-			g.containsAdj[fromSID] = append(g.containsAdj[fromSID], toSID)
-			g.containsRev[toSID] = fromSID
-		case plugin.EdgeInherits, plugin.EdgeImplements:
-			g.inheritEdges[fromSID] = toSID
-			g.adj[fromSID] = append(g.adj[fromSID], toSID)
-			g.radj[toSID] = append(g.radj[toSID], fromSID)
-			g.fanOut[fromSID]++
-			g.fanIn[toSID]++
-		default:
-			g.adj[fromSID] = append(g.adj[fromSID], toSID)
-			g.radj[toSID] = append(g.radj[toSID], fromSID)
-			g.fanOut[fromSID]++
-			g.fanIn[toSID]++
-		}
-
-		// Package-level edge tracking (non-contains only).
-		if edge.Kind != plugin.EdgeContains {
-			fromPkg := g.sidToPkg[fromSID]
-			toPkg := g.sidToPkg[toSID]
-			if fromPkg != "" && toPkg != "" && fromPkg != toPkg {
-				g.pkgEdges[[2]string{fromPkg, toPkg}]++
-			}
-		}
-	}
-
-	return g
 }
 
 // --- analysis result types ---
@@ -202,7 +116,7 @@ type transitiveFanInEntry struct {
 type changePropEntry struct {
 	baseEntry
 	BlastRadius int     // number of symbols reachable via weighted propagation
-	Probability float64 // average propagation probability
+	Score       float64 // average heuristic propagation score
 }
 
 type layerViolation struct {
@@ -294,6 +208,8 @@ type analysisResult struct {
 	ContainmentDepth     []containmentDepthEntry
 	TotalSymbols         int
 	TotalEdges           int
+	UnresolvedEdges      int
+	AmbiguousEdges       int
 	TotalFiles           int
 }
 
@@ -320,9 +236,10 @@ func runAnalysis(sg *ir.SymbolGraph, opts *AnalysisOptions) *analysisResult {
 	g := buildGraphCtx(sg)
 
 	res := &analysisResult{
-		TotalSymbols: len(sg.Symbols),
-		TotalEdges:   len(sg.Edges),
-		TotalFiles:   len(sg.FileOrder),
+		TotalSymbols:    len(sg.Symbols),
+		TotalEdges:      g.resolvedEdges,
+		UnresolvedEdges: g.unresolvedEdges, AmbiguousEdges: g.ambiguousEdges,
+		TotalFiles: len(sg.FileOrder),
 	}
 
 	res.Cycles = detectCycles(g.adj)
@@ -533,52 +450,8 @@ func detectCycles(adj map[string][]string) []cycle {
 	for i, scc := range sccs {
 		cycles[i] = cycle{Members: scc}
 	}
+	sort.Slice(cycles, func(i, j int) bool { return slices.Compare(cycles[i].Members, cycles[j].Members) < 0 })
 	return cycles
-}
-
-func detectDeepInheritance(inheritEdges map[string]string, maxDepth int) []inheritanceChain {
-	memo := make(map[string][]string)
-
-	var getChain func(sid string, visited map[string]bool) []string
-	getChain = func(sid string, visited map[string]bool) []string {
-		if chain, ok := memo[sid]; ok {
-			return chain
-		}
-		if visited[sid] {
-			return []string{sid}
-		}
-		visited[sid] = true
-
-		parent, hasParent := inheritEdges[sid]
-		if !hasParent {
-			chain := []string{sid}
-			memo[sid] = chain
-			return chain
-		}
-		parentChain := getChain(parent, visited)
-		chain := make([]string, len(parentChain)+1)
-		copy(chain, parentChain)
-		chain[len(parentChain)] = sid
-		memo[sid] = chain
-		return chain
-	}
-
-	var results []inheritanceChain
-	for sid := range inheritEdges {
-		visited := make(map[string]bool)
-		chain := getChain(sid, visited)
-		depth := len(chain) - 1
-		if depth >= maxDepth {
-			results = append(results, inheritanceChain{
-				Leaf: sid, Depth: depth, Chain: chain,
-			})
-		}
-	}
-
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Depth > results[j].Depth
-	})
-	return results
 }
 
 // ============================================================
@@ -897,11 +770,11 @@ func computeTransitiveFanIn(g *graphCtx, opts *AnalysisOptions) []transitiveFanI
 	return entries
 }
 
-// --- Change propagation probability ---
-// Simulates forward propagation from each symbol using edge-kind weights.
+// --- Change propagation scores ---
+// Estimates impact on dependents using fixed edge-kind weights.
 
 func computeChangePropagation(g *graphCtx, opts *AnalysisOptions) []changePropEntry {
-	// Edge kind → propagation probability.
+	// Edge kind → heuristic propagation weight.
 	kindWeight := map[plugin.EdgeKind]float64{
 		plugin.EdgeInherits:   0.9,
 		plugin.EdgeImplements: 0.85,
@@ -918,7 +791,11 @@ func computeChangePropagation(g *graphCtx, opts *AnalysisOptions) []changePropEn
 		weight float64
 	}
 	wadj := make(map[string][]weightedEdge)
-	for _, edge := range g.sg.Edges {
+	for i := range g.sg.Edges {
+		edge := &g.sg.Edges[i]
+		if g.sg.EdgeResolution(edge) != "" {
+			continue
+		}
 		fromSID, fromOK := g.sg.ShortIDs[edge.From]
 		toSID, toOK := g.sg.ShortIDs[edge.To]
 		if !fromOK || !toOK {
@@ -938,28 +815,25 @@ func computeChangePropagation(g *graphCtx, opts *AnalysisOptions) []changePropEn
 		if len(wadj[sid]) == 0 && g.fanIn[sid] == 0 {
 			continue
 		}
-		// BFS with probability decay.
-		visited := map[string]bool{sid: true}
-		type queueItem struct {
-			node string
-			prob float64
-		}
-		queue := []queueItem{{sid, 1.0}}
-		blastRadius := 0
-		totalProb := 0.0
-
-		for len(queue) > 0 {
-			item := queue[0]
-			queue = queue[1:]
-			for _, we := range wadj[item.node] {
-				newProb := item.prob * we.weight
-				if newProb < opts.PropagationCutoff || visited[we.to] { // cutoff
-					continue
+		// Relax scores whenever a stronger path is found. Weights are <= 1,
+		// so cycles cannot increase the origin score or cause an endless loop.
+		scores := map[string]float64{sid: 1}
+		queue := []string{sid}
+		for head := 0; head < len(queue); head++ {
+			from := queue[head]
+			for _, edge := range wadj[from] {
+				score := scores[from] * edge.weight
+				if score >= opts.PropagationCutoff && score > scores[edge.to] {
+					scores[edge.to] = score
+					queue = append(queue, edge.to)
 				}
-				visited[we.to] = true
-				blastRadius++
-				totalProb += newProb
-				queue = append(queue, queueItem{we.to, newProb})
+			}
+		}
+		blastRadius := len(scores) - 1
+		totalProb := 0.0
+		for _, target := range g.allSIDs {
+			if target != sid {
+				totalProb += scores[target]
 			}
 		}
 
@@ -968,13 +842,16 @@ func computeChangePropagation(g *graphCtx, opts *AnalysisOptions) []changePropEn
 			entries = append(entries, changePropEntry{
 				baseEntry:   baseEntry{SID: sid, Name: sym.Name, File: sym.FilePath},
 				BlastRadius: blastRadius,
-				Probability: totalProb / float64(blastRadius),
+				Score:       totalProb / float64(blastRadius),
 			})
 		}
 	}
 
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].BlastRadius > entries[j].BlastRadius
+		if entries[i].BlastRadius != entries[j].BlastRadius {
+			return entries[i].BlastRadius > entries[j].BlastRadius
+		}
+		return entries[i].SID < entries[j].SID
 	})
 	if opts.TopN > 0 && len(entries) > opts.TopN {
 		entries = entries[:opts.TopN]
@@ -1043,7 +920,11 @@ func inferLayer(filePath string) (layer string, order int, found bool) {
 func detectLayerViolations(g *graphCtx) []layerViolation {
 	var violations []layerViolation
 
-	for _, edge := range g.sg.Edges {
+	for i := range g.sg.Edges {
+		edge := &g.sg.Edges[i]
+		if g.sg.EdgeResolution(edge) != "" {
+			continue
+		}
 		if edge.Kind == plugin.EdgeContains || edge.Kind == plugin.EdgeImports {
 			continue
 		}
@@ -1081,92 +962,6 @@ func detectLayerViolations(g *graphCtx) []layerViolation {
 		return violations[i].FromSID < violations[j].FromSID
 	})
 	return violations
-}
-
-// --- Reachability from entry points ---
-// Entry points: main functions, exported symbols with no incoming edges,
-// and symbols in files named main.*, app.*, index.*, etc.
-
-func isEntryPoint(sid string, g *graphCtx) bool {
-	sym := g.sidInfo[sid]
-	if sym == nil {
-		return false
-	}
-	name := strings.ToLower(sym.Name)
-	if name == "main" || name == "app" || name == "init" {
-		return true
-	}
-	base := strings.ToLower(filepath.Base(sym.FilePath))
-	if strings.HasPrefix(base, "main.") || strings.HasPrefix(base, "app.") ||
-		strings.HasPrefix(base, "index.") || strings.HasPrefix(base, "server.") {
-		// Exported/top-level symbols in entry files.
-		if sym.Category == plugin.CategoryCallable || sym.Category == plugin.CategoryType {
-			return true
-		}
-	}
-	return false
-}
-
-func findUnreachable(g *graphCtx) []symbolEntry {
-	// Collect entry points.
-	var entryPoints []string
-	for _, sid := range g.allSIDs {
-		if isEntryPoint(sid, g) {
-			entryPoints = append(entryPoints, sid)
-		}
-	}
-
-	if len(entryPoints) == 0 {
-		return nil // can't determine reachability without entry points
-	}
-
-	// BFS forward from all entry points using both adj and containsAdj.
-	reachable := make(map[string]bool)
-	queue := make([]string, len(entryPoints))
-	copy(queue, entryPoints)
-	for _, ep := range entryPoints {
-		reachable[ep] = true
-	}
-
-	for len(queue) > 0 {
-		v := queue[0]
-		queue = queue[1:]
-		// Follow call/reference edges.
-		for _, w := range g.adj[v] {
-			if !reachable[w] {
-				reachable[w] = true
-				queue = append(queue, w)
-			}
-		}
-		// Follow contains edges (if a type is reachable, its members are too).
-		for _, w := range g.containsAdj[v] {
-			if !reachable[w] {
-				reachable[w] = true
-				queue = append(queue, w)
-			}
-		}
-		// If a member is reachable, its parent container is too.
-		if parent, ok := g.containsRev[v]; ok && !reachable[parent] {
-			reachable[parent] = true
-			queue = append(queue, parent)
-		}
-	}
-
-	var unreachables []symbolEntry
-	for _, sid := range g.allSIDs {
-		if reachable[sid] {
-			continue
-		}
-		sym := g.sidInfo[sid]
-		if sym.Category == plugin.CategoryModule {
-			continue
-		}
-		unreachables = append(unreachables, symbolEntry{
-			baseEntry: baseEntry{SID: sid, Name: sym.Name, File: sym.FilePath},
-			Category:  string(sym.Category),
-		})
-	}
-	return unreachables
 }
 
 // --- Weakly connected components ---
@@ -1249,7 +1044,13 @@ func computeDependencyWeights(g *graphCtx, opts *AnalysisOptions) []depWeightEnt
 		})
 	}
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Weight > entries[j].Weight
+		if entries[i].Weight != entries[j].Weight {
+			return entries[i].Weight > entries[j].Weight
+		}
+		if entries[i].FromPkg != entries[j].FromPkg {
+			return entries[i].FromPkg < entries[j].FromPkg
+		}
+		return entries[i].ToPkg < entries[j].ToPkg
 	})
 	if opts.TopN > 0 && len(entries) > opts.TopN {
 		entries = entries[:opts.TopN]
@@ -1323,7 +1124,10 @@ func computeDistanceFromMainSequence(g *graphCtx) []distanceEntry {
 	}
 
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Distance > entries[j].Distance
+		if entries[i].Distance != entries[j].Distance {
+			return entries[i].Distance > entries[j].Distance
+		}
+		return entries[i].Pkg < entries[j].Pkg
 	})
 	return entries
 }
@@ -1380,7 +1184,13 @@ func detectShotgunSurgery(g *graphCtx) []shotgunSurgeryGroup {
 	}
 
 	sort.Slice(groups, func(i, j int) bool {
-		return len(groups[i].Targets) > len(groups[j].Targets)
+		if len(groups[i].Targets) != len(groups[j].Targets) {
+			return len(groups[i].Targets) > len(groups[j].Targets)
+		}
+		if groups[i].Pkg != groups[j].Pkg {
+			return groups[i].Pkg < groups[j].Pkg
+		}
+		return slices.Compare(groups[i].Targets, groups[j].Targets) < 0
 	})
 	if len(groups) > 20 {
 		groups = groups[:20]
@@ -1421,7 +1231,7 @@ func detectFeatureEnvy(g *graphCtx, opts *AnalysisOptions) []featureEnvyEntry {
 			if pkg == ownPkg {
 				continue
 			}
-			if count > bestCount {
+			if count > bestCount || count == bestCount && pkg < bestPkg {
 				bestCount = count
 				bestPkg = pkg
 			}
@@ -1530,8 +1340,8 @@ func detectInterfaceSegregation(g *graphCtx) []interfaceSegregationEntry {
 
 		// Find implementors: symbols that have an inherits/implements edge TO this interface.
 		var implementors []string
-		for child, parent := range g.inheritEdges {
-			if parent == ifaceSID {
+		for child, parents := range g.inheritEdges {
+			if slices.Contains(parents, ifaceSID) {
 				implementors = append(implementors, child)
 			}
 		}
@@ -1619,11 +1429,11 @@ func computeContainmentDepth(g *graphCtx) []containmentDepthEntry {
 				if childSym == nil {
 					continue
 				}
-				// Only count type/callable nesting, not fields/values.
-				if childSym.Category != plugin.CategoryType && childSym.Category != plugin.CategoryCallable {
-					continue
+				// Traverse namespace/module containers without increasing type nesting.
+				depth[child] = depth[v]
+				if childSym.Category == plugin.CategoryType || childSym.Category == plugin.CategoryCallable {
+					depth[child]++
 				}
-				depth[child] = depth[v] + 1
 				newChain := make([]string, len(chain[v])+1)
 				copy(newChain, chain[v])
 				newChain[len(chain[v])] = childSym.Name
@@ -1646,7 +1456,10 @@ func computeContainmentDepth(g *graphCtx) []containmentDepthEntry {
 	}
 
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Depth > entries[j].Depth
+		if entries[i].Depth != entries[j].Depth {
+			return entries[i].Depth > entries[j].Depth
+		}
+		return entries[i].SID < entries[j].SID
 	})
 	if len(entries) > 30 {
 		entries = entries[:30]
@@ -1663,6 +1476,10 @@ func renderAnalysis(res *analysisResult, opts *AnalysisOptions) string {
 
 	b.WriteString("[graph_analysis]\n")
 	fmt.Fprintf(&b, "symbols: %d | edges: %d | files: %d\n\n", res.TotalSymbols, res.TotalEdges, res.TotalFiles)
+	fmt.Fprintf(&b, "relationships excluded from metrics: unresolved=%d | ambiguous=%d\n", res.UnresolvedEdges, res.AmbiguousEdges)
+	b.WriteString("Static syntax analysis: missing targets, dynamic dispatch and external callers can affect findings.\n")
+	b.WriteString("Reachability uses named main/init entry points and dependency edges; containment does not execute members.\n")
+	b.WriteString("Layer rules use directory names; propagation weights are heuristic scores, not measured probabilities.\n\n")
 
 	// --- Original sections ---
 
@@ -1777,8 +1594,8 @@ func renderAnalysis(res *analysisResult, opts *AnalysisOptions) string {
 		b.WriteString("none detected\n")
 	} else {
 		for _, c := range res.ChangePropagation {
-			fmt.Fprintf(&b, "  %s %s blast_radius=%d avg_prob=%.2f | %s\n",
-				c.SID, c.Name, c.BlastRadius, c.Probability, c.File)
+			fmt.Fprintf(&b, "  %s %s blast_radius=%d avg_score=%.2f | %s\n",
+				c.SID, c.Name, c.BlastRadius, c.Score, c.File)
 		}
 	}
 	b.WriteByte('\n')
@@ -1806,7 +1623,7 @@ func renderAnalysis(res *analysisResult, opts *AnalysisOptions) string {
 	}
 	b.WriteByte('\n')
 
-	b.WriteString("[unreachable_symbols] (not reachable from entry points)\n")
+	b.WriteString("[unreachable_symbols] (not reached by known dependencies; candidates for review)\n")
 	if len(res.Unreachable) == 0 {
 		b.WriteString("none detected (or no entry points identified)\n")
 	} else {

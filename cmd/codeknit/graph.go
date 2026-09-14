@@ -160,7 +160,7 @@ Algorithms:
 	cmd.Flags().Float64Var(&opts.betweennessThreshold, "betweenness-threshold", config.DefaultAnalyzeBetweennessThreshold,
 		"minimum betweenness centrality value to report")
 	cmd.Flags().Float64Var(&opts.propagationCutoff, "propagation-cutoff", config.DefaultAnalyzePropagationCutoff,
-		"minimum probability to continue change propagation simulation")
+		"minimum heuristic score to continue change propagation")
 
 	return cmd
 }

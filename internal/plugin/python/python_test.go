@@ -188,7 +188,7 @@ def foo():
 		}
 	}
 	sort.Strings(callTargets)
-	want := []string{"bar", "baz"}
+	want := []string{"bar", "baz", "obj.method"}
 	sort.Strings(want)
 	if len(callTargets) != len(want) {
 		t.Fatalf("expected call targets %v, got %v", want, callTargets)

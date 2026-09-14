@@ -34,13 +34,13 @@ Parameters use `name` for untyped languages and `name: type` for typed languages
 
 ### Symbol categories
 
-| Category   | Kinds                          | Examples                               |
-| ---------- | ------------------------------ | -------------------------------------- |
-| `callable` | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`     | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`    | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`   | package, namespace             | `module/package`                       |
-| `meta`     | type parameters, metadata      | `meta/type_parameter`                  |
+| Category   | Kinds                                      | Examples                                           |
+| ---------- | ------------------------------------------ | -------------------------------------------------- |
+| `callable` | function, method, constructor              | `callable/function`, `callable/method`             |
+| `type`     | class, interface, struct, enum             | `type/class`, `type/interface`                     |
+| `value`    | variable, constant, field                  | `value/variable`, `value/constant`                 |
+| `module`   | package, namespace                         | `module/package`                                   |
+| `meta`     | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
 
 ### Example
 
@@ -60,7 +60,40 @@ Relationships between symbols:
 
 ```
 FromID --kind--> ToID1, ToID2
+FromID --kind[unresolved]--> Target1, Target2
+FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
 ```
+
+An omitted status means the analyzer resolved the relationship. `unresolved` means it could not establish the dependency; `ambiguous` means more than one interpretation remains possible. These statuses are not compiler guarantees. Candidate IDs identify possible targets, not confirmed connections.
+
+Known endpoints use symbol IDs, including endpoints of unresolved edges. Names without symbols can appear directly, relative to the source file. Complex identities are quoted full IDs with escaped quotes, backslashes, and line breaks. A literal name such as `S2` must be written as a quoted full ID (`"app.go::S2"`) so it cannot be mistaken for a symbol ID. IDs may refer to symbols in later files or output chunks; load their definitions before interpreting the edges.
+
+Targets are grouped only when their source, kind, resolution, and candidates agree:
+
+```text
+S4 --references[unresolved]--> string, bool
+S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
+S6 --references[unresolved]--> "app.go::S2"
+```
+
+### File and include endpoints
+
+C/C++ includes have metadata symbols. Header spellings appear once, while edges use short IDs:
+
+```text
+[symbols]
+## src/main.c
+S1 meta/file L1-L3 main.c
+S2 meta/include L1-L1 "config.h" {resolution=unresolved}
+S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+
+[edges]
+S1 --references[unresolved]--> S2, S3
+```
+
+An include symbol describes the written directive, not a resolved header declaration. Repeated includes within a file share an endpoint. File/include metadata is excluded from dependency rankings and dead-code findings. Uncertain edges are excluded from dependency metrics; graph reports and HTML show their counts, and the HTML viewer currently does not draw them.
+
+Symbol IDs can change when extraction changes. Regenerate all output together rather than mixing chunks from different runs.
 
 ### Edge kinds
 
@@ -97,6 +130,8 @@ Files that had parse errors:
 ## [dict] (minified output only)
 
 Maps short codes to repeated tokens. When present, substitute `d0`, `d1`, etc. with their dictionary values.
+
+Minification encodes relationship kinds while preserving status labels, for example `S1 --d2[unresolved]--> S3`. Expand `d2` using the dictionary; retain the unresolved status.
 
 ```
 [dict]
@@ -136,12 +171,14 @@ In directory output modes, JSON is written to `codeknit.json`. In `inline` mode,
 
 Top-level fields:
 
-| Field     | Meaning                                                                    |
-| --------- | -------------------------------------------------------------------------- |
-| `files`   | Source files included in the parse result                                  |
-| `symbols` | Extracted symbols with IDs, short IDs, source file, category, kind, span   |
-| `edges`   | Relationships between symbols; omitted when no edges are present           |
-| `errors`  | Parse warnings/errors; omitted when no parse errors are present            |
+| Field     | Meaning                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| `files`   | Source files included in the parse result                                |
+| `symbols` | Extracted symbols with IDs, short IDs, source file, category, kind, span |
+| `edges`   | Relationships between symbols; omitted when no edges are present         |
+| `errors`  | Parse warnings/errors; omitted when no parse errors are present          |
+
+Edges include `from`, `to`, and `kind`. Resolved endpoints have short IDs in `from_short` and `to_short`. Uncertain edges additionally carry `resolution` and, when available, `candidates` as full symbol IDs. Their `to_short` is omitted, even when the target has an include metadata symbol. JSON and SKT preserve the same uncertainty despite their different encodings.
 
 ### Example
 

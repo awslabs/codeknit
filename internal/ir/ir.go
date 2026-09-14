@@ -28,8 +28,6 @@ type SymbolGraph struct {
 
 	// typeIndex maps (filePath, typeName) → shortID for same-file type resolution.
 	typeIndex map[string]map[string]string
-	// globalTypeIndex maps typeName → candidates for cross-file type resolution.
-	globalTypeIndex map[string][]typeCandidate
 
 	Symbols []plugin.Symbol
 	Edges   []plugin.Edge
@@ -37,12 +35,6 @@ type SymbolGraph struct {
 
 	// FileOrder lists source file paths in deterministic (sorted) order.
 	FileOrder []string
-}
-
-// typeCandidate holds a short ID and its source file for cross-file type resolution.
-type typeCandidate struct {
-	ShortID string
-	File    string
 }
 
 // BuildIndexes populates all derived indexes from the Symbols and Edges slices.
@@ -54,6 +46,15 @@ func (sg *SymbolGraph) BuildIndexes() {
 	for i := range sg.Symbols {
 		fp := sg.Symbols[i].FilePath
 		groups[fp] = append(groups[fp], i)
+	}
+	// Include files with relationships but no extracted declarations (for
+	// example, a header containing only includes). SKT must retain their edges.
+	for i := range sg.Edges {
+		if fp, _, ok := strings.Cut(sg.Edges[i].From, "::"); ok && fp != "" {
+			if _, exists := groups[fp]; !exists {
+				groups[fp] = nil
+			}
+		}
 	}
 
 	// Sorted file order.
@@ -78,59 +79,68 @@ func (sg *SymbolGraph) BuildIndexes() {
 		}
 	}
 
-	// Build type resolution indexes (only type-category symbols).
+	// Index unique local types and confirmed cross-file type references only.
+	// A competing or unresolved reference suppresses substitution of that name.
 	sg.typeIndex = make(map[string]map[string]string)
-	sg.globalTypeIndex = make(map[string][]typeCandidate)
-	for _, fp := range sg.FileOrder {
-		sg.typeIndex[fp] = make(map[string]string)
-		for _, idx := range sg.ByFile[fp] {
-			sym := &sg.Symbols[idx]
-			if sym.Category == plugin.CategoryType {
-				sid := sg.ShortIDs[sym.ID]
-				sg.typeIndex[fp][sym.Name] = sid
-				sg.globalTypeIndex[sym.Name] = append(sg.globalTypeIndex[sym.Name], typeCandidate{
-					ShortID: sid,
-					File:    fp,
-				})
-			}
+	types := make(map[string]bool)
+	add := func(fp, name, sid string) {
+		if sg.typeIndex[fp] == nil {
+			sg.typeIndex[fp] = make(map[string]string)
+		}
+		old, exists := sg.typeIndex[fp][name]
+		if exists && old != sid {
+			sg.typeIndex[fp][name] = ""
+		} else {
+			sg.typeIndex[fp][name] = sid
+		}
+	}
+	for i := range sg.Symbols {
+		sym := &sg.Symbols[i]
+		if sym.Category == plugin.CategoryType {
+			types[sym.ID] = true
+			add(sym.FilePath, sym.Name, sg.ShortIDs[sym.ID])
+		}
+	}
+	for i := range sg.Edges {
+		e := &sg.Edges[i]
+		if e.Kind != plugin.EdgeReferences && e.Kind != plugin.EdgeInherits && e.Kind != plugin.EdgeImplements {
+			continue
+		}
+		fp := sg.SymbolFile[e.From]
+		name := e.TargetName
+		if name == "" {
+			_, name, _ = strings.Cut(e.To, "::")
+		}
+		if fp == "" || name == "" {
+			continue
+		}
+		if sg.EdgeResolution(e) != "" {
+			add(fp, name, "")
+			continue
+		}
+		if types[e.To] {
+			add(fp, name, sg.ShortIDs[e.To])
 		}
 	}
 }
 
-// ResolveTypeSID resolves a type name to a short ID for a given file context.
-// It checks same-file first, then falls back to cross-file resolution using
-// directory proximity with deterministic lexicographic tiebreaking.
-// Returns the short ID and true if found, or ("", false) if unresolved.
+// ResolveTypeSID only substitutes a name when the available relationships
+// identify one type. It never selects a type by directory proximity.
 func (sg *SymbolGraph) ResolveTypeSID(filePath, typeName string) (string, bool) {
-	// Same-file first.
-	if m, ok := sg.typeIndex[filePath]; ok {
-		if sid, ok := m[typeName]; ok {
-			return sid, true
-		}
-	}
+	sid := sg.typeIndex[filePath][typeName]
+	return sid, sid != ""
+}
 
-	// Cross-file fallback.
-	candidates := sg.globalTypeIndex[typeName]
-	if len(candidates) == 0 {
-		return "", false
+// EdgeResolution also handles graphs built directly by callers, where missing
+// endpoints might not yet have an explicit resolution status.
+func (sg *SymbolGraph) EdgeResolution(e *plugin.Edge) string {
+	if e.Resolution != "" {
+		return e.Resolution
 	}
-	if len(candidates) == 1 {
-		return candidates[0].ShortID, true
+	if sg.ShortIDs[e.From] == "" || sg.ShortIDs[e.To] == "" {
+		return "unresolved"
 	}
-
-	// Pick closest by directory proximity; break ties lexicographically
-	// on file path to guarantee deterministic, unique resolution.
-	sourceDir := filepath.Dir(filePath)
-	best := candidates[0]
-	bestDist := PathDistance(sourceDir, filepath.Dir(best.File))
-	for _, c := range candidates[1:] {
-		d := PathDistance(sourceDir, filepath.Dir(c.File))
-		if d < bestDist || (d == bestDist && c.File < best.File) {
-			bestDist = d
-			best = c
-		}
-	}
-	return best.ShortID, true
+	return ""
 }
 
 // ParseError represents a file that had syntax/parse errors during analysis.

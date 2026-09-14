@@ -39,9 +39,6 @@ type DataflowConfig = extract.DataflowConfig
 // DispatchTable maps tree-sitter node kinds to their Handler functions.
 type DispatchTable = extract.DispatchTable
 
-// DispatchMeta holds metadata about the dispatch table entries.
-type DispatchMeta = extract.DispatchMeta
-
 // Handler is the unified function signature for dispatch table entries.
 type Handler = extract.Handler
 
@@ -74,6 +71,7 @@ var (
 	ExtractFileTypeRefs             = extract.FileTypeRefs
 	ExtractFileCallEdges            = extract.FileCallEdges
 	ExtractTypeRefEdges             = extract.TypeRefEdges
+	ExtractInclude                  = extract.Include
 	ExtractDecoratorEdges           = extract.DecoratorEdges
 	MakeDecoratorNameFunc           = extract.MakeDecoratorNameFunc
 	ExtractTypedParams              = extract.TypedParams
@@ -84,6 +82,7 @@ var (
 	ChildText                       = extract.ChildText
 	FindFirstError                  = extract.FindFirstError
 	NodeSpan                        = extract.NodeSpan
+	NodeByteSpan                    = extract.NodeByteSpan
 	BoolStr                         = extract.BoolStr
 	BuildFuncSignature              = extract.BuildFuncSignature
 	HasChildKeyword                 = extract.HasChildKeyword
@@ -133,11 +132,6 @@ type Config struct {
 
 // NewBasePluginFromConfig creates a BasePlugin from a Config.
 func NewBasePluginFromConfig(cfg *Config) BasePlugin {
-	meta := &DispatchMeta{HandlerNames: make(map[string]string, len(cfg.Handlers))}
-	for kind := range cfg.Handlers {
-		meta.HandlerNames[kind] = kind
-	}
-
 	var dfCfgs []DataflowConfig
 	if cfg.Dataflow != nil {
 		dfCfgs = append(dfCfgs, *cfg.Dataflow)
@@ -145,9 +139,9 @@ func NewBasePluginFromConfig(cfg *Config) BasePlugin {
 
 	var extractFn ExtractFunc
 	if cfg.TokenMap != nil {
-		extractFn = MakeExtractFuncWithFingerprint(cfg.Handlers, meta, cfg.CallableRef, cfg.TokenMap, dfCfgs...)
+		extractFn = MakeExtractFuncWithFingerprint(cfg.Handlers, cfg.CallableRef, cfg.TokenMap, dfCfgs...)
 	} else {
-		extractFn = MakeExtractFuncWithCallableRefs(cfg.Handlers, meta, cfg.CallableRef, dfCfgs...)
+		extractFn = MakeExtractFuncWithCallableRefs(cfg.Handlers, cfg.CallableRef, dfCfgs...)
 	}
 
 	return BasePlugin{

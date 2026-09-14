@@ -43,25 +43,37 @@ S35 callable/function L10-L12 run()
 [edges]
 S1 --contains--> S2, S3, S4
 S5 --contains--> S6, S7, S8
-S2 --calls--> S7, S8
+S2 --calls--> S3, S4
 S6 --calls--> S7, S8
-S9 --inherits--> S9
+S2 --references[unresolved]--> String
+S3 --references[unresolved]--> String
+S4 --references[unresolved]--> String
+S8 --references[unresolved]--> String
 S9 --contains--> S10, S11
-S12 --inherits--> S12
 S12 --contains--> S13, S14
-S10 --calls--> S7
-S13 --calls--> S7
+S10 --calls--> S11
+S13 --calls--> S14
 S16 --contains--> S18, S19
 S17 --contains--> S20, S21
-S18 --calls--> S21
+S18 --calls--> S19
 S20 --calls--> S21
 S18 --references--> S16
 S19 --references--> S16
+S19 --references[unresolved]--> bool
 S20 --references--> S17
 S21 --references--> S17
+S21 --references[unresolved]--> bool
 S15 --contains--> S16, S17
 S22 --contains--> S23, S24, S25
 S26 --contains--> S27, S28, S29
+S28 --references[unresolved]--> Order.validate.self.total
+S30 --references[unresolved]--> validate_email.email
+S31 --references[unresolved]--> validate_total.total
 S23 --calls--> S30
+S24 --calls[unresolved]--> len
 S27 --calls--> S31
-S35 --calls--> S32, S33, S34
+S35 --references--> S32, S33
+S33 --references[unresolved]--> x
+S32 --calls[unresolved]--> transform.data.upper
+S34 --calls[unresolved]--> process.fn
+S35 --calls--> S34

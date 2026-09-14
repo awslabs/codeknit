@@ -111,7 +111,7 @@ func addItem(node *sitter.Node, src []byte, c *plugin.Collector, sym *plugin.Sym
 	sym.ScopedName = plugin.MakeScopedName(parent, sym.Name)
 	c.AddSymbol(sym)
 	if parent != "" {
-		c.AddEdge(plugin.Edge{From: parent, To: sym.ScopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parent, To: sym.ScopedName, Kind: plugin.EdgeContains})
 	}
 	return sym.ScopedName
 }
@@ -166,7 +166,7 @@ func extractCallable(node *sitter.Node, src []byte, c *plugin.Collector, kind, p
 	})
 
 	if parentName != "" {
-		c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Extract type parameters
@@ -312,7 +312,7 @@ func extractImpl(node *sitter.Node, src []byte, c *plugin.Collector) {
 	extract.TypeParams(node, src, c, scopedName, rustTypeParamConfig)
 
 	if traitName != "" {
-		c.AddEdge(plugin.Edge{From: scopedName, To: traitName, Kind: plugin.EdgeImplements})
+		c.AddEdge(&plugin.Edge{From: scopedName, To: traitName, Kind: plugin.EdgeImplements})
 	}
 
 	if body := childByKind(node, "declaration_list"); body != nil {
@@ -389,7 +389,7 @@ func extractStructFields(body *sitter.Node, src []byte, c *plugin.Collector, str
 				Properties: plugin.NewProps().SetBool("pub", isPublic(child)).Map(),
 				Span:       nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{From: structName, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: structName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}
 }
@@ -414,7 +414,7 @@ func extractUseDecl(node *sitter.Node, src []byte, c *plugin.Collector) {
 			// use std::collections::HashMap → From="HashMap", To="std::collections"
 			text := child.Utf8Text(src)
 			if last := plugin.LastSepIndex(text, "::"); last >= 0 {
-				c.AddEdge(plugin.Edge{From: text[last+2:], To: text[:last], Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: text[last+2:], To: text[:last], Kind: plugin.EdgeImports})
 			}
 		case "use_as_clause":
 			// use std::io::Result as IoResult → From="IoResult", To="std::io"
@@ -425,7 +425,7 @@ func extractUseDecl(node *sitter.Node, src []byte, c *plugin.Collector) {
 				if last := plugin.LastSepIndex(path, "::"); last >= 0 {
 					modulePath = path[:last]
 				}
-				c.AddEdge(plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: alias, To: modulePath, Kind: plugin.EdgeImports})
 			}
 		case "scoped_use_list":
 			// use std::collections::{HashMap, BTreeMap}
@@ -434,13 +434,13 @@ func extractUseDecl(node *sitter.Node, src []byte, c *plugin.Collector) {
 			// use std::prelude::*
 			text := child.Utf8Text(src)
 			if last := plugin.LastSepIndex(text, "::"); last >= 0 {
-				c.AddEdge(plugin.Edge{From: "*", To: text[:last], Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: "*", To: text[:last], Kind: plugin.EdgeImports})
 			}
 		case "identifier":
 			// use HashMap; (unlikely but handle gracefully)
 			name := child.Utf8Text(src)
 			if name != "" {
-				c.AddEdge(plugin.Edge{From: name, To: name, Kind: plugin.EdgeImports})
+				c.AddEdge(&plugin.Edge{From: name, To: name, Kind: plugin.EdgeImports})
 			}
 		}
 	}
@@ -465,11 +465,11 @@ func extractScopedUseList(node *sitter.Node, src []byte, c *plugin.Collector) {
 				}
 				if item.Kind() == "identifier" {
 					if name := item.Utf8Text(src); name != "" {
-						c.AddEdge(plugin.Edge{From: name, To: prefix, Kind: plugin.EdgeImports})
+						c.AddEdge(&plugin.Edge{From: name, To: prefix, Kind: plugin.EdgeImports})
 					}
 				} else if item.Kind() == "use_as_clause" {
 					if alias := childText(item, "identifier", src); alias != "" {
-						c.AddEdge(plugin.Edge{From: alias, To: prefix, Kind: plugin.EdgeImports})
+						c.AddEdge(&plugin.Edge{From: alias, To: prefix, Kind: plugin.EdgeImports})
 					}
 				}
 			}

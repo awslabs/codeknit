@@ -35,8 +35,9 @@ type graphEdge struct {
 
 // graphData is the top-level JSON structure injected into the HTML template.
 type graphData struct {
-	Symbols []graphSymbol `json:"symbols"`
-	Edges   []graphEdge   `json:"edges"`
+	Uncertain []jsonEdge    `json:"uncertain,omitempty"`
+	Symbols   []graphSymbol `json:"symbols"`
+	Edges     []graphEdge   `json:"edges"`
 }
 
 // EmitGraph generates a self-contained HTML file with an interactive graph
@@ -91,7 +92,11 @@ func buildGraphData(sg *ir.SymbolGraph) graphData {
 	}
 
 	edges := make([]graphEdge, 0, len(sg.Edges))
-	for _, edge := range sg.Edges {
+	for i := range sg.Edges {
+		edge := &sg.Edges[i]
+		if sg.EdgeResolution(edge) != "" {
+			continue
+		}
 		fromSID, fromOK := sg.ShortIDs[edge.From]
 		toSID, toOK := sg.ShortIDs[edge.To]
 		if !fromOK || !toOK {
@@ -104,8 +109,15 @@ func buildGraphData(sg *ir.SymbolGraph) graphData {
 		})
 	}
 
+	var uncertain []jsonEdge
+	for _, edge := range buildJSONEdges(sg) {
+		if edge.Resolution != "" {
+			uncertain = append(uncertain, edge)
+		}
+	}
 	return graphData{
-		Symbols: symbols,
-		Edges:   edges,
+		Uncertain: uncertain,
+		Symbols:   symbols,
+		Edges:     edges,
 	}
 }

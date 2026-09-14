@@ -3,13 +3,7 @@
 
 package extract
 
-import (
-	"sort"
-
-	"codeknit/internal/common/types"
-
-	sitter "github.com/tree-sitter/go-tree-sitter"
-)
+import sitter "github.com/tree-sitter/go-tree-sitter"
 
 // HandlerContext carries contextual information passed through the dispatch
 // table during AST extraction.
@@ -59,25 +53,20 @@ func (dt DispatchTable) RegisterContainers(kinds ...string) {
 	}
 }
 
-// DispatchMeta holds metadata about the dispatch table entries.
-type DispatchMeta struct {
-	HandlerNames map[string]string
-}
-
 // MakeExtractFuncWithCallableRefs builds a Func from a DispatchTable
 // that also runs callable reference detection and dataflow hint extraction
 // after the main extraction.
-func MakeExtractFuncWithCallableRefs(table DispatchTable, meta *DispatchMeta, cfg CallableRefConfig, dfCfgs ...DataflowConfig) Func {
-	return makeExtractFunc(table, meta, cfg, nil, dfCfgs...)
+func MakeExtractFuncWithCallableRefs(table DispatchTable, cfg CallableRefConfig, dfCfgs ...DataflowConfig) Func {
+	return makeExtractFunc(table, cfg, nil, dfCfgs...)
 }
 
 // MakeExtractFuncWithFingerprint is like MakeExtractFuncWithCallableRefs but
 // also accepts a body token map for fingerprint extraction.
-func MakeExtractFuncWithFingerprint(table DispatchTable, meta *DispatchMeta, cfg CallableRefConfig, bodyTokenMap map[string]byte, dfCfgs ...DataflowConfig) Func {
-	return makeExtractFunc(table, meta, cfg, bodyTokenMap, dfCfgs...)
+func MakeExtractFuncWithFingerprint(table DispatchTable, cfg CallableRefConfig, bodyTokenMap map[string]byte, dfCfgs ...DataflowConfig) Func {
+	return makeExtractFunc(table, cfg, bodyTokenMap, dfCfgs...)
 }
 
-func makeExtractFunc(table DispatchTable, meta *DispatchMeta, cfg CallableRefConfig, bodyTokenMap map[string]byte, dfCfgs ...DataflowConfig) Func {
+func makeExtractFunc(table DispatchTable, cfg CallableRefConfig, bodyTokenMap map[string]byte, dfCfgs ...DataflowConfig) Func {
 	var dfCfg DataflowConfig
 	if len(dfCfgs) > 0 {
 		dfCfg = dfCfgs[0]
@@ -85,65 +74,20 @@ func makeExtractFunc(table DispatchTable, meta *DispatchMeta, cfg CallableRefCon
 	return func(root *sitter.Node, src []byte, c *Collector) {
 		WalkTopLevel(root, src, c, table)
 		c.ExtractCallableRefs(root, src, cfg)
-		if meta != nil {
-			seen := make(map[string]bool)
-			var names []string
-			for _, name := range meta.HandlerNames {
-				if !seen[name] {
-					seen[name] = true
-					names = append(names, name)
-				}
-			}
-			sort.Strings(names)
-			for _, name := range names {
-				c.AddEdge(types.Edge{
-					From: "Dispatch",
-					To:   name,
-					Kind: types.EdgeCalls,
-				})
-			}
-		}
+		c.Edges = append(c.Edges, parameterEdges(root, src, c.Symbols)...)
 
-		// Run dataflow hints BEFORE FileCallEdges so that alias keys
-		// (object property names mapped to callables) are available as
-		// known names for qualified call resolution.
 		if len(dfCfg.AssignmentKinds) > 0 || len(dfCfg.ReturnKinds) > 0 || len(dfCfg.ObjectPairKinds) > 0 {
-			knownCallables := c.KnownCallablesAndImports()
-			for _, edge := range DataflowHints(root, src, "", &dfCfg, knownCallables) {
-				c.AddEdge(edge)
+			c.Edges = append(c.Edges, DataflowHints(root, src, &dfCfg, c.Symbols)...)
+		}
+		richFn := dfCfg.RichCallTarget
+		if richFn == nil && dfCfg.CallTarget != nil {
+			richFn = func(node *sitter.Node, src []byte) CallTargetResult {
+				return CallTargetResult{Name: dfCfg.CallTarget(node, src)}
 			}
 		}
-
-		if dfCfg.CallTarget != nil {
-			existingCalls := make(map[[2]string]bool)
-			for _, e := range c.Edges {
-				if e.Kind == types.EdgeCalls {
-					existingCalls[[2]string{e.From, e.To}] = true
-				}
-			}
-			// Use RichCallTarget when available so FileCallEdges can gate
-			// qualified calls against known symbols. Fall back to wrapping
-			// CallTarget (all calls treated as unqualified, no filtering).
-			richFn := dfCfg.RichCallTarget
-			if richFn == nil {
-				plainFn := dfCfg.CallTarget
-				richFn = func(node *sitter.Node, src []byte) CallTargetResult {
-					return CallTargetResult{Name: plainFn(node, src)}
-				}
-			}
-			// Include alias source names as known names so that qualified
-			// calls like obj.prop() are not filtered out when prop is an
-			// alias key pointing to a callable.
-			for _, edge := range FileCallEdgesWithAliases(root, src, richFn, c.Symbols, c.Edges) {
-				if !existingCalls[[2]string{edge.From, edge.To}] {
-					c.AddEdge(edge)
-				}
-			}
-		}
+		c.Edges = append(c.Edges, FileCallEdges(root, src, richFn, c.Symbols)...)
 		if len(dfCfg.TypeRefKinds) > 0 {
-			for _, edge := range FileTypeRefs(root, src, dfCfg.TypeRefKinds, c.Symbols) {
-				c.AddEdge(edge)
-			}
+			c.Edges = append(c.Edges, FileTypeRefs(root, src, dfCfg.TypeRefKinds, c.Symbols)...)
 		}
 		if c.Fingerprint && bodyTokenMap != nil {
 			c.ExtractBodyTokens(root, src, bodyTokenMap)

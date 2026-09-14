@@ -202,9 +202,9 @@ def run():
 				containsChildren[from] = append(containsChildren[from], strings.TrimSpace(to))
 			}
 		}
-		if kind == "calls" {
+		if kind == "calls" || kind == "references" {
 			for _, to := range targets {
-				containsChildren["calls:"+from] = append(containsChildren["calls:"+from], strings.TrimSpace(to))
+				containsChildren[kind+":"+from] = append(containsChildren[kind+":"+from], strings.TrimSpace(to))
 			}
 		}
 	}
@@ -350,7 +350,7 @@ def run():
 		t.Error("TS: OrderController incorrectly contains UserController.handle")
 	}
 
-	// ---- Python callable refs: run() should call transform and filter_items ----
+	// ---- Python callable refs: passed functions are referenced, not invoked ----
 	runSID := findUniqueSID("run", "pipeline.py")
 	transformSID := findUniqueSID("transform", "pipeline.py")
 	filterSID := findUniqueSID("filter_items", "pipeline.py")
@@ -359,12 +359,12 @@ def run():
 		t.Fatal("Python pipeline: missing run, transform, or filter_items SID")
 	}
 
-	runCalls := containsChildren["calls:"+runSID]
-	if !containsStr(runCalls, transformSID) {
-		t.Errorf("Python: run (%s) does not call transform (%s) — callable ref not detected", runSID, transformSID)
+	runRefs := containsChildren["references:"+runSID]
+	if !containsStr(runRefs, transformSID) {
+		t.Errorf("Python: run (%s) does not reference transform (%s) — callable ref not detected", runSID, transformSID)
 	}
-	if !containsStr(runCalls, filterSID) {
-		t.Errorf("Python: run (%s) does not call filter_items (%s) — callable ref not detected", runSID, filterSID)
+	if !containsStr(runRefs, filterSID) {
+		t.Errorf("Python: run (%s) does not reference filter_items (%s) — callable ref not detected", runSID, filterSID)
 	}
 }
 

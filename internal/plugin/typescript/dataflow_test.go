@@ -34,7 +34,7 @@ const handlers = {
 	sort.Strings(aliases)
 
 	// Should detect: forOf=forOfStmt, blank=emptyStmt
-	want := []string{"blank=emptyStmt", "forOf=forOfStmt"}
+	want := []string{"handlers.blank=emptyStmt", "handlers.forOf=forOfStmt", "handlers=<unknown>"}
 	if !strEqual(aliases, want) {
 		t.Fatalf("expected aliases %v, got %v", want, aliases)
 	}

@@ -366,7 +366,7 @@ fn helper() {}
 		}
 	}
 	sort.Strings(callTargets)
-	want := []string{"helper"}
+	want := []string{"helper", "std::io.read"}
 	if len(callTargets) != len(want) {
 		t.Fatalf("expected call targets %v, got %v", want, callTargets)
 	}

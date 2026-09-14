@@ -14,7 +14,7 @@ func init() {
 		"struct_specifier":     plugin.AdaptParent(extractStruct),
 		"enum_specifier":       plugin.AdaptParent(extractEnum),
 		"namespace_definition": plugin.Adapt(extractNamespace),
-		"preproc_include":      plugin.Adapt(extractInclude),
+		"preproc_include":      plugin.Adapt(plugin.ExtractInclude),
 		"template_declaration": plugin.AdaptParent(extractTemplate),
 		"declaration":          plugin.AdaptParent(extractDeclaration),
 		"field_declaration":    plugin.AdaptParent(extractFieldDeclaration),

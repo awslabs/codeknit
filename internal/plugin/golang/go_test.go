@@ -330,7 +330,7 @@ func helper() {}
 		}
 	}
 	sort.Strings(callTargets)
-	want := []string{"helper"}
+	want := []string{"fmt.Println", "helper"}
 	if len(callTargets) != len(want) {
 		t.Fatalf("expected call targets %v, got %v", want, callTargets)
 	}

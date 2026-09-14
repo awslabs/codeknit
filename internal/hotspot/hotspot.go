@@ -241,7 +241,8 @@ func buildFileGraph(sg *ir.SymbolGraph, root string) fileGraph {
 
 	adjSet := make(map[string]map[string]bool)
 	radjSet := make(map[string]map[string]bool)
-	for _, edge := range sg.Edges {
+	for i := range sg.Edges {
+		edge := &sg.Edges[i]
 		if edge.Kind == plugin.EdgeContains || edge.Kind == plugin.EdgeImports {
 			continue
 		}

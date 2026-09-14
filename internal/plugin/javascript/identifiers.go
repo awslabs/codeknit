@@ -120,7 +120,7 @@ func extractClass(node *sitter.Node, src []byte, c *plugin.Collector, exported b
 	// Extract heritage edges.
 	heritageNames := extractHeritageNames(node, src)
 	for _, baseName := range heritageNames {
-		c.AddEdge(plugin.Edge{
+		c.AddEdge(&plugin.Edge{
 			From: name,
 			To:   baseName,
 			Kind: plugin.EdgeInherits,
@@ -179,7 +179,7 @@ func extractJSMethod(child *sitter.Node, src []byte, c *plugin.Collector, classN
 		Span:       nodeSpan(child),
 	})
 
-	c.AddEdge(plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
+	c.AddEdge(&plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
 }
 
 // extractJSField extracts a field_definition node from a class body.
@@ -202,7 +202,7 @@ func extractJSField(child *sitter.Node, src []byte, c *plugin.Collector, classNa
 		Span: nodeSpan(child),
 	})
 
-	c.AddEdge(plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
+	c.AddEdge(&plugin.Edge{From: className, To: scopedName, Kind: plugin.EdgeContains})
 }
 
 // extractLexicalDeclaration extracts const/let/var declarations.
@@ -337,7 +337,7 @@ func extractObjectMethods(obj *sitter.Node, src []byte, c *plugin.Collector, par
 					Map(),
 				Span: nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 		// pair with arrow/function value: { handler: (req) => { ... } }
 		if child.Kind() == "pair" {
@@ -365,7 +365,7 @@ func extractObjectMethods(obj *sitter.Node, src []byte, c *plugin.Collector, par
 					Map(),
 				Span: nodeSpan(child),
 			})
-			c.AddEdge(plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
+			c.AddEdge(&plugin.Edge{From: parentName, To: scopedName, Kind: plugin.EdgeContains})
 		}
 	}
 }

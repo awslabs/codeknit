@@ -157,6 +157,26 @@ func callTarget(node *sitter.Node, src []byte) string {
 	return ""
 }
 
+var richCallTarget plugin.RichCallTargetFunc = func(node *sitter.Node, src []byte) plugin.CallTargetResult {
+	switch node.Kind() {
+	case "member_call_expression", "scoped_call_expression":
+		result := plugin.CallTargetResult{Qualified: true}
+		if name := node.ChildByFieldName("name"); name != nil {
+			result.Name = name.Utf8Text(src)
+		}
+		object := node.ChildByFieldName("object")
+		if object == nil {
+			object = node.ChildByFieldName("scope")
+		}
+		if object != nil {
+			result.Receiver = object.Utf8Text(src)
+		}
+		return result
+	default:
+		return plugin.CallTargetResult{Name: callTarget(node, src)}
+	}
+}
+
 // extractModifiers collects modifier keywords from a declaration node.
 // PHP modifiers include: public, private, protected, static, abstract, final, readonly.
 func extractModifiers(node *sitter.Node, src []byte) map[string]string {
@@ -243,7 +263,7 @@ func extractFunction(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 	}
 	c.AddSymbol(&sym)
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -285,7 +305,7 @@ func extractPHPTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, pare
 		Span:       nodeSpan(node),
 	})
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 
 	// Heritage: extends (single base or list).
@@ -293,11 +313,11 @@ func extractPHPTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, pare
 		if bc := childByKind(node, cfg.extends); bc != nil {
 			if cfg.extendsAll {
 				for _, base := range extractNameList(bc, src) {
-					c.AddEdge(plugin.Edge{From: scopedName, To: base, Kind: plugin.EdgeInherits})
+					c.AddEdge(&plugin.Edge{From: scopedName, To: base, Kind: plugin.EdgeInherits})
 				}
 			} else {
 				if baseName := extractQualifiedName(bc, src); baseName != "" {
-					c.AddEdge(plugin.Edge{From: scopedName, To: baseName, Kind: plugin.EdgeInherits})
+					c.AddEdge(&plugin.Edge{From: scopedName, To: baseName, Kind: plugin.EdgeInherits})
 				}
 			}
 		}
@@ -307,7 +327,7 @@ func extractPHPTypeDecl(node *sitter.Node, src []byte, c *plugin.Collector, pare
 	if cfg.implements != "" {
 		if ci := childByKind(node, cfg.implements); ci != nil {
 			for _, iface := range extractNameList(ci, src) {
-				c.AddEdge(plugin.Edge{From: scopedName, To: iface, Kind: plugin.EdgeImplements})
+				c.AddEdge(&plugin.Edge{From: scopedName, To: iface, Kind: plugin.EdgeImplements})
 			}
 		}
 	}
@@ -379,7 +399,7 @@ func extractMethod(node *sitter.Node, src []byte, c *plugin.Collector, parentCla
 		Span:       nodeSpan(node),
 	})
 	if parentClass != "" {
-		c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+		c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 	}
 }
 
@@ -412,7 +432,7 @@ func extractProperty(node *sitter.Node, src []byte, c *plugin.Collector, parentC
 				Span:       nodeSpan(node),
 			})
 			if parentClass != "" {
-				c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+				c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 			}
 		}
 	}
@@ -443,7 +463,7 @@ func extractConst(node *sitter.Node, src []byte, c *plugin.Collector, parentClas
 				Span:       nodeSpan(node),
 			})
 			if parentClass != "" {
-				c.AddEdge(plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
+				c.AddEdge(&plugin.Edge{From: parentClass, To: scopedName, Kind: plugin.EdgeContains})
 			}
 		}
 	}
@@ -510,7 +530,7 @@ func extractUseClause(node *sitter.Node, src []byte, c *plugin.Collector) {
 		localName = fullPath
 	}
 
-	c.AddEdge(plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
+	c.AddEdge(&plugin.Edge{From: localName, To: modulePath, Kind: plugin.EdgeImports})
 }
 
 // extractUseGroup handles grouped use like "App\Models\{User, Order}".
@@ -564,5 +584,5 @@ func extractUseClauseWithPrefix(node *sitter.Node, src []byte, c *plugin.Collect
 		localName = name
 	}
 
-	c.AddEdge(plugin.Edge{From: localName, To: prefix, Kind: plugin.EdgeImports})
+	c.AddEdge(&plugin.Edge{From: localName, To: prefix, Kind: plugin.EdgeImports})
 }

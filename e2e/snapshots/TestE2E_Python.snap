@@ -41,13 +41,31 @@ S5 --inherits--> S1
 S5 --contains--> S6, S7, S8
 S9 --inherits--> S1
 S9 --contains--> S10
+S3 --references[unresolved]--> Animal.speak.self.sound
+S7 --references[unresolved]--> Dog.speak.self.name
+S8 --references[unresolved]--> Dog.fetch.item
+S10 --references[unresolved]--> Cat.speak.self.name
 S4 --calls--> S3
+S6 --calls[unresolved]--> super
 S11 --contains--> S12, S13, S14
 S13 --calls--> S15
 S14 --calls--> S16
+S15 --calls[unresolved]--> format_name.name.strip
+S19 --references[unresolved]--> greet.msg
+S20 --references[unresolved]--> format_greeting.name
+S23 --references[unresolved]--> fetch_users.results
 S19 --calls--> S20
 S20 --calls--> S21
+S22 --calls[unresolved]--> str
 S23 --calls--> S22
+S23 --calls[unresolved]--> fetch_users.results.append
+"utils/helpers.py::staticmethod" --decorates[unresolved]--> S29
 S28 --contains--> S29, S30, S31
+"utils/helpers.py::classmethod" --decorates[unresolved]--> S30
+S27 --references[unresolved]--> clamp.low, clamp.high, clamp.value
+S31 --references[unresolved]--> Validator.run.results
+S26 --calls[unresolved]--> len, str
 S29 --calls--> S26
+S30 --calls[unresolved]--> Validator.from_config.cls
+S31 --calls[unresolved]--> Validator.run.results.append
 S31 --calls--> S29

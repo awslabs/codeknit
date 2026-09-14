@@ -54,14 +54,14 @@ func jsExtractImportClause(node *sitter.Node, src []byte, c *extract.Collector, 
 		case "identifier":
 			name := child.Utf8Text(src)
 			if name != "" {
-				c.AddEdge(types.Edge{From: name, To: modulePath, Kind: types.EdgeImports})
+				c.AddEdge(&types.Edge{From: name, To: modulePath, Kind: types.EdgeImports})
 			}
 		case "named_imports":
 			jsExtractNamedImports(child, src, c, modulePath)
 		case "namespace_import":
 			name := extract.ChildText(child, "identifier", src)
 			if name != "" {
-				c.AddEdge(types.Edge{From: name, To: modulePath, Kind: types.EdgeImports})
+				c.AddEdge(&types.Edge{From: name, To: modulePath, Kind: types.EdgeImports})
 			}
 		}
 	}
@@ -81,7 +81,7 @@ func jsExtractNamedImports(node *sitter.Node, src []byte, c *extract.Collector, 
 			}
 		}
 		if len(names) > 0 {
-			c.AddEdge(types.Edge{From: names[len(names)-1], To: modulePath, Kind: types.EdgeImports})
+			c.AddEdge(&types.Edge{From: names[len(names)-1], To: modulePath, Kind: types.EdgeImports, TargetName: names[0]})
 		}
 	}
 }

@@ -13,24 +13,14 @@ S9 value/field L5-L5 Name: string {exported}
 S10 value/field L6-L6 Email: string {exported}
 S11 callable/function L9-L11 NewUser(name: string, email: string) -> *S7 {exported}
 S12 callable/function L13-L15 ValidateUser(u: *S7) -> bool {exported}
-## pkg/service/product_service.go
-S13 module/package L1-L1 service
-S14 type/struct L5-L7 ProductService {exported}
-S15 value/field L6-L6 store: *S26
-S16 callable/function L9-L11 NewProductService() -> *S14 {exported}
-S17 callable/method L13-L16 Create(name: string, price: float64) -> *models.S2 {exported, receiver=*ProductService}
-S18 callable/method L18-L20 Get(id: int) -> *models.S2 {exported, receiver=*ProductService}
 
 [edges]
 S2 --contains--> S3, S4, S5
+S6 --references[unresolved]--> string, float64
 S6 --references--> S2
 S1 --contains--> S2, S6, S7, S11, S12
 S7 --contains--> S8, S9, S10
+S11 --references[unresolved]--> string
 S11 --references--> S7
 S12 --references--> S7
-S14 --contains--> S15, S17, S18
-S14 --references--> S26
-S16 --references--> S14
-S17 --references--> S14, S2
-S18 --references--> S14, S2
-S13 --contains--> S14, S16, S19, S21
+S12 --references[unresolved]--> bool

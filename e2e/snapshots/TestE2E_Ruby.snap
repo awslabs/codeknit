@@ -42,13 +42,21 @@ S6 --contains--> S7, S8, S9
 S10 --inherits--> S1
 S10 --contains--> S11
 S4 --calls--> S3
+S5 --calls[unresolved]--> "lib/models/animal.rb::@name.length"
+S7 --calls[unresolved]--> super
 S6 --references--> S1
 S10 --references--> S1
 S12 --contains--> S13, S14, S15, S16
 S14 --calls--> S16
+S15 --calls[unresolved]--> new
+S16 --calls[unresolved]--> User.format_name.name.strip
 S19 --contains--> S20, S21, S22, S23
 S21 --calls--> S23
-S19 --references--> S28
+S22 --calls[unresolved]--> new
+S23 --calls[unresolved]--> AuthService.verify_token.token.length
+S19 --references[unresolved]--> Formatter
 S25 --contains--> S26, S27, S19, S24, S30, S31
 S28 --contains--> S29, S19, S24, S30, S31
 S26 --calls--> S27
+S29 --calls[unresolved]--> Formatter.format.value.to_s.strip, Formatter.format.value.to_s
+S30 --calls[unresolved]--> standalone_helper.x.to_s

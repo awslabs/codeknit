@@ -55,7 +55,11 @@ func Types(sg *ir.SymbolGraph) {
 	inheritParents := make(map[string][]string)   // type ID → parent IDs (inherits)
 	implementParents := make(map[string][]string) // type ID → parent IDs (implements)
 
-	for _, edge := range sg.Edges {
+	for i := range sg.Edges {
+		edge := &sg.Edges[i]
+		if edge.Resolution != "" {
+			continue
+		}
 		switch edge.Kind {
 		case plugin.EdgeContains:
 			if ci, ok := idToIdx[edge.To]; ok {

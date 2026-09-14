@@ -1,16 +1,35 @@
 [symbols]
+## pkg/store/product_store.go
+S25 module/package L1-L1 store
+S26 type/struct L5-L7 ProductStore {exported}
+S27 value/field L6-L6 products: []*models.Product
+S28 callable/function L9-L11 NewProductStore() -> *S26 {exported}
+S29 callable/method L13-L15 Add(p: *models.Product) {exported, receiver=*ProductStore}
+S30 callable/method L17-L24 FindByID(id: int) -> *models.Product {exported, receiver=*ProductStore}
 ## pkg/store/user_store.go
 S31 type/struct L5-L7 UserStore {exported}
-S32 value/field L6-L6 users: []*models.S7
+S32 value/field L6-L6 users: []*models.User
 S33 callable/function L9-L11 NewUserStore() -> *S31 {exported}
-S34 callable/method L13-L15 Add(u: *models.S7) {exported, receiver=*UserStore}
-S35 callable/method L17-L24 FindByID(id: int) -> *models.S7 {exported, receiver=*UserStore}
+S34 callable/method L13-L15 Add(u: *models.User) {exported, receiver=*UserStore}
+S35 callable/method L17-L24 FindByID(id: int) -> *models.User {exported, receiver=*UserStore}
 S36 callable/method L26-L28 Count() -> int {exported, receiver=*UserStore}
 
 [edges]
+S26 --contains--> S27, S29, S30
+S30 --references[unresolved]--> p, int, Product
+S29 --calls[unresolved]--> append
+S28 --references--> S26
+S29 --references--> S26
+S29 --references[unresolved]--> Product
+S30 --references--> S26
+S25 --contains--> S26, S28, S31, S33
 S31 --contains--> S32, S34, S35, S36
-S31 --references--> S7
+S35 --references[unresolved]--> u, int, User
+S34 --calls[unresolved]--> append
+S36 --calls[unresolved]--> len
 S33 --references--> S31
-S34 --references--> S31, S7
-S35 --references--> S31, S7
+S34 --references--> S31
+S34 --references[unresolved]--> User
+S35 --references--> S31
 S36 --references--> S31
+S36 --references[unresolved]--> int
