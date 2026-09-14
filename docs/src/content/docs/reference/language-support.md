@@ -66,7 +66,7 @@ Relationships retain receiver qualification and lexical ownership. Relative impo
 
 Local receiver bindings take precedence over namespace imports, including when a parameter shadows an imported namespace. Python package imports consider declarations in the package's `__init__` module, not arbitrary descendant modules. Re-exports that cannot be established from that module remain unresolved.
 
-Java, C++, C#, Scala, and TypeScript callable extraction retains declaration byte ranges so overloaded bodies can have distinct callers and alias scopes, including declarations on the same line. Selecting an overloaded target remains conservative. Explicit override relationships in Java, C#, Scala, and TypeScript look for the nearest inherited declaration; missing bases, cycles, or competing candidates retain uncertainty instead of producing self-links.
+Java, C++, C#, Scala, and TypeScript callable extraction retains declaration byte ranges so overloaded bodies can have distinct callers and alias scopes, including declarations on the same line. Selecting an overloaded target remains conservative. Explicit override relationships in Java, C++, C#, Scala, and TypeScript look for the nearest inherited declaration; missing bases, cycles, or competing candidates retain uncertainty instead of producing self-links.
 
 This is syntax-based analysis, not a compiler or runtime call graph. Bare JavaScript package specifiers, package re-exports, build configurations, complex receiver types, and dynamic dispatch may remain unresolved. A unique name elsewhere in the repository is not sufficient evidence of a dependency.
 

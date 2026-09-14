@@ -18,7 +18,7 @@ This is a detailed reference. Cover all sections:
      | type | class, interface, struct, enum | type/class, type/interface |
      | value | variable, constant, field | value/variable, value/constant |
      | module | package, namespace | module/package |
-     | meta | type parameters, metadata | meta/type_parameter |
+     | meta | type parameters, files, includes, metadata | meta/type_parameter, meta/file, meta/include |
    - Signature formats: name, name(params), name(params) -> returnType
    - Parameters: name (untyped) or name: type (typed)
    - Type references replaced with short IDs when known
@@ -26,6 +26,15 @@ This is a detailed reference. Cover all sections:
 
 3. [edges] section:
    - Format: FromID --kind--> ToID1, ToID2
+   - Include uncertainty using the same SKT grammar, never embedded JSON:
+     FromID --kind[unresolved]--> Target1, Target2
+     FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
+   - No resolution marker means resolved by the analyzer, not a compiler guarantee.
+   - Known endpoints and candidates use short IDs, including unresolved include endpoints. Names without symbols are relative to the source file; complex identities and literal names resembling short IDs use quoted full IDs, such as "app.go::S2".
+   - Targets are grouped only when source, kind, resolution, and candidate set match. Symbol definitions can occur in later files or chunks.
+   - Show C/C++ meta/file and meta/include symbols with unresolved include edges using short IDs. An include symbol records the written directive, not a resolved header. Repeated includes in a file share an endpoint.
+   - Uncertain edges and file/include metadata do not contribute to dependency metrics. HTML draws resolved links and displays uncertainty counts; it does not draw individual uncertain edges.
+   - Regenerate all output chunks together when upgrading to 0.5.0; symbol IDs and resolution results can change.
    - Edge kinds table:
      | Kind | Meaning |
      | calls | function/method invocation |
@@ -45,5 +54,13 @@ This is a detailed reference. Cover all sections:
    - Maps short codes (d0, d1, ...) to repeated tokens
    - Used with --minify flag
    - Show a minified example
+   - Relationship kinds can be dictionary codes while uncertainty labels remain readable, e.g. S1 --d2[unresolved]--> S3.
 
-6. Full example showing all sections together
+6. Full example showing all sections together. Use only the supported edge kinds above; returned callables are references, not a "returns" edge kind.
+
+7. JSON relationship encoding:
+   - Use codeknit parse ./src --output-mode inline --format json --edges.
+   - Edges carry from, to, kind, and known endpoint short IDs.
+   - Uncertain edges add resolution ("unresolved" or "ambiguous") and candidates when available, using full symbol IDs for candidates.
+   - Uncertain edges omit to_short, even when their target has an include metadata symbol.
+   - Refer to skills/codeknit-parse/OUTPUT-FORMAT.md and docs/reference/language-support.md in the source context for the authoritative grammar and limitations.

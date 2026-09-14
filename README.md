@@ -156,6 +156,8 @@ The output directory defaults to `./skeleton` when not specified. You can overri
 
 If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to remove them automatically.
 
+With `--edges`, relationships that cannot be established remain visible as `--kind[unresolved]-->` or `--kind[ambiguous]-->` in SKT, with candidate IDs when available. JSON carries the same information in `resolution` and `candidates`. C/C++ includes use `meta/file` and `meta/include` symbols so their edges have short IDs; this does not imply compiler-level header resolution. See the [output format reference](skills/codeknit-parse/OUTPUT-FORMAT.md) for examples. When upgrading to `0.5.0`, regenerate all output chunks together because symbol IDs and relationship results can change.
+
 ### Parse examples
 
 ```bash
@@ -235,6 +237,8 @@ codeknit graph show ./src --collect-test
 
 `graph show` parses the codebase and produces a self-contained HTML file with an interactive graph visualization. Symbols (functions, classes, types) appear as nodes and their relationships (calls, contains, implements) as edges. The file opens automatically in your default browser.
 
+The viewer draws resolved relationships and shows a count of uncertain relationships. To inspect individual unresolved or ambiguous edges and their candidates, use `codeknit parse ./src --output-mode inline --edges` (add `--format json` for JSON).
+
 ```
 Flags:
   -o, --output string   output HTML file path (default: ./skeleton/codeknit-graph.html)
@@ -262,6 +266,8 @@ codeknit graph analyze ./src --collect-test
 `graph analyze` runs structural graph algorithms on the codebase and emits an LLM-readable `.skt` report. It detects code quality issues such as cyclic dependencies, hub symbols, dead code, god classes, deep inheritance chains, bottleneck functions, and more.
 
 The 22 algorithms include: cyclic dependency detection (Tarjan's SCC), hub detection (fan-in/fan-out coupling), orphan detection, god class/function detection, instability metric, deep inheritance chains, betweenness centrality, articulation points, PageRank, transitive fan-in (blast radius), change propagation simulation, circular package dependencies, layer violation detection, reachability from entry points, weakly connected components, dependency weight, distance from main sequence, shotgun surgery detection, feature envy detection, stable dependency violations, interface segregation violations, and containment depth.
+
+Dependency metrics exclude uncertain relationships and file/include metadata; the report records excluded relationship counts. Fan-in and fan-out count distinct neighbors. Findings are candidates for review: external callers and dynamic dispatch can affect reachability, and change-propagation scores are heuristic weights rather than measured probabilities. See the [language support reference](docs/reference/language-support.md#relationship-resolution) for resolution rules and limits.
 
 ```
 Flags:

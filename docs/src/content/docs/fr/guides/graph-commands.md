@@ -13,27 +13,34 @@ Génère une visualisation interactive de graphe en HTML de votre base de code.
 codeknit graph show <input-path>
 ```
 
-Cette commande analyse votre base de code et produit un fichier HTML autonome avec une visualisation interactive de graphe. Les symboles (fonctions, classes, types) apparaissent sous forme de nœuds, et leurs relations (appels, contient, implémente) sous forme d'arêtes. La visualisation s'ouvre automatiquement dans votre navigateur par défaut.
+Cette commande analyse votre base de code et produit un fichier HTML autonome avec une visualisation interactive de graphe. Les symboles (fonctions, classes, types) apparaissent comme des nœuds, et leurs relations (appels, contient, implémente) comme des arêtes. La visualisation s'ouvre automatiquement dans votre navigateur par défaut.
+
+Le visualiseur affiche les relations résolues. Il indique un compte d'incertitudes mais ne dessine pas les relations non résolues ou ambiguës individuelles ni leurs liens candidats. Inspectez ces relations avec la sortie de parse :
+
+```bash
+codeknit parse ./src --output-mode inline --edges
+codeknit parse ./src --output-mode inline --format json --edges
+```
 
 ### Flags
 
-| Flag             | Default                          | Description                                  |
+| Flag             | Défaut                          | Description                                  |
 | ---------------- | -------------------------------- | -------------------------------------------- |
-| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Chemin du fichier HTML de sortie             |
-| `--collect-test` | `false`                          | Inclure les fichiers de test dans l'analyse  |
-| `--workers`      | `NumCPU`                         | Nombre maximal de goroutines d'analyse concurrentes |
-| `--verbose`      | `false`                          | Afficher les informations de progression pendant le traitement |
+| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Chemin du fichier HTML de sortie            |
+| `--collect-test` | `false`                          | Inclure les fichiers de test dans l'analyse |
+| `--workers`      | `NumCPU`                         | Nombre maximal de goroutines de parsing concurrentes |
+| `--verbose`      | `false`                          | Afficher des informations de progression pendant le traitement |
 
 ### Exemples
 
-```skt
-# Générer une visualisation par défaut
+```bash
+# Generate default visualization
 codeknit graph show ./myproject
 
-# Fichier de sortie personnalisé
+# Custom output file
 codeknit graph show ./myproject -o graph.html
 
-# Inclure les fichiers de test
+# Include test files
 codeknit graph show ./src --collect-test
 ```
 
@@ -45,63 +52,78 @@ Exécute des algorithmes de graphe structurels sur votre base de code et génèr
 codeknit graph analyze <input-path>
 ```
 
-Cette commande détecte des problèmes courants de qualité du code tels que les dépendances cycliques, les symboles hub, le code mort, les god classes et les goulots d'étranglement architecturaux.
+Cette commande signale des candidats pour la revue, y compris les dépendances cycliques, les symboles hub, le code mort, les god classes et les goulots d'étranglement architecturaux.
 
 ### Algorithmes
 
 L'analyse inclut 22 algorithmes de graphe structurels :
 
-- Dépendances cycliques (Tarjan's SCC)
+- Dépendances cycliques (SCC de Tarjan)
 - Détection de hubs (couplage élevé fan-in/fan-out)
-- Détection d'orphelins (candidats au code mort)
-- Détection de god class/function (nombre excessif d'enfants)
-- Métrique d'instabilité (Robert C. Martin's Ce/(Ca+Ce))
+- Détection d'orphelins (candidats de code mort)
+- Détection de god class/function (enfants excessifs)
+- Métrique d'instabilité (Ce/(Ca+Ce) de Robert C. Martin)
 - Chaînes d'héritage profondes
 - Centralité de betweenness (détection de goulots d'étranglement)
 - Points d'articulation (points uniques de défaillance)
 - PageRank (importance récursive)
 - Fan-in transitif (rayon d'impact)
-- Simulation de propagation des changements
-- Dépendances circulaires entre packages
-- Détection de violations de couches
+- Simulation de propagation de changements
+- Dépendances cycliques de paquets
+- Détection de violations de couche
 - Accessibilité depuis les points d'entrée
-- Composants faiblement connectés
-- Poids des dépendances (force du couplage entre packages)
-- Distance par rapport à la Main Sequence (équilibre A+I)
+- Composantes faiblement connectées
+- Poids des dépendances (force de couplage des paquets)
+- Distance de la Main Sequence (équilibre A+I)
 - Détection de shotgun surgery
 - Détection de feature envy
 - Violations de dépendances stables
 - Violations de ségrégation d'interfaces
 - Profondeur de containment
 
+### Interprétation du rapport
+
+Les métriques de dépendance utilisent des relations résolues. Le rapport compte les relations non résolues et ambiguës exclues. Les métadonnées de fichier/inclusion sont exclues des classements de dépendances et des découvertes de code mort.
+
+- Le fan-in et le fan-out comptent les voisins distincts. Les relations répétées n'augmentent pas ces comptes, et le containment n'est pas une dépendance.
+- La profondeur d'héritage considère toutes les bases et interfaces. Les hiérarchies cycliques ne se voient pas attribuer de profondeur.
+- L'accessibilité commence à partir des callables nommés `main`, `Main` ou `init` et suit les arêtes de dépendance. Atteindre un membre rend son conteneur pertinent sans marquer chaque frère accessible. Sans point d'entrée reconnu, les découvertes d'accessibilité sont omises.
+- Les arguments de callback et les callables retournés sont des références, pas la preuve que le callback s'exécute.
+- La propagation de changements utilise le chemin de dépendance le plus fort. Ses scores et ses règles de couche basées sur les répertoires sont des heuristiques, pas des probabilités mesurées.
+
+Les appelants externes, le dispatch dynamique et les dépendances en dehors de l'analyse peuvent changer les conclusions. Voir [Prise en charge des langages et fidélité des API](../../reference/language-support/) pour les règles et limites de résolution.
+
 ### Flags
 
-| Flag                      | Default                         | Description                                              |
+| Flag                      | Défaut                         | Description                                              |
 | ------------------------- | ------------------------------- | -------------------------------------------------------- |
 | `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Chemin du fichier `.skt` de sortie                       |
 | `--collect-test`          | `false`                         | Inclure les fichiers de test dans l'analyse              |
-| `--workers`               | `NumCPU`                        | Nombre maximal de goroutines d'analyse concurrentes      |
-| `--verbose`               | `false`                         | Afficher les informations de progression pendant le traitement |
-| `--fan-threshold`         | `10`                            | Fan-in ou fan-out minimum pour signaler un symbole hub   |
-| `--god-threshold`         | `15`                            | Nombre minimal d'arêtes contains pour signaler une god class/function |
+| `--workers`               | `NumCPU`                        | Nombre maximal de goroutines de parsing concurrentes     |
+| `--verbose`               | `false`                         | Afficher des informations de progression pendant le traitement |
+| `--fan-threshold`         | `10`                            | Seuil minimal de fan-in ou fan-out pour signaler un symbole hub |
+| `--god-threshold`         | `15`                            | Nombre minimal d'arêtes de containment pour signaler une god class/function |
 | `--max-inheritance-depth` | `5`                             | Signaler les chaînes d'héritage plus profondes que cette valeur |
 | `--top-n`                 | `30`                            | Limiter les sections de sortie classées ; 0 = pas de limite |
 | `--betweenness-threshold` | `0.001`                         | Valeur minimale de centralité de betweenness à rapporter |
-| `--propagation-cutoff`    | `0.05`                          | Probabilité minimale pour poursuivre la propagation des changements |
+| `--propagation-cutoff`    | `0.05`                          | Score heuristique minimal pour poursuivre la propagation de changements |
 
 ### Exemples
 
-```skt
-# Exécuter une analyse structurelle avec les valeurs par défaut
+```bash
+# Run structural analysis with defaults
 codeknit graph analyze ./myproject
 
-# Sortie et seuils personnalisés
+# Custom output and thresholds
 codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
 
-# Afficher plus de résultats par section
+# Show more results per section
 codeknit graph analyze ./myproject --top-n 50
 
-# Inclure les fichiers de test
+# Remove the cap on ranked sections
+codeknit graph analyze ./myproject --top-n 0
+
+# Include test files
 codeknit graph analyze ./src --collect-test
 ```
 
@@ -115,33 +137,33 @@ codeknit graph hotspots <input-path>
 
 Le score combine la fréquence des commits, le churn des lignes et la récence avec le PageRank au niveau des fichiers, le fan-in transitif et la centralité de betweenness. Le rapport identifie également le couplage temporel entre les fichiers qui changent répétitivement dans les mêmes commits.
 
-Les commits de merge sont exclus par défaut. Les commits modifiant plus de 50 fichiers sont également exclus afin que les modifications générées, vendues ou mécaniques en masse ne faussent pas les résultats.
+Les commits de merge sont exclus par défaut. Les commits modifiant plus de 50 fichiers sont également exclus afin que les changements générés, vendored ou mécaniques en masse ne faussent pas les résultats.
 
 ### Flags
 
-| Flag                     | Default                   | Description                                      |
-| ------------------------ | ------------------------- | ------------------------------------------------ |
-| `-o`, `--output`         | `./skeleton/hotspots.skt` | Chemin du fichier de sortie                      |
-| `--format`               | `skt`                     | Format de sortie : `skt` ou `json`               |
-| `--since`                | `12mo`                    | Fenêtre d'historique, par exemple `180d`, `12mo`, ou `2y` |
-| `--max-commits`          | `2000`                    | Nombre maximal de commits à inspecter           |
-| `--max-files-per-commit` | `50`                      | Exclure les commits modifiant plus de fichiers  |
+| Flag                     | Défaut                   | Description                                     |
+| ------------------------ | ------------------------- | ----------------------------------------------- |
+| `-o`, `--output`         | `./skeleton/hotspots.skt` | Chemin du fichier de sortie                     |
+| `--format`               | `skt`                     | Format de sortie : `skt` ou `json`              |
+| `--since`                | `12mo`                    | Fenêtre d'historique, telle que `180d`, `12mo`, ou `2y` |
+| `--max-commits`          | `2000`                    | Nombre maximal de commits à inspecter          |
+| `--max-files-per-commit` | `50`                      | Exclure les commits modifiant plus de fichiers |
 | `--min-cochanges`        | `3`                       | Nombre minimal de commits partagés pour le couplage temporel |
 | `--top-n`                | `30`                      | Nombre maximal de résultats par section de rapport |
-| `--include-merges`       | `false`                   | Inclure les commits de merge                     |
-| `--collect-test`         | `false`                   | Inclure les fichiers de test                     |
-| `--workers`              | `NumCPU`                  | Nombre maximal de goroutines d'analyse concurrentes |
-| `--verbose`              | `false`                   | Afficher les informations de progression         |
+| `--include-merges`       | `false`                   | Inclure les commits de merge                    |
+| `--collect-test`         | `false`                   | Inclure les fichiers de test                    |
+| `--workers`              | `NumCPU`                  | Nombre maximal de goroutines de parsing concurrentes |
+| `--verbose`              | `false`                   | Afficher des informations de progression        |
 
 ### Exemples
 
 ```bash
-# Analyser les 12 derniers mois
+# Analyze the last 12 months
 codeknit graph hotspots ./myproject
 
-# Analyser deux ans et émettre du JSON
+# Analyze two years and emit JSON
 codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
 
-# Inclure des commits plus larges et exiger un couplage plus fort
+# Include larger commits and require stronger coupling
 codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```

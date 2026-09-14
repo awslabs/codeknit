@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-14
+
 ### Changed
 
 - Preserve uncertain relationships in JSON and SKT; show excluded relationship counts in graph analysis and HTML.

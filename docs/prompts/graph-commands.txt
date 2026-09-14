@@ -15,6 +15,8 @@ Usage: `codeknit graph show <input-path>`
 - Parses the codebase and produces a self-contained HTML file
 - Symbols (functions, classes, types) as nodes, relationships (calls, contains, implements) as edges
 - Opens automatically in the default browser
+- Draws resolved relationships only. The viewer shows an uncertainty count but does not draw individual unresolved/ambiguous edges or candidate links.
+- Inspect those relationships with codeknit parse ./src --output-mode inline --edges, optionally adding --format json.
 
 Flags:
 - -o, --output: output HTML file path (default: ./skeleton/codeknit-graph.html)
@@ -59,6 +61,17 @@ Algorithms (list all 22):
 - Interface segregation violations
 - Containment depth
 
+Explain how to interpret results:
+- Reports count unresolved and ambiguous relationships excluded from dependency metrics.
+- File/include metadata symbols do not affect dependency rankings or dead-code findings.
+- Fan-in and fan-out count distinct neighbors; containment does not count as a dependency.
+- Inheritance depth considers all bases and interfaces; cyclic hierarchies are not assigned a depth.
+- Reachability begins at callables named main, Main, or init and follows dependency edges. A reachable member makes its container relevant without making sibling members reachable. Without recognized entry points, reachability findings are omitted.
+- Callback arguments and returned callables are references, not evidence that the callback executes.
+- Change propagation uses the strongest dependency path. Scores and layer rules are heuristics, not measured probabilities or compiler guarantees.
+- --top-n 0 removes the cap on ranked graph analyze sections.
+- Link to ../../reference/language-support/ for syntax-based resolution limits; external callers, dynamic dispatch, and unscanned dependencies can change conclusions.
+
 Flags table:
 - -o, --output: output .skt file (default: ./skeleton/graph_analysis.skt)
 - --collect-test: include test files
@@ -69,7 +82,7 @@ Flags table:
 - --max-inheritance-depth (default 5): flag deep chains
 - --top-n (default 30): cap ranked sections, 0 = no limit
 - --betweenness-threshold (default 0.001): min centrality to report
-- --propagation-cutoff (default 0.05): min probability for change propagation
+- --propagation-cutoff (default 0.05): minimum heuristic score for continuing change propagation
 
 Examples:
 ```bash

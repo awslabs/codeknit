@@ -132,6 +132,22 @@ Example JSON output:
 codeknit parse ./src --output-mode directory-tree
 ```
 
+## Relationship uncertainty
+
+With `--edges`, Codeknit preserves relationships even when syntax and scope do not establish a unique target:
+
+```skt
+S1 --calls--> S2
+S1 --references[unresolved]--> string, bool
+S1 --calls[ambiguous]--> Helper [candidates=S3, S4]
+```
+
+An omitted status means resolved by the analyzer. `unresolved` means the dependency could not be established; `ambiguous` means competing interpretations remain possible. Candidates are possible targets, not confirmed connections. Known endpoints use short IDs; unresolved targets without symbols may appear as names.
+
+JSON carries the same information in `resolution` and `candidates`, and omits `to_short` for uncertain targets. C/C++ includes have `meta/file` and `meta/include` symbols so edges use short IDs; this records written directives without claiming compiler-level header resolution.
+
+Dependency metrics exclude uncertain relationships. The HTML graph shows their count without drawing individual uncertain links. See the [output format reference](../../reference/output-format/) for the grammar and the [language support reference](../../reference/language-support/) for resolution limits.
+
 ## Stale Output Protection
 
 If the output directory already contains `.skt` files from a previous run, `codeknit` will refuse to write new output to prevent mixing stale and fresh data.
@@ -143,6 +159,8 @@ codeknit parse ./src --clean
 ```
 
 This ensures a fresh, consistent output set.
+
+When upgrading to `0.5.0`, regenerate the entire output set. Symbol IDs and relationship results can change; do not mix chunks from different runs.
 
 ## Tips
 

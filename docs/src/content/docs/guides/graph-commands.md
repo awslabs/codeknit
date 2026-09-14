@@ -16,6 +16,13 @@ codeknit graph show <input-path>
 
 This command parses your codebase and produces a self-contained HTML file with an interactive graph visualization. Symbols (functions, classes, types) appear as nodes, and their relationships (calls, contains, implements) as edges. The visualization opens automatically in your default browser.
 
+The viewer draws resolved relationships. It displays an uncertainty count but does not draw individual unresolved or ambiguous relationships or their candidate links. Inspect those relationships with parse output:
+
+```bash
+codeknit parse ./src --output-mode inline --edges
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
 ### Flags
 
 | Flag             | Default                          | Description                                  |
@@ -27,7 +34,7 @@ This command parses your codebase and produces a self-contained HTML file with a
 
 ### Examples
 
-```skt
+```bash
 # Generate default visualization
 codeknit graph show ./myproject
 
@@ -46,7 +53,7 @@ Runs structural graph algorithms on your codebase and emits an LLM-readable `.sk
 codeknit graph analyze <input-path>
 ```
 
-This command detects common code quality issues such as cyclic dependencies, hub symbols, dead code, god classes, and architectural bottlenecks.
+This command reports candidates for review, including cyclic dependencies, hub symbols, dead code, god classes, and architectural bottlenecks.
 
 ### Algorithms
 
@@ -75,6 +82,18 @@ The analysis includes 22 structural graph algorithms:
 - Interface segregation violations
 - Containment depth
 
+### Interpreting the report
+
+Dependency metrics use resolved relationships. The report counts excluded unresolved and ambiguous relationships. File/include metadata is excluded from dependency rankings and dead-code findings.
+
+- Fan-in and fan-out count distinct neighbors. Repeated relationships do not inflate these counts, and containment is not a dependency.
+- Inheritance depth considers all bases and interfaces. Cyclic hierarchies are not assigned a depth.
+- Reachability starts from callables named `main`, `Main`, or `init` and follows dependency edges. Reaching a member makes its container relevant without marking every sibling reachable. Without a recognized entry point, reachability findings are omitted.
+- Callback arguments and returned callables are references, not proof that the callback executes.
+- Change propagation uses the strongest dependency path. Its scores and directory-based layer rules are heuristics, not measured probabilities.
+
+External callers, dynamic dispatch, and dependencies outside the scan can change the conclusions. See [Language Support and API Fidelity](../../reference/language-support/) for resolution rules and limits.
+
 ### Flags
 
 | Flag                      | Default                         | Description                                              |
@@ -88,11 +107,11 @@ The analysis includes 22 structural graph algorithms:
 | `--max-inheritance-depth` | `5`                             | Flag inheritance chains deeper than this                 |
 | `--top-n`                 | `30`                            | Cap ranked output sections; 0 = no limit                 |
 | `--betweenness-threshold` | `0.001`                         | Minimum betweenness centrality value to report           |
-| `--propagation-cutoff`    | `0.05`                          | Minimum probability to continue change propagation       |
+| `--propagation-cutoff`    | `0.05`                          | Minimum heuristic score to continue change propagation   |
 
 ### Examples
 
-```skt
+```bash
 # Run structural analysis with defaults
 codeknit graph analyze ./myproject
 
@@ -101,6 +120,9 @@ codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
 
 # Show more results per section
 codeknit graph analyze ./myproject --top-n 50
+
+# Remove the cap on ranked sections
+codeknit graph analyze ./myproject --top-n 0
 
 # Include test files
 codeknit graph analyze ./src --collect-test
@@ -125,19 +147,19 @@ distort the results.
 
 ### Flags
 
-| Flag                     | Default                   | Description                                      |
-| ------------------------ | ------------------------- | ------------------------------------------------ |
-| `-o`, `--output`         | `./skeleton/hotspots.skt` | Output file path                                 |
-| `--format`               | `skt`                     | Output format: `skt` or `json`                   |
-| `--since`                | `12mo`                    | History window, such as `180d`, `12mo`, or `2y`  |
-| `--max-commits`          | `2000`                    | Maximum commits to inspect                       |
-| `--max-files-per-commit` | `50`                      | Exclude commits changing more files              |
-| `--min-cochanges`        | `3`                       | Minimum shared commits for temporal coupling     |
-| `--top-n`                | `30`                      | Maximum results per report section               |
-| `--include-merges`       | `false`                   | Include merge commits                            |
-| `--collect-test`         | `false`                   | Include test files                               |
-| `--workers`              | `NumCPU`                  | Maximum concurrent parsing goroutines            |
-| `--verbose`              | `false`                   | Print progress information                       |
+| Flag                     | Default                   | Description                                     |
+| ------------------------ | ------------------------- | ----------------------------------------------- |
+| `-o`, `--output`         | `./skeleton/hotspots.skt` | Output file path                                |
+| `--format`               | `skt`                     | Output format: `skt` or `json`                  |
+| `--since`                | `12mo`                    | History window, such as `180d`, `12mo`, or `2y` |
+| `--max-commits`          | `2000`                    | Maximum commits to inspect                      |
+| `--max-files-per-commit` | `50`                      | Exclude commits changing more files             |
+| `--min-cochanges`        | `3`                       | Minimum shared commits for temporal coupling    |
+| `--top-n`                | `30`                      | Maximum results per report section              |
+| `--include-merges`       | `false`                   | Include merge commits                           |
+| `--collect-test`         | `false`                   | Include test files                              |
+| `--workers`              | `NumCPU`                  | Maximum concurrent parsing goroutines           |
+| `--verbose`              | `false`                   | Print progress information                      |
 
 ### Examples
 

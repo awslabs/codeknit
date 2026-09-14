@@ -40,6 +40,15 @@ Cover:
    - C++ .h headers: codeknit parse ./src --header-language cpp
 
 5. Stale output protection: explain that codeknit refuses to write if .skt files exist, use --clean
+   - When upgrading to 0.5.0, regenerate the entire output set; do not mix chunks from different runs because symbol IDs and relationship results can change.
+
+Explain relationship uncertainty with --edges:
+   - Resolved SKT edges use --kind-->, unresolved edges use --kind[unresolved]-->, and ambiguous edges use --kind[ambiguous]--> with candidate IDs when available.
+   - Candidates are possible targets, not confirmed dependencies. Known endpoints use short IDs; unresolved targets without symbols may be names.
+   - JSON uses resolution and candidates and omits to_short for uncertain targets.
+   - C/C++ includes use meta/file and meta/include symbols with short-ID edges; this records directives without claiming header resolution.
+   - Graph metrics exclude uncertain edges; the HTML viewer shows their count rather than individual uncertain links.
+   - Link to ../../reference/output-format/ for the grammar and ../../reference/language-support/ for limits.
 
 6. Tips:
    - Default to directory-flat for most projects

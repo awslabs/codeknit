@@ -3,58 +3,58 @@ title: Référence du format de sortie
 description: Référence complète du format de sortie .skt utilisé par codeknit.
 ---
 
-Le format `.skt` (skeleton) est un format texte compact et lisible par l'humain utilisé par `codeknit` pour représenter la **structure du code** extraite. Il contient des **symboles**, des relations et des métadonnées sous une forme minimale adaptée à la consommation par les LLM et à l'**analyse de graphe**.
+Le format `.skt` (skeleton) est un format de texte compact et lisible par l'humain utilisé par `codeknit` pour représenter la structure du code extraite. Il contient des symboles, des relations et des métadonnées sous une forme minimale adaptée à la consommation par les LLM et à l'analyse structurelle.
 
-Un fichier `.skt` est divisé en sections. Chaque section commence par un en-tête entre crochets. Les sections peuvent apparaître dans n'importe quel ordre, bien que `[symbols]` apparaisse généralement en premier.
+Un fichier `.skt` est divisé en sections. Chaque section commence par un en-tête entre crochets. Les sections peuvent apparaître dans n'importe quel ordre, bien que `[symbols]` vienne généralement en premier.
 
 ## [symbols]
 
-La section `[symbols]` répertorie tous les **symboles** extraits, regroupés par fichier source. Chaque fichier est introduit par un en-tête `##` suivi du chemin du fichier.
+La section `[symbols]` répertorie tous les symboles extraits, regroupés par leur fichier source. Chaque fichier est introduit par un en-tête `##` suivi du chemin du fichier.
 
 ### Format de ligne
 
-Chaque **symbole** est représenté sur une seule ligne avec la structure suivante :
+Chaque symbole est représenté sur une seule ligne avec la structure suivante :
 
 ```
-ShortID catégorie/type Ldébut-Lfin signature {propriétés}
+ShortID category/kind Lstart-Lend signature {properties}
 ```
 
 ### Champs
 
-- **ShortID** : Un identifiant séquentiel attribué à chaque **symbole** (par exemple, `S1`, `S2`, `S3`). Utilisé comme référence dans les **arêtes** et les autres sections.
-- **catégorie/type** : Une paire séparée par une barre oblique indiquant la catégorie et le type spécifique du **symbole**.
-- **Ldébut-Lfin** : La **plage de lignes** dans le fichier source où le **symbole** est défini (par exemple, `L10-L15`).
-- **signature** : Le nom et les informations de type du **symbole**. Le format dépend du **symbole** :
-  - `nom` — pour les types, valeurs, modules
-  - `nom(params)` — pour les **callables** sans type de retour
-  - `nom(params) -> typeRetour` — pour les **callables** avec type de retour
+- **ShortID** : Un identifiant séquentiel attribué à chaque symbole (par exemple, `S1`, `S2`, `S3`). Utilisé comme référence dans les arêtes et autres sections.
+- **catégorie/type** : Une paire séparée par une barre oblique indiquant la catégorie et le type spécifique du symbole.
+- **Ldébut-Lfin** : La plage de lignes dans le fichier source où le symbole est défini (par exemple, `L10-L15`).
+- **signature** : Le nom du symbole et les informations de type. Le format dépend du symbole :
+  - `name` — pour les types, valeurs, modules
+  - `name(params)` — pour les callables sans type de retour
+  - `name(params) -> returnType` — pour les callables avec type de retour
 - **{propriétés}** : Métadonnées optionnelles entre accolades. Plusieurs propriétés sont séparées par des virgules.
 
 ### Paramètres
 
-- Dans les langages non typés : `nomParam`
-- Dans les langages typés : `nomParam: type`
-- Les références de type qui correspondent à des **symboles** connus sont remplacées par leurs ShortID (par exemple, `config: S5` au lieu de `config: Config`).
+- Dans les langages non typés : `paramName`
+- Dans les langages typés : `paramName: type`
+- Les références de type qui correspondent à des symboles connus sont remplacées par leurs ShortID (par exemple, `config: S5` au lieu de `config: Config`).
 
 ### Propriétés
 
-Propriétés courantes :
+Les propriétés courantes incluent :
 
 - `async` : `true` ou `false`
 - `exported` : `true` ou `false`
-- `static` : présent si le **symbole** est statique
+- `static` : présent si le symbole est statique
 - `visibility=public|private|protected`
-- `receiver=*NomType` : pour les méthodes, indique le type récepteur
+- `receiver=*TypeName` : pour les méthodes, indique le type récepteur
 
 ### Catégories et types de symboles
 
-| Catégorie   | Types                          | Exemples                               |
-| ----------- | ------------------------------ | -------------------------------------- |
-| `callable`  | function, method, constructor  | `callable/function`, `callable/method` |
-| `type`      | class, interface, struct, enum | `type/class`, `type/interface`         |
-| `value`     | variable, constant, field      | `value/variable`, `value/constant`     |
-| `module`    | package, namespace             | `module/package`                       |
-| `meta`      | type parameters, metadata      | `meta/type_parameter`                  |
+| Catégorie   | Types                                      | Exemples                                           |
+| ---------- | ------------------------------------------ | -------------------------------------------------- |
+| `callable` | function, method, constructor              | `callable/function`, `callable/method`             |
+| `type`     | class, interface, struct, enum             | `type/class`, `type/interface`                     |
+| `value`    | variable, constant, field                  | `value/variable`, `value/constant`                 |
+| `module`   | package, namespace                         | `module/package`                                   |
+| `meta`     | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
 
 ### Exemple
 
@@ -70,28 +70,59 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-La section `[edges]` définit les relations entre les **symboles** en utilisant leurs ShortID.
+La section `[edges]` enregistre les relations lorsque `--edges` est activé. Les points d'extrémité connus utilisent leurs ShortID ; les cibles qui ne peuvent pas être résolues en symbole peuvent apparaître sous forme de noms.
 
 ### Format de ligne
 
 ```
-IDSource --type--> IDCible1, IDCible2
+FromID --kind--> ToID1, ToID2
+FromID --kind[unresolved]--> Target1, Target2
+FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
 ```
 
-Plusieurs ID cibles sont séparés par des virgules. Chaque ligne représente une relation directionnelle.
+Un statut omis signifie que l'analyseur a résolu la relation. `unresolved` signifie qu'il n'a pas pu établir la dépendance ; `ambiguous` signifie que des interprétations concurrentes restent possibles. Les ID de candidats identifient des cibles possibles, pas des connexions confirmées. La résolution est basée sur la syntaxe et la portée, pas sur une garantie du compilateur.
+
+Les cibles sont regroupées uniquement lorsque leur source, leur type, leur résolution et leur ensemble de candidats correspondent. Les noms sans symboles sont relatifs au fichier source. Les identités complexes utilisent des ID complets entre guillemets avec des guillemets, des barres obliques inverses et des sauts de ligne échappés. Un nom littéral qui ressemble à un ShortID doit être cité comme un ID complet, tel que `"app.go::S2"`. Les définitions de symboles peuvent apparaître dans des fichiers ultérieurs ou des morceaux de sortie.
+
+```skt
+S4 --references[unresolved]--> string, bool
+S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
+S6 --references[unresolved]--> "app.go::S2"
+```
+
+### Points d'extrémité de fichiers et d'inclusions
+
+Les inclusions C/C++ ont des symboles de métadonnées explicites. Les orthographes des en-têtes apparaissent une fois dans la liste des symboles, et les arêtes utilisent des ShortID même si la résolution des en-têtes reste non résolue :
+
+```skt
+[symbols]
+## src/main.c
+S1 meta/file L1-L3 main.c
+S2 meta/include L1-L1 "config.h" {resolution=unresolved}
+S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+
+[edges]
+S1 --references[unresolved]--> S2, S3
+```
+
+Un symbole d'inclusion enregistre la directive écrite, pas une déclaration d'en-tête résolue. Les inclusions répétées au sein d'un fichier partagent un point d'extrémité. Les métadonnées de fichier/inclusion sont exclues des classements de dépendances et des découvertes de code mort.
+
+Les relations incertaines sont préservées dans la sortie d'analyse mais exclues des métriques de dépendance. Les rapports de graphe affichent les comptes de relations exclues ; le visualiseur HTML montre leur nombre sans dessiner les arêtes individuelles incertaines.
+
+Lors de la mise à niveau vers `0.5.0`, régénérez tous les morceaux de sortie ensemble. Les ID de symboles et les résultats de relations peuvent changer, donc les morceaux de différentes exécutions ne doivent pas être mélangés.
 
 ### Types d'arêtes
 
 | Type         | Signification                                         |
 | ------------ | ----------------------------------------------------- |
-| `calls`      | invocation de fonction/méthode                       |
-| `contains`   | classe contient une méthode, module contient une fonction |
-| `inherits`   | classe étend une autre classe                        |
-| `implements` | classe implémente une interface                      |
-| `overrides`  | méthode redéfinit une méthode parente                |
-| `references` | **symbole** référence un autre **symbole**           |
-| `imports`    | module importe un autre module                       |
-| `decorates`  | décorateur appliqué à un **symbole**                 |
+| `calls`      | invocation de fonction/méthode                        |
+| `contains`   | classe contient méthode, module contient fonction     |
+| `inherits`   | classe étend une autre classe                         |
+| `implements` | classe implémente une interface                       |
+| `overrides`  | méthode remplace la méthode parente                   |
+| `references` | symbole référence un autre symbole                    |
+| `imports`    | module importe un autre module                        |
+| `decorates`  | décorateur appliqué à un symbole                      |
 
 ### Exemple
 
@@ -112,7 +143,7 @@ La section `[errors]` répertorie les fichiers qui n'ont pas pu être analysés 
 Chaque ligne commence par `-` suivi du chemin du fichier et du message d'erreur :
 
 ```
-- chemin/vers/fichier.go: erreur de syntaxe à la ligne 42
+- path/to/file.go: syntax error at line 42
 ```
 
 ### Exemple
@@ -125,7 +156,7 @@ Chaque ligne commence par `-` suivi du chemin du fichier et du message d'erreur 
 
 ## [dict]
 
-La section `[dict]` apparaît uniquement lorsque le drapeau `--minify` est utilisé. Elle mappe des codes de dictionnaire courts à des jetons de chaîne répétés pour réduire la taille de la sortie.
+La section `[dict]` apparaît uniquement lorsque l'indicateur `--minify` est utilisé. Elle mappe des codes de dictionnaire courts (`d0`, `d1`, etc.) à des jetons de chaîne répétés pour réduire la taille de la sortie.
 
 ### Format
 
@@ -138,6 +169,8 @@ Chaque ligne mappe un code de dictionnaire (`d0`, `d1`, etc.) à sa valeur déve
 ```
 
 Dans le reste du fichier, ces codes remplacent leurs valeurs complètes.
+
+Les types de relations peuvent également utiliser des codes de dictionnaire tandis que les étiquettes de statut restent lisibles : `S1 --d2[unresolved]--> S3`. Développez `d2` en utilisant le dictionnaire et conservez le statut non résolu.
 
 ### Exemple
 
@@ -175,8 +208,33 @@ S5 callable/function L22-L25 handleError(err: error) -> bool {}
 [edges]
 S2 --contains--> S4
 S4 --calls--> S5
-S3 --returns--> S2
+S3 --references--> S2
 
 [errors]
 - utils/broken.go: syntax error at line 5
 ```
+
+## Relations JSON
+
+Utilisez JSON lorsqu'un script ou une intégration a besoin d'une sortie structurée :
+
+```bash
+codeknit parse ./src --output-mode inline --format json --edges
+```
+
+Chaque arête inclut `from`, `to` et `kind`. Les ID de source connus apparaissent dans `from_short` ; les ID de cible résolus apparaissent dans `to_short`. Les arêtes incertaines ajoutent `resolution` et, lorsqu'ils sont disponibles, `candidates` contenant les ID complets des symboles. Elles omettent `to_short`, même lorsque la cible a un symbole de métadonnées d'inclusion.
+
+Par exemple, un appel ambigu peut être représenté comme suit :
+
+```json
+{
+  "from": "app.py::run",
+  "from_short": "S1",
+  "to": "app.py::Helper",
+  "kind": "calls",
+  "resolution": "ambiguous",
+  "candidates": ["helpers/a.py::Helper", "helpers/b.py::Helper"]
+}
+```
+
+JSON et SKT préservent la même incertitude avec des encodages différents. Consultez [Prise en charge des langages et fidélité de l'API](../language-support/) pour les règles de résolution et les limites connues.
