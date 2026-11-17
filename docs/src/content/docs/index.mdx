@@ -14,27 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit reads your source code and writes a compact map of its structure: functions, classes, methods, variables, and how they relate. LLMs can read that map directly, so they can plan refactors across hundreds of files without loading every file into context.
+
+## Features
 
 <CardGrid>
   <Card title="12 Languages" icon="translate">
-    Supports C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala,
-    and TypeScript.
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, and TypeScript. See the [language support reference](reference/language-support/).
   </Card>
   <Card title="Compact Output" icon="document">
-    Generates `.skt` files with minification and multiple output modes (inline,
-    flat, tree) for optimal LLM context usage.
+    Extracts functions, classes, methods, variables, and their relationships into `.skt` files designed for LLM context windows. Dictionary-based minification saves more tokens. Choose from inline, directory-flat, or directory-tree [output modes](guides/output-modes/).
   </Card>
   <Card title="Graph Analysis" icon="random">
-    Detects cycles, hubs, dead code, god classes, bottlenecks, and more using
-    22 structural algorithms.
+    22 algorithms find cycles, hubs, dead code, god classes, and bottlenecks. An interactive HTML graph shows how symbols connect. See the [graph commands guide](guides/graph-commands/).
   </Card>
   <Card title="Duplicate Detection" icon="magnifier">
-    Finds duplicate and near-duplicate code across files and languages using
-    CTPH fingerprinting.
+    CTPH fingerprinting finds duplicate and near-duplicate code across files and across languages. See the [fingerprint guide](guides/fingerprint-command/).
   </Card>
   <Card title="AI-Ready" icon="rocket">
-    Includes built-in skills for Kiro and Claude Code to enable AI assistants to
-    parse and analyze code structure autonomously.
+    A plugin for Claude Code, Codex, and Kiro adds a single `codeknit` skill that installs the binary for you. See [Use codeknit with AI assistants](guides/ai-assistants/).
   </Card>
 </CardGrid>
+
+## Where to go next
+
+### Tutorial
+
+- [Getting started](getting-started/): parse your first project and read the result.
+
+### How-to guides
+
+- [Install codeknit](installation/)
+- [Parse a codebase](guides/parse-command/)
+- [Analyze and visualize the code graph](guides/graph-commands/)
+- [Find duplicate code](guides/fingerprint-command/)
+- [Choose an output mode](guides/output-modes/)
+- [Use codeknit with AI assistants](guides/ai-assistants/)
+
+### Reference
+
+- [Output format](reference/output-format/)
+- [CLI flags](reference/cli-flags/)
+- [Language support](reference/language-support/)
+- [Analysis reliability](reference/analysis-reliability/)

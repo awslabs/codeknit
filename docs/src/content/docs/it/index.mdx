@@ -1,6 +1,6 @@
 ---
 title: codeknit
-description: Uno strumento di estrazione statica della struttura del codice per il refactoring potenziato dagli LLM.
+description: Un estrattore statico della struttura del codice per il refactoring potenziato da LLM.
 template: splash
 hero:
   tagline: Analizza il codice sorgente in mappe strutturali compatte che gli LLM possono effettivamente utilizzare.
@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit legge il codice sorgente e scrive una mappa compatta della sua struttura: funzioni, classi, metodi, variabili e le loro relazioni. Gli LLM possono leggere direttamente quella mappa, permettendo loro di pianificare refactoring su centinaia di file senza caricare ogni file nel contesto.
+
+## Funzionalità
 
 <CardGrid>
   <Card title="12 Linguaggi" icon="translate">
-    Supporta C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala e TypeScript.
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala e TypeScript. Vedi il [riferimento sul supporto linguistico](reference/language-support/).
   </Card>
-  <Card title="Output Compatto" icon="document">
-    Genera file `.skt` con minificazione e multiple modalità di output (inline, flat, tree) per un utilizzo ottimale del contesto LLM.
+  <Card title="Output compatto" icon="document">
+    Estrae funzioni, classi, metodi, variabili e le loro relazioni in file `.skt` progettati per le finestre di contesto degli LLM. La minificazione basata su dizionario consente di risparmiare più token. Scegli tra le [modalità di output](guides/output-modes/) inline, directory-flat o directory-tree.
   </Card>
-  <Card title="Analisi del Grafo" icon="random">
-    Rileva dipendenze cicliche, hub, dead code, god classes, colli di bottiglia e altro utilizzando 22 algoritmi strutturali.
+  <Card title="Analisi del grafo" icon="random">
+    22 algoritmi individuano cicli, hub, dead code, god classes e colli di bottiglia. Un grafo HTML interattivo mostra come i simboli sono collegati. Vedi la [guida ai comandi del grafo](guides/graph-commands/).
   </Card>
-  <Card title="Rilevamento Duplicati" icon="magnifier">
-    Trova codice duplicato e quasi duplicato tra file e linguaggi utilizzando il fingerprinting CTPH.
+  <Card title="Rilevamento duplicati" icon="magnifier">
+    Il fingerprinting CTPH individua codice duplicato e quasi duplicato tra file e tra linguaggi. Vedi la [guida al comando fingerprint](guides/fingerprint-command/).
   </Card>
   <Card title="Pronto per l'AI" icon="rocket">
-    Include skill integrate per Kiro e Claude Code per consentire agli assistenti AI di analizzare e comprendere autonomamente la struttura del codice.
+    Un plugin per Claude Code, Codex e Kiro aggiunge un'unica abilità `codeknit` che installa il binario per te. Vedi [Usa codeknit con assistenti AI](guides/ai-assistants/).
   </Card>
 </CardGrid>
+
+## Dove andare ora
+
+### Tutorial
+
+- [Iniziare](getting-started/): analizza il tuo primo progetto e leggi il risultato.
+
+### Guide pratiche
+
+- [Installa codeknit](installation/)
+- [Analizza una codebase](guides/parse-command/)
+- [Analizza e visualizza il grafo del codice](guides/graph-commands/)
+- [Trova codice duplicato](guides/fingerprint-command/)
+- [Scegli una modalità di output](guides/output-modes/)
+- [Usa codeknit con assistenti AI](guides/ai-assistants/)
+
+### Riferimenti
+
+- [Formato di output](reference/output-format/)
+- [Flag della CLI](reference/cli-flags/)
+- [Supporto linguistico](reference/language-support/)
+- [Affidabilità dell'analisi](reference/analysis-reliability/)

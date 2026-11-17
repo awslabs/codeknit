@@ -1,3 +1,8 @@
+DOCUMENT TYPE: How-to guide
+AUDIENCE: Developers who want to inspect or improve a codebase's structure.
+USER GOAL: Visualize the code graph, run structural analysis, and act on the findings.
+SCOPE: Tasks performed with the graph subcommands and how to read their results. Link to the CLI reference for exhaustive flags and to the output format reference for .skt syntax.
+
 Write a guide for the codeknit graph commands. Frontmatter:
 ---
 title: Graph Commands

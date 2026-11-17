@@ -1,3 +1,8 @@
+DOCUMENT TYPE: How-to guide
+AUDIENCE: Developers who have run codeknit once and want to extract structure for a real project.
+USER GOAL: Run codeknit parse correctly for common situations: first runs, re-runs, single files, JSON for scripts, relationships, and C++ headers.
+SCOPE: Tasks performed with codeknit parse and the pitfalls that come with them. Keep the flag table to parse flags; link to the CLI reference for shared flags and to the output format reference for the grammar.
+
 Write a guide for the codeknit parse command. Frontmatter:
 ---
 title: Parse Command

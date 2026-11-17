@@ -1,3 +1,8 @@
+DOCUMENT TYPE: How-to guide
+AUDIENCE: Developers using Claude Code, Codex, or Kiro.
+USER GOAL: Install the codeknit plugin in their assistant, keep it updated, and get useful results from it.
+SCOPE: Plugin installation per assistant, updates, the automatic binary install, and example requests. Exclude codeknit command details beyond what the assistant does.
+
 Write a guide on using codeknit with AI coding assistants. Frontmatter:
 ---
 title: Using with AI Assistants

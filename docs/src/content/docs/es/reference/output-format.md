@@ -3,58 +3,87 @@ title: Referencia del formato de salida
 description: Referencia completa del formato de salida .skt utilizado por codeknit.
 ---
 
-El formato `.skt` (skeleton) es un formato de texto compacto y legible por humanos utilizado por `codeknit` para representar la **estructura de código** extraída. Contiene símbolos, **relaciones** y metadatos en una forma mínima adecuada para el consumo por LLM y el **análisis de grafo**.
+Esta página describe la gramática del formato de salida `.skt` y el equivalente en JSON. Para las reglas que deciden cómo se resuelven las relaciones, consulta [Soporte de Lenguajes y Fidelidad de API](../language-support/).
 
-Un archivo `.skt` está dividido en secciones. Cada sección comienza con un encabezado entre corchetes. Las secciones pueden aparecer en cualquier orden, aunque `[symbols]` típicamente aparece primero.
+## Visión general
+
+Un archivo `.skt` es un archivo de texto compacto compuesto por secciones. Cada sección comienza con una línea de encabezado entre corchetes.
+
+| Sección        | Presente cuando                                       | Contenido                                          |
+| -------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| `[symbols]`    | Siempre                                              | Definiciones de símbolos agrupadas por archivo fuente |
+| `[edges]`      | `--edges` está establecido                           | Relaciones entre símbolos                         |
+| `[errors]`     | Ocurrió un diagnóstico de escaneo o análisis         | Archivos que no pudieron ser procesados completamente |
+| `[dict]`       | `--minify` está establecido                          | Diccionario que mapea códigos cortos a tokens repetidos |
+
+En los modos de salida de directorio, `[errors]` y `[dict]` pueden escribirse en los archivos auxiliares `warnings.skt` y `dict.skt`. En el modo `inline` aparecen en la misma salida que las otras secciones.
+
+`--format json` produce un documento JSON con la misma información. Consulta [Salida JSON](#json-output).
 
 ## [symbols]
 
-La sección `[symbols]` lista todos los símbolos extraídos agrupados por su archivo de origen. Cada archivo se introduce con un encabezado `##` seguido de la ruta del archivo.
+Los símbolos están agrupados por archivo fuente. Cada grupo comienza con una línea de encabezado `## <ruta>`, seguida de una línea por símbolo.
 
-### Formato de línea
-
-Cada símbolo se representa en una sola línea con la siguiente estructura:
-
+```skt
+[symbols]
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
 ```
-ShortID category/kind Lstart-Lend signature {properties}
+
+### Línea de símbolo
+
+```text
+ShortID categoría/tipo Linicio-Lfin firma {propiedades}
 ```
 
-### Campos
+| Campo          | Descripción                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| `ShortID`      | Identificador secuencial: `S1`, `S2`, `S3`, y así sucesivamente. Las relaciones hacen referencia a los símbolos mediante este valor. |
+| `categoría/tipo` | Clasificación del símbolo. Consulta [Categorías y tipos](#categorías-y-tipos).                            |
+| `Linicio-Lfin`  | Primera y última línea del símbolo en el archivo fuente.                                                  |
+| `firma`        | Nombre del símbolo, con parámetros y tipo de retorno para elementos invocables. Consulta [Formatos de firma](#formatos-de-firma). |
+| `{propiedades}` | Metadatos entre llaves. Consulta [Propiedades](#propiedades).                                             |
 
-- **ShortID**: Un identificador secuencial asignado a cada símbolo (por ejemplo, `S1`, `S2`, `S3`). Se utiliza como referencia en **relaciones** y otras secciones.
-- **categoría/tipo**: Un par separado por barra que indica la categoría del símbolo y su tipo específico.
-- **Linicio-Lfin**: El **rango de líneas** en el archivo de origen donde se define el símbolo (por ejemplo, `L10-L15`).
-- **firma**: El nombre del símbolo y la información de tipo. El formato depende del símbolo:
-  - `name` — para tipos, valores, módulos
-  - `name(params)` — para **callables** sin tipo de retorno
-  - `name(params) -> returnType` — para **callables** con tipo de retorno
-- **{propiedades}**: Metadatos opcionales encerrados entre llaves. Varias propiedades se separan por comas.
+Una línea de símbolo se mantiene en una sola línea física. Los saltos de línea dentro de una firma se escapan como `\n` y `\r`.
 
-### Parámetros
+Los IDs de símbolos pueden cambiar cuando la extracción cambia. Regenera todos los fragmentos de salida juntos en lugar de mezclar fragmentos de diferentes ejecuciones. Esto aplica en particular al actualizar a la versión 0.5.0, ya que los IDs de símbolos y los resultados de resolución de relaciones pueden cambiar.
 
-- En lenguajes sin tipos: `paramName`
-- En lenguajes con tipos: `paramName: type`
-- Las referencias de tipo que coinciden con símbolos conocidos se reemplazan con sus ShortIDs (por ejemplo, `config: S5` en lugar de `config: Config`).
+### Categorías y tipos
+
+| Categoría   | Tipos                                      | Ejemplos                                           |
+| ---------- | ------------------------------------------ | -------------------------------------------------- |
+| `callable` | function, method, constructor              | `callable/function`, `callable/method`             |
+| `type`     | class, interface, struct, enum             | `type/class`, `type/interface`                     |
+| `value`    | variable, constant, field                  | `value/variable`, `value/constant`                 |
+| `module`   | package, namespace                         | `module/package`                                   |
+| `meta`     | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
+
+### Formatos de firma
+
+| Formato                        | Utilizado para                                  |
+| ---------------------------- | ---------------------------------------------- |
+| `nombre`                      | Tipos, valores y módulos                       |
+| `nombre(parámetros)`          | Elementos invocables sin tipo de retorno       |
+| `nombre(parámetros) -> tipoRetorno` | Elementos invocables con tipo de retorno |
+
+Los parámetros se escriben como:
+
+| Formato          | Utilizado para                  |
+| ------------- | ------------------------------ |
+| `nombre`        | Lenguajes sin tipos             |
+| `nombre: tipo`  | Lenguajes con tipos             |
+
+Cuando una referencia de tipo coincide con un símbolo conocido, el nombre del tipo se reemplaza con el ID corto de ese símbolo. Por ejemplo, `-> *S2` hace referencia a un puntero al símbolo `S2`.
 
 ### Propiedades
 
-Propiedades comunes incluyen:
+Las propiedades aparecen entre llaves después de la firma, separadas por comas. Las llaves vacías (`{}`) indican que el símbolo no tiene propiedades.
 
-- `async`: `true` o `false`
-- `exported`: `true` o `false`
-- `static`: presente si el símbolo es estático
-- `visibility=public|private|protected`
-- `receiver=*TypeName`: para métodos, indica el tipo receptor
-
-### Categorías y tipos de símbolos
-
-| Categoría   | Tipos                                      | Ejemplos                                           |
-| ----------- | ------------------------------------------ | -------------------------------------------------- |
-| `callable`  | function, method, constructor              | `callable/function`, `callable/method`             |
-| `type`      | class, interface, struct, enum             | `type/class`, `type/interface`                     |
-| `value`     | variable, constant, field                  | `value/variable`, `value/constant`                 |
-| `module`    | package, namespace                         | `module/package`                                   |
-| `meta`      | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
+| Formato de propiedad        | Ejemplo                 |
+| ------------------------- | ----------------------- |
+| Bandera                   | `exported`, `async`, `static` |
+| `clave=valor`             | `visibility=public`, `receiver=*AuthService`, `exported=false`, `resolution=unresolved` |
 
 ### Ejemplo
 
@@ -70,19 +99,45 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-La sección `[edges]` registra **relaciones** cuando se habilita la bandera `--edges`. Los puntos finales conocidos utilizan sus ShortIDs; los objetivos que no pueden resolverse a un símbolo pueden aparecer como nombres.
+La sección `[edges]` lista las relaciones entre símbolos. Se escribe solo cuando se solicitan relaciones con `--edges`.
 
-### Formato de línea
+### Línea de relación
 
+```text
+IDOrigen --tipo--> IDDestino1, IDDestino2
+IDOrigen --tipo[no resuelto]--> Destino1, Destino2
+IDOrigen --tipo[ambiguo]--> Destino [candidatos=IDCandidato1, IDCandidato2]
 ```
-FromID --kind--> ToID1, ToID2
-FromID --kind[unresolved]--> Target1, Target2
-FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
-```
 
-La omisión del estado significa que el analizador resolvió la **relación**. `unresolved` significa que no pudo establecer la dependencia; `ambiguous` significa que quedan interpretaciones competidoras posibles. Los IDs de candidatos identifican posibles objetivos, no conexiones confirmadas. La resolución se basa en sintaxis y ámbito, no en una garantía del compilador.
+| Parte                     | Descripción                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| `IDOrigen`               | Extremo de origen.                                                                    |
+| `tipo`                   | Tipo de relación. Consulta [Tipos de relación](#tipos-de-relación).                   |
+| `[no resuelto]`, `[ambiguo]` | Marcador de resolución opcional. Consulta [Marcadores de resolución](#marcadores-de-resolución). |
+| `IDDestino1, IDDestino2` | Uno o más destinos, separados por comas.                                              |
+| `[candidatos=...]`       | Posibles destinos para una relación ambigua, como una lista separada por comas dentro de corchetes. |
 
-Los objetivos se agrupan solo cuando su origen, tipo, resolución y conjunto de candidatos coinciden. Los nombres sin símbolos son relativos al archivo de origen. Las identidades complejas utilizan IDs completos entre comillas con comillas, barras invertidas y saltos de línea escapados. Un nombre literal que se asemeje a un ShortID debe citarse como un ID completo, como `"app.go::S2"`. Las definiciones de símbolos pueden ocurrir en archivos posteriores o fragmentos de salida.
+Los destinos comparten una línea solo cuando el origen, el tipo, el marcador de resolución y el conjunto de candidatos son idénticos. Una definición referenciada por una relación puede aparecer en un archivo posterior o fragmento de salida. Carga todos los fragmentos antes de interpretar las relaciones.
+
+### Marcadores de resolución
+
+| Marcador         | Significado                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| Ninguno        | El analizador resolvió la relación.                                                      |
+| `[no resuelto]` | El analizador no pudo establecer la dependencia.                                         |
+| `[ambiguo]`    | Más de una interpretación sigue siendo posible. Los IDs de candidatos listan los posibles destinos. |
+
+Un marcador faltante no es una garantía del compilador. Los IDs de candidatos identifican posibles destinos, no conexiones confirmadas. La incertidumbre siempre se escribe en esta gramática SKT, nunca como JSON incrustado.
+
+### Formas de extremo
+
+| Forma                      | Cuándo se usa                                                                                         | Ejemplo                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------- |
+| ID corto                  | El extremo o candidato es un símbolo conocido. Esto incluye extremos de relaciones no resueltas y símbolos de inclusión. | `S4`, `S8`       |
+| Nombre simple             | El destino no tiene símbolo. El nombre es relativo al archivo fuente.                                | `Refresh`, `string`         |
+| ID completo entre comillas | La identidad es compleja, o un nombre literal se asemeja a un ID corto.                              | `"app.go::S2"`              |
+
+Los IDs completos entre comillas escapan comillas, barras invertidas y saltos de línea. Un nombre literal como `S2` debe escribirse como un ID completo entre comillas para que no se lea como un ID corto.
 
 ```skt
 S4 --references[unresolved]--> string, bool
@@ -90,39 +145,43 @@ S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
 S6 --references[unresolved]--> "app.go::S2"
 ```
 
-### Puntos finales de archivo e include
+### Tipos de relación
 
-Los includes de C/C++ tienen símbolos de metadatos explícitos. Las escrituras de encabezados aparecen una vez en la lista de símbolos, y las **relaciones** utilizan ShortIDs aunque la resolución del encabezado permanezca sin resolver:
+| Tipo         | Significado                                         |
+| ------------ | --------------------------------------------------- |
+| `calls`      | Invocación de función/método                        |
+| `contains`   | La clase contiene método, el módulo contiene función |
+| `inherits`   | La clase extiende otra                              |
+| `implements` | La clase implementa interfaz                        |
+| `overrides`  | El método sobrescribe al padre                      |
+| `references` | El símbolo hace referencia a otro                   |
+| `imports`    | El módulo importa otro                              |
+| `decorates`  | Decorador aplicado al símbolo                       |
+
+Los elementos invocables devueltos y los argumentos de callback se registran como `references`, no como un tipo separado.
+
+### Símbolos de archivo e inclusión en C y C++
+
+Los fuentes de C y C++ producen símbolos `meta/file` y `meta/include`, por lo que las relaciones de inclusión tienen IDs cortos. Cada ortografía de encabezado aparece una vez en la lista de símbolos, y las relaciones usan los IDs cortos. Las inclusiones repetidas dentro de un archivo comparten un extremo.
 
 ```skt
 [symbols]
 ## src/main.c
-S1 meta/file L1-L3 main.c
+S1 meta/file L1-L4 main.c
 S2 meta/include L1-L1 "config.h" {resolution=unresolved}
-S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+S3 meta/include L2-L2 "utils.h" {resolution=unresolved}
+S4 meta/include L3-L3 <stdio.h> {resolution=unresolved}
 
 [edges]
-S1 --references[unresolved]--> S2, S3
+S1 --references[unresolved]--> S2, S3, S4
 ```
 
-Un símbolo de include registra la directiva escrita, no una declaración de encabezado resuelta. Los includes repetidos dentro de un archivo comparten un punto final. Los metadatos de archivo/include se excluyen de las clasificaciones de dependencia y los hallazgos de **dead code**.
+Un símbolo de inclusión registra la directiva tal como fue escrita. No representa una declaración de encabezado resuelta.
 
-Las **relaciones** inciertas se conservan en la salida del análisis pero se excluyen de las métricas de dependencia. Los informes de grafo muestran recuentos de **relaciones** excluidas; el visor HTML muestra su recuento sin dibujar **relaciones** inciertas individuales.
+### Efecto en el análisis y la visualización
 
-Al actualizar a `0.5.0`, regenera todos los fragmentos de salida juntos. Los IDs de símbolos y los resultados de **relaciones** pueden cambiar, por lo que los fragmentos de diferentes ejecuciones no deben mezclarse.
-
-### Tipos de relaciones
-
-| Tipo         | Significado                                         |
-| ------------ | --------------------------------------------------- |
-| `calls`      | invocación de función/método                        |
-| `contains`   | clase contiene método, módulo contiene función      |
-| `inherits`   | clase extiende otra clase                           |
-| `implements` | clase implementa interfaz                           |
-| `overrides`  | método sobrescribe método padre                     |
-| `references` | símbolo hace referencia a otro símbolo              |
-| `imports`    | módulo importa otro módulo                          |
-| `decorates`  | decorador aplicado a un símbolo                     |
+- Las relaciones inciertas y los metadatos de archivo/inclusión no contribuyen a las métricas de dependencia. Los informes muestran el número de relaciones excluidas.
+- El grafo HTML dibuja enlaces resueltos y muestra un recuento de relaciones inciertas. No dibuja relaciones inciertas individuales.
 
 ### Ejemplo
 
@@ -136,43 +195,29 @@ S24 --implements--> S19
 
 ## [errors]
 
-La sección `[errors]` lista los archivos que no pudieron analizarse completamente.
+La sección `[errors]` lista los archivos que no fueron procesados completamente. Solo está presente cuando existen diagnósticos.
 
-### Formato
-
-Cada línea comienza con `-` seguido de la ruta del archivo y el mensaje de error:
-
+```text
+- <ruta>: <mensaje>
 ```
-- path/to/file.go: syntax error at line 42
-```
-
-### Ejemplo
 
 ```skt
 [errors]
-- src/broken.go: unexpected token at line 10
-- tests/corner_case.py: unterminated string literal
+- path/to/broken.go: error de sintaxis en la línea 42
 ```
 
 ## [dict]
 
-La sección `[dict]` aparece solo cuando se utiliza la bandera `--minify`. Mapea códigos cortos del diccionario a tokens de cadena repetidos para reducir el tamaño de la salida.
+La sección `[dict]` aparece solo en la salida minimizada (`--minify`). Mapea códigos cortos a tokens repetidos.
 
-### Formato
+| Parte       | Descripción                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `d0`, `d1`, … | Códigos del diccionario.                                                    |
+| Línea de entrada | `- <código>: <token>`                                                       |
 
-Cada línea mapea un código de diccionario (`d0`, `d1`, etc.) a su valor expandido:
+Para leer la salida minimizada, reemplaza cada código con su valor en el diccionario. Los códigos pueden reemplazar pares categoría/tipo y propiedades en `[symbols]`. También pueden reemplazar tipos de relación en `[edges]`. Los marcadores de incertidumbre permanecen legibles. Por ejemplo, `S1 --d2[unresolved]--> S3` es una relación no resuelta cuyo tipo es el valor de `d2`.
 
-```
-- d0: async=false
-- d1: callable/method
-- d2: exported
-```
-
-En el resto del archivo, estos códigos reemplazan sus valores completos.
-
-Los tipos de **relaciones** también pueden utilizar códigos de diccionario mientras que las etiquetas de estado permanecen legibles: `S1 --d2[unresolved]--> S3`. Expande `d2` utilizando el diccionario y conserva el estado unresolved.
-
-### Ejemplo
+### Ejemplo minimizado
 
 ```skt
 [dict]
@@ -190,51 +235,37 @@ S3 d1 L5-L6 handle(request) {d0}
 S1 --contains--> S2, S3
 ```
 
+Aquí `S2` es un `callable/method` con la propiedad `async=false`.
+
 ## Ejemplo completo
 
-```skt
-[dict]
-- d0: exported
-- d1: callable/function
+La siguiente salida contiene `[symbols]`, `[edges]` y `[errors]`. No está minimizada, por lo que no tiene sección `[dict]`; consulta [el ejemplo minimizado](#ejemplo-minimizado).
 
+```skt
 [symbols]
-## main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {d0}
-S3 d1 L10-L12 NewServer(addr: string) -> *S2 {d0}
-S4 callable/method L14-L20 Serve() {d0, receiver=*Server}
-S5 callable/function L22-L25 handleError(err: error) -> bool {}
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
+S3 callable/function L10-L12 NewAuthService(secret: string, ttl: int) -> *S2 {exported}
+S4 callable/method L14-L19 Authenticate(token: string) {exported, receiver=*AuthService}
+S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
+## pkg/util/hash.go
+S6 callable/function L3-L5 Hash(data: string) -> string {exported}
+## pkg/util/hash_alt.go
+S7 callable/function L3-L5 Hash(data: string) -> string {exported}
 
 [edges]
+S1 --contains--> S2, S3, S4, S5
 S2 --contains--> S4
-S4 --calls--> S5
 S3 --references--> S2
+S4 --calls--> S5
+S4 --calls[unresolved]--> Refresh
+S5 --calls[ambiguous]--> Hash [candidates=S6, S7]
 
 [errors]
-- utils/broken.go: syntax error at line 5
+- pkg/legacy/broken.go: error de sintaxis en la línea 42
 ```
 
-## Relaciones en JSON
+## Salida JSON
 
-Utiliza JSON cuando un script o integración necesite una salida estructurada:
-
-```bash
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-Cada **relación** incluye `from`, `to` y `kind`. Los IDs de origen conocidos aparecen en `from_short`; los IDs de destino resueltos aparecen en `to_short`. Las **relaciones** inciertas añaden `resolution` y, cuando están disponibles, `candidates` que contienen IDs completos de símbolos. Omiten `to_short`, incluso cuando el destino tiene un símbolo de metadatos de include.
-
-Por ejemplo, una llamada ambigua puede representarse como:
-
-```json
-{
-  "from": "app.py::run",
-  "from_short": "S1",
-  "to": "app.py::Helper",
-  "kind": "calls",
-  "resolution": "ambiguous",
-  "candidates": ["helpers/a.py::Helper", "helpers/b.py::Helper"]
-}
-```
-
-JSON y SKT preservan la misma incertidumbre con diferentes codificaciones. Consulta [Soporte de Lenguajes y Fidelidad de API](../language-support/) para conocer las reglas de resolución y los límites conocidos.
+`--format json`

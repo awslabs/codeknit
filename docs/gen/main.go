@@ -27,15 +27,19 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/document"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 )
 
@@ -144,9 +148,15 @@ func formatGlossaryForLang(g *Glossary, langCode string) string {
 }
 
 const (
-	defaultGenModelID       = "us.anthropic.claude-sonnet-4-6-20250514-v1:0"
+	defaultGenModelID       = "global.anthropic.claude-sonnet-5-5"
 	defaultTranslateModelID = "mistral.mistral-large-3-675b-instruct"
 	defaultRegion           = "us-west-2"
+
+	// translateAttempts and generateAttempts bound retries for output that fails validation.
+	translateAttempts = 3
+	generateAttempts  = 3
+	// docsBase must match `base` in docs/astro.config.mjs.
+	docsBase = "/codeknit"
 	// codeknitBin is hardcoded to avoid passing a user-controlled path to
 	// exec.Command. The doc generator is always run from the repo root.
 	codeknitBin = "./bin/codeknit"
@@ -162,7 +172,8 @@ func main() {
 		force            = flag.Bool("force", false, "Regenerate/retranslate all files even if they already exist")
 		skipTranslate    = flag.Bool("skip-translate", false, "Skip translation step")
 		skipGenerate     = flag.Bool("skip-generate", false, "Skip English generation (translate existing)")
-		maxTokens        = flag.Int("max-tokens", 8192, "Maximum output tokens per request")
+		effort           = flag.String("effort", "", "Claude effort for English generation: low, medium, high, xhigh, max (empty = model default)")
+		maxTokens        = flag.Int("max-tokens", 16384, "Maximum output tokens per request")
 		concurrency      = flag.Int("concurrency", 5, "Max concurrent Bedrock requests")
 		backtranslate    = flag.Bool("backtranslate", false, "Run backtranslation quality check (costs extra API calls)")
 		btThreshold      = flag.Float64("bt-threshold", 0.5, "Backtranslation similarity threshold (0-1); below this triggers a warning")
@@ -242,12 +253,36 @@ func main() {
 						return
 					}
 
-					fullPrompt := sourceContext + "\n\n---\n\n" + string(promptBytes)
+					frontmatter, ok := promptFrontmatter(string(promptBytes))
+					if !ok {
+						log.Printf("  [FAIL] %s: prompt has no ---frontmatter--- block", p.Prompt)
+						return
+					}
+					fullPrompt := sourceContext + "\n\n---\n\n" + sitemapFor(p.Output) + "\n" + string(promptBytes)
 
 					fmt.Printf("  [GEN] %s ...\n", p.Output)
-					content, err := converse(ctx, client, *genModelID, string(systemPrompt), fullPrompt, *maxTokens, 0)
-					if err != nil {
-						log.Printf("  [FAIL] %s: %v", p.Prompt, err)
+					// Pages with links to non-existent pages are retried; a page that never passes is not written.
+					var content string
+					var problems []string
+					for attempt := 1; attempt <= generateAttempts; attempt++ {
+						var err error
+						content, err = converse(ctx, client, *genModelID, string(systemPrompt), fullPrompt, *maxTokens, nil, *effort)
+						if err != nil {
+							problems = []string{err.Error()}
+						} else {
+							content = withFrontmatter(content, frontmatter)
+							problems = nil
+							if bad := brokenLinks(p.Output, content); len(bad) > 0 {
+								problems = []string{fmt.Sprintf("links to unknown pages: %v", bad)}
+							}
+						}
+						if len(problems) == 0 {
+							break
+						}
+						log.Printf("  [RETRY %d/%d] %s: %s", attempt, generateAttempts, p.Output, strings.Join(problems, "; "))
+					}
+					if len(problems) > 0 {
+						log.Printf("  [FAIL] %s: still invalid after %d attempts, existing file left unchanged", p.Output, generateAttempts)
 						return
 					}
 
@@ -319,22 +354,39 @@ func main() {
 							glossaryBlock, l.Name, l.Code, string(enContent))
 
 						fmt.Printf("  [TRANSLATE] %s -> %s ...\n", p.Output, l.Code)
-						content, err := converse(ctx, client, *translateModelID, string(translateSystem), prompt, *maxTokens, 0)
-						if err != nil {
-							log.Printf("  [FAIL] %s/%s: %v", l.Code, p.Output, err)
+						// Translations that fail structural validation are retried; a page that never
+						// passes keeps its previous file and stays out of the manifest, so the next run retries it.
+						var content string
+						var problems []string
+						for attempt := 1; attempt <= translateAttempts; attempt++ {
+							var err error
+							// Temperature 0 repeats the same mistake, so retries sample a little.
+							temperature := float32(0)
+							if attempt > 1 {
+								temperature = 0.3
+							}
+							content, err = converse(ctx, client, *translateModelID, string(translateSystem), prompt, *maxTokens, aws.Float32(temperature), "")
+							if err != nil {
+								problems = []string{err.Error()}
+							} else {
+								problems = validateTranslation(string(enContent), content, l.Code)
+							}
+							if len(problems) == 0 {
+								break
+							}
+							log.Printf("  [RETRY %d/%d] %s/%s: %s", attempt, translateAttempts, l.Code, p.Output, strings.Join(problems, "; "))
+						}
+						if len(problems) > 0 {
+							rejected := filepath.Join(os.TempDir(), "codeknit-rejected-"+strings.ReplaceAll(l.Code+"/"+p.Output, "/", "_"))
+							_ = os.WriteFile(rejected, []byte(content), 0o600)
+							log.Printf("  [FAIL] %s/%s: still invalid after %d attempts, existing file left unchanged (last output: %s)", l.Code, p.Output, translateAttempts, rejected)
 							return
 						}
 
+						content = localizeLinks(content, l.Code)
 						if err := writeFile(outPath, content); err != nil {
 							log.Printf("  [FAIL] write %s: %v", outPath, err)
 							return
-						}
-
-						// Post-translation validation.
-						if warns := validateTranslation(string(enContent), content); len(warns) > 0 {
-							for _, w := range warns {
-								log.Printf("  [WARN] %s/%s: %s", l.Code, p.Output, w)
-							}
 						}
 
 						// Optional backtranslation quality check.
@@ -372,7 +424,9 @@ func main() {
 
 // converse calls the Bedrock Converse API with the given model, system prompt,
 // and user message. Returns the text content of the assistant's response.
-func converse(ctx context.Context, client *bedrockruntime.Client, modelID, system, prompt string, maxTokens int, temperature float32) (string, error) {
+func converse(ctx context.Context, client *bedrockruntime.Client, modelID, system, prompt string, maxTokens int, temperature *float32, effort string) (string, error) {
+	// temperature nil omits the field: newer Claude models reject it as deprecated.
+	// effort is Claude-only (output_config.effort); leave it empty for other providers.
 	input := &bedrockruntime.ConverseInput{
 		ModelId: aws.String(modelID),
 		System: []types.SystemContentBlock{
@@ -388,13 +442,23 @@ func converse(ctx context.Context, client *bedrockruntime.Client, modelID, syste
 		},
 		InferenceConfig: &types.InferenceConfiguration{
 			MaxTokens:   aws.Int32(int32(min(maxTokens, math.MaxInt32))), //nolint:gosec // maxTokens is user-controlled CLI flag, clamped to safe range
-			Temperature: aws.Float32(temperature),
+			Temperature: temperature,
 		},
+	}
+
+	if effort != "" {
+		input.AdditionalModelRequestFields = document.NewLazyDocument(map[string]any{
+			"output_config": map[string]any{"effort": effort},
+		})
 	}
 
 	resp, err := client.Converse(ctx, input)
 	if err != nil {
 		return "", fmt.Errorf("bedrock converse: %w", err)
+	}
+
+	if resp.StopReason == types.StopReasonMaxTokens {
+		return "", fmt.Errorf("response truncated at max tokens (%d)", maxTokens)
 	}
 
 	// Extract text from the response.
@@ -569,7 +633,7 @@ func saveManifest(path string, m map[string]string) error {
 
 // validateTranslation checks structural integrity of a translated markdown file
 // against its English source. Returns a list of warnings (empty = all good).
-func validateTranslation(source, translated string) []string {
+func validateTranslation(source, translated, langCode string) []string {
 	var warnings []string
 
 	// Check frontmatter is present.
@@ -593,11 +657,11 @@ func validateTranslation(source, translated string) []string {
 		}
 	}
 
-	// Check that links are preserved (count markdown links).
-	srcLinks := strings.Count(source, "](")
-	transLinks := strings.Count(translated, "](")
-	if srcLinks != transLinks {
-		warnings = append(warnings, fmt.Sprintf("link count mismatch: source has %d, translation has %d", srcLinks, transLinks))
+	// Check that link targets are preserved exactly (translators must not add, drop, or rewrite URLs).
+	srcLinks := comparableLinks(source, "")
+	transLinks := comparableLinks(translated, langCode)
+	if !slices.Equal(srcLinks, transLinks) {
+		warnings = append(warnings, fmt.Sprintf("link targets differ: source %v, translation %v", srcLinks, transLinks))
 	}
 
 	// Check heading count matches.
@@ -608,6 +672,136 @@ func validateTranslation(source, translated string) []string {
 	}
 
 	return warnings
+}
+
+// linkTargetRes match markdown links, MDX/HTML href attributes, and frontmatter hero `link:` values.
+var linkTargetRes = []*regexp.Regexp{
+	regexp.MustCompile(`\]\(([^)\s]*)`),
+	regexp.MustCompile(`href="([^"]*)"`),
+	regexp.MustCompile(`(?m)^\s*link:\s*(\S+)`),
+}
+
+// linkTargets returns the link targets in text.
+func linkTargets(text string) []string {
+	var targets []string
+	for _, re := range linkTargetRes {
+		for _, m := range re.FindAllStringSubmatch(text, -1) {
+			targets = append(targets, m[1])
+		}
+	}
+	return targets
+}
+
+// localizeLinks adds the locale segment to absolute site links. Done in code because
+// asking the translator to do it made it rewrite relative links too.
+func localizeLinks(text, langCode string) string {
+	for _, prefix := range []string{"](", `href="`, "link: "} {
+		text = strings.ReplaceAll(text, prefix+docsBase+"/", prefix+docsBase+"/"+langCode+"/")
+	}
+	return text
+}
+
+// comparableLinks returns sorted link targets with the differences a correct
+// translation may introduce removed: anchors follow translated headings (so only
+// their presence is compared), and absolute /codeknit/ links gain the locale segment.
+func comparableLinks(text, langCode string) []string {
+	var out []string
+	for _, t := range linkTargets(text) {
+		if i := strings.IndexByte(t, '#'); i >= 0 {
+			t = t[:i+1]
+		}
+		if langCode != "" {
+			if rest, ok := strings.CutPrefix(t, docsBase+"/"+langCode+"/"); ok {
+				t = docsBase + "/" + rest
+			}
+		}
+		out = append(out, t)
+	}
+	slices.Sort(out)
+	return out
+}
+
+// promptFrontmatter returns the first ---...--- block of a page prompt, delimiters included.
+func promptFrontmatter(prompt string) (string, bool) {
+	lines := strings.Split(prompt, "\n")
+	start := -1
+	for i, l := range lines {
+		if strings.TrimSpace(l) != "---" {
+			continue
+		}
+		if start < 0 {
+			start = i
+			continue
+		}
+		return strings.Join(lines[start:i+1], "\n"), true
+	}
+	return "", false
+}
+
+// withFrontmatter replaces any frontmatter the model wrote with the prompt's exact block,
+// so pages always build and titles never drift (models regularly omit or alter it).
+func withFrontmatter(content, frontmatter string) string {
+	body := strings.TrimLeft(content, "\n")
+	if rest, ok := strings.CutPrefix(body, "---\n"); ok {
+		if end := strings.Index(rest, "\n---"); end >= 0 {
+			body = rest[end+len("\n---"):]
+		}
+	}
+	return frontmatter + "\n\n" + strings.TrimLeft(body, "\n")
+}
+
+// pageURL is the site URL of a page given its output path under content/docs.
+func pageURL(output string) string {
+	slug := strings.TrimSuffix(strings.TrimSuffix(output, ".mdx"), ".md")
+	if slug == "index" {
+		return docsBase + "/"
+	}
+	return docsBase + "/" + slug + "/"
+}
+
+// sitemapFor tells the model the exact relative URL of every other page, as seen from output.
+func sitemapFor(output string) string {
+	var sb strings.Builder
+	sb.WriteString("VALID LINKS: link to other documentation pages only with these exact relative URLs (add #anchor when needed). Do not invent other page URLs and do not use absolute site paths.\n")
+	for _, p := range pages {
+		if p.Output == output {
+			continue
+		}
+		rel, err := filepath.Rel(pageURL(output), pageURL(p.Output))
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(&sb, "- %s: %s/\n", p.Output, filepath.ToSlash(rel))
+	}
+	return sb.String()
+}
+
+// brokenLinks returns internal link targets in content that do not resolve to a known page.
+func brokenLinks(output, content string) []string {
+	valid := map[string]bool{}
+	for _, p := range pages {
+		valid[pageURL(p.Output)] = true
+	}
+	base := &url.URL{Path: pageURL(output)}
+	var bad []string
+	for _, t := range linkTargets(content) {
+		if t == "" || strings.HasPrefix(t, "#") || strings.Contains(t, "://") || strings.HasPrefix(t, "mailto:") {
+			continue
+		}
+		u, err := url.Parse(t)
+		if err != nil {
+			bad = append(bad, t)
+			continue
+		}
+		resolved := base.ResolveReference(u).Path
+		if !strings.HasSuffix(resolved, "/") {
+			resolved += "/"
+		}
+		if !valid[resolved] {
+			bad = append(bad, t)
+		}
+	}
+	return bad
 }
 
 // countHeadings counts markdown headings (## and above) in text.
@@ -629,7 +823,7 @@ func backtranslateCheck(ctx context.Context, client *bedrockruntime.Client, mode
 	original, translated string, maxTokens int,
 ) (float64, error) {
 	prompt := "Translate the following text back to English. Output ONLY the English translation, nothing else:\n\n" + translated
-	backTranslated, err := converse(ctx, client, modelID, "", prompt, maxTokens, 0)
+	backTranslated, err := converse(ctx, client, modelID, "", prompt, maxTokens, aws.Float32(0), "")
 	if err != nil {
 		return 0, fmt.Errorf("backtranslation: %w", err)
 	}

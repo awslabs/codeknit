@@ -1,35 +1,61 @@
 ---
 title: codeknit
-description: LLM を活用したリファクタリングのための静的コード構造抽出ツール
+description: LLMを活用したリファクタリングのための静的コード構造抽出ツール
 template: splash
 hero:
-  tagline: ソースコードを解析し、LLM が実際に利用可能なコンパクトな構造マップに変換
+  tagline: ソースコードをLLMが実際に利用できるコンパクトな構造マップにパースします。
   actions:
-    - text: はじめる
+    - text: はじめに
       link: /codeknit/ja/getting-started/
       icon: right-arrow
-    - text: GitHub で見る
+    - text: GitHubで見る
       link: https://github.com/awslabs/codeknit
       variant: minimal
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknitはソースコードを読み込み、その構造のコンパクトなマップを作成します。関数、クラス、メソッド、変数、およびそれらの関係が含まれます。LLMはこのマップを直接読み取ることができるため、数百のファイルをコンテキストに読み込むことなく、リファクタリングを計画できます。
+
+## 特徴
 
 <CardGrid>
-  <Card title="12言語" icon="translate">
-    C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala、TypeScript に対応。
+  <Card title="12言語対応" icon="translate">
+    C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala、TypeScript。[言語サポートリファレンス](reference/language-support/)を参照してください。
   </Card>
   <Card title="コンパクトな出力" icon="document">
-    最適なLLMコンテキスト利用のため、`.skt` ファイルを生成。ミニファイや複数の出力モード（インライン、フラット、ツリー）をサポート。
+    関数、クラス、メソッド、変数、およびそれらの関係を、LLMのコンテキストウィンドウ用に設計された`.skt`ファイルに抽出します。辞書ベースのミニファイにより、さらにトークンを節約できます。インライン、`directory-flat`、または`directory-tree`の[出力モード](guides/output-modes/)から選択できます。
   </Card>
   <Card title="グラフ分析" icon="random">
-    22の構造アルゴリズムを使用して、循環依存、ハブ、デッドコード、ゴッドクラス、ボトルネックなどを検出。
+    22のアルゴリズムがサイクル、ハブ、デッドコード、ゴッドクラス、ボトルネックを検出します。インタラクティブなHTMLグラフでシンボルの接続状況を表示します。[グラフコマンドガイド](guides/graph-commands/)を参照してください。
   </Card>
   <Card title="重複検出" icon="magnifier">
-    CTPHフィンガープリントを使用して、ファイルや言語をまたいだ重複および近似重複コードを検出。
+    CTPHフィンガープリントにより、ファイル間および言語間の重複コードや近似重複コードを検出します。[フィンガープリントガイド](guides/fingerprint-command/)を参照してください。
   </Card>
   <Card title="AI対応" icon="rocket">
-    KiroやClaude Code向けの組み込みスキルを提供し、AIアシスタントがコード構造を自律的に解析・分析できるようにします。
+    Claude Code、Codex、Kiro用のプラグインにより、`codeknit`スキルがバイナリを自動インストールします。[AIアシスタントとの連携](guides/ai-assistants/)を参照してください。
   </Card>
 </CardGrid>
+
+## 次のステップ
+
+### チュートリアル
+
+- [はじめに](getting-started/): 初めてのプロジェクトをパースし、結果を確認します。
+
+### ハウツーガイド
+
+- [codeknitのインストール](installation/)
+- [コードベースのパース](guides/parse-command/)
+- [コードグラフの分析と可視化](guides/graph-commands/)
+- [重複コードの検出](guides/fingerprint-command/)
+- [出力モードの選択](guides/output-modes/)
+- [AIアシスタントとの連携](guides/ai-assistants/)
+
+### リファレンス
+
+- [出力形式](reference/output-format/)
+- [CLIフラグ](reference/cli-flags/)
+- [言語サポート](reference/language-support/)
+- [分析信頼性](reference/analysis-reliability/)

@@ -3,16 +3,20 @@ title: Installazione
 description: Come installare codeknit sul proprio sistema.
 ---
 
-codeknit può essere installato dal sorgente. I seguenti passaggi ti guideranno nella configurazione di codeknit sul tuo sistema.
+Questa guida installa codeknit dal sorgente, lo aggiunge al `PATH`, abilita i completamenti della shell e verifica che funzioni.
 
-## Dal sorgente
+:::tip[Usi un assistente di codifica AI?]
+Gli utenti di Claude Code, Codex e Kiro possono installare il plugin codeknit. Il plugin scarica il binario la prima volta che viene eseguito. Vedi [Usa codeknit con assistenti AI](../guides/ai-assistants/).
+:::
 
-Il metodo di installazione principale è la compilazione dal sorgente. Avrai bisogno di:
+## Installazione dal sorgente
 
-- Go 1.26+
-- Un compilatore C (richiesto per tree-sitter tramite CGo)
+**Prerequisiti**
 
-Clona il repository e compila il binario:
+- Go 1.26 o successivo
+- Un compilatore C. codeknit utilizza CGo per costruire i suoi parser tree-sitter.
+
+**Passaggi**
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -20,86 +24,83 @@ cd codeknit
 make build
 ```
 
-Il binario compilato sarà disponibile in `./bin/codeknit`.
+Il binario viene scritto in `./bin/codeknit`.
 
-## Aggiungi a PATH
+### Usa un binario precompilato
 
-Per eseguire `codeknit` da qualsiasi directory, aggiungi la posizione del binario al PATH del tuo sistema.
+I binari precompilati per Linux, macOS e Windows (amd64 e arm64) sono disponibili nella [pagina delle release](https://github.com/awslabs/codeknit/releases). Scarica l'archivio per la tua piattaforma, estrailo e sposta il binario nel tuo `PATH`. Ogni release include un file `checksums.txt` con cui puoi verificare il download.
 
-Per **bash** (`~/.bashrc`):
+## Aggiungi codeknit al PATH
 
-```bash
-export PATH="$PATH:/percorso/verso/codeknit"
-```
+Salta questa sezione se hai spostato il binario in una directory già presente nel `PATH`, come `/usr/local/bin`.
 
-Per **zsh** (`~/.zshrc`):
+Sostituisci `/path/to/codeknit` con la directory che contiene il binario. Se hai compilato dal sorgente, questa è la directory `bin` all'interno del repository clonato.
 
-```bash
-export PATH="$PATH:/percorso/verso/codeknit"
-```
-
-Per **fish** (`~/.config/fish/config.fish`):
-
-```fish
-fish_add_path /percorso/verso/codeknit
-```
-
-Dopo aver aggiornato la configurazione della shell, ricaricala eseguendo `source ~/.bashrc` (o `~/.zshrc`) o riavvia il terminale.
-
-## Completamento della shell
-
-codeknit supporta il completamento automatico per le shell più diffuse. Installa i completamenti utilizzando questi comandi:
-
-Per **bash**:
+Aggiungi la riga per la tua shell al suo file di configurazione:
 
 ```bash
+# bash (~/.bashrc)
+export PATH="$PATH:/path/to/codeknit"
+
+# zsh (~/.zshrc)
+export PATH="$PATH:/path/to/codeknit"
+
+# fish (~/.config/fish/config.fish)
+fish_add_path /path/to/codeknit
+```
+
+Ricarica la shell o esegui il source del file che hai modificato:
+
+```bash
+source ~/.bashrc   # bash
+source ~/.zshrc    # zsh
+```
+
+Per fish, apri un nuovo terminale.
+
+## Abilita i completamenti della shell
+
+codeknit genera script di completamento per bash, zsh, fish e PowerShell. Esegui il comando per la tua shell una volta:
+
+```bash
+# bash
 codeknit completion bash >> ~/.bashrc
-```
 
-Per **zsh**:
-
-```bash
+# zsh
 codeknit completion zsh >> ~/.zshrc
-```
 
-Per **fish**:
-
-```bash
+# fish
 codeknit completion fish > ~/.config/fish/completions/codeknit.fish
-```
 
-Per **PowerShell**:
-
-```powershell
+# PowerShell
 codeknit completion powershell >> $PROFILE
 ```
 
-## Verifica installazione
+I comandi per bash, zsh e PowerShell aggiungono il contenuto al tuo profilo. Eseguendoli nuovamente, lo script viene aggiunto una seconda volta, quindi esegui ciascun comando solo una volta.
 
-Dopo l'installazione, verifica che codeknit sia configurato correttamente:
+Apri una nuova shell o esegui il source del tuo profilo per attivare i completamenti.
+
+## Verifica l'installazione
 
 ```bash
 codeknit --version
 ```
 
-## Configurazione per lo sviluppo
+Se il comando stampa una versione, codeknit è installato. Se la shell riporta `command not found`, verifica che la directory nella riga del `PATH` contenga il binario `codeknit`, quindi ricarica la shell.
 
-Se stai contribuendo a codeknit, esegui questi comandi aggiuntivi:
+## Configura un ambiente di sviluppo
 
-Installa le dipendenze di sviluppo:
-
-```bash
-make deps
-```
-
-Configura i git hooks:
+Fai questo solo se hai intenzione di contribuire a codeknit. Esegui questi comandi dalla radice del repository clonato:
 
 ```bash
-make setup
+make deps    # installa le dipendenze
+make setup   # configura i git hooks
+make test    # esegui la test suite
 ```
 
-Esegui la suite di test:
+`make lint` esegue il linter e il formatter.
 
-```bash
-make test
-```
+## Passaggi successivi
+
+- Esegui il tuo primo comando in [Guida introduttiva](../getting-started/).
+- Esplora ogni flag nella [riferimento dei flag della CLI](../reference/cli-flags/).

@@ -1,6 +1,6 @@
 ---
 title: codeknit
-description: 适用于 LLM 驱动重构的静态代码结构提取器。
+description: 用于 LLM 驱动重构的静态代码结构提取器。
 template: splash
 hero:
   tagline: 将源代码解析为 LLM 可实际使用的紧凑结构映射。
@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit 读取源代码并生成其结构的紧凑映射：函数、类、方法、变量及其相互关系。LLM 可以直接读取该映射，从而能够在不将每个文件加载到上下文的情况下，规划跨越数百个文件的重构。
+
+## 特性
 
 <CardGrid>
   <Card title="12 种语言" icon="translate">
-    支持 C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala 和 TypeScript。
+    C、C++、C#、Go、Java、JavaScript、PHP、Python、Ruby、Rust、Scala 和 TypeScript。请参阅[语言支持参考](reference/language-support/)。
   </Card>
   <Card title="紧凑输出" icon="document">
-    生成 `.skt` 文件，支持压缩和多种输出模式（`inline`、`directory-flat`、`directory-tree`），以优化 LLM 上下文使用。
+    提取函数、类、方法、变量及其关系，生成专为 LLM 上下文窗口设计的 `.skt` 文件。基于字典的压缩可节省更多 token。可选择内联、目录扁平化或目录树等[输出模式](guides/output-modes/)。
   </Card>
   <Card title="图分析" icon="random">
-    使用 22 种结构算法检测循环依赖、中心节点、死代码、god classes、瓶颈等问题。
+    22 种算法可发现循环依赖、中心节点、死代码、god classes 和瓶颈。交互式 HTML 图展示符号之间的连接方式。请参阅[图命令指南](guides/graph-commands/)。
   </Card>
   <Card title="重复检测" icon="magnifier">
-    使用 CTPH 指纹识别跨文件和语言的重复和近似重复代码。
+    CTPH 指纹识别可发现跨文件和跨语言的重复和近似重复代码。请参阅[指纹命令指南](guides/fingerprint-command/)。
   </Card>
   <Card title="AI 就绪" icon="rocket">
-    内置 Kiro 和 Claude Code 技能，使 AI 助手能够自主解析和分析代码结构。
+    Claude Code、Codex 和 Kiro 的插件添加了单个 `codeknit` 技能，可为您安装二进制文件。请参阅[将 codeknit 与 AI 助手配合使用](guides/ai-assistants/)。
   </Card>
 </CardGrid>
+
+## 接下来去哪里
+
+### 教程
+
+- [入门指南](getting-started/)：解析首个项目并阅读结果。
+
+### 操作指南
+
+- [安装 codeknit](installation/)
+- [解析代码库](guides/parse-command/)
+- [分析和可视化代码图](guides/graph-commands/)
+- [查找重复代码](guides/fingerprint-command/)
+- [选择输出模式](guides/output-modes/)
+- [将 codeknit 与 AI 助手配合使用](guides/ai-assistants/)
+
+### 参考
+
+- [输出格式](reference/output-format/)
+- [CLI 标志](reference/cli-flags/)
+- [语言支持](reference/language-support/)
+- [分析可靠性](reference/analysis-reliability/)

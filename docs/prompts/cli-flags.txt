@@ -1,3 +1,8 @@
+DOCUMENT TYPE: Reference
+AUDIENCE: Developers who need exact command and flag details.
+USER GOAL: Look up any codeknit command, its arguments, flags, defaults, and allowed values.
+SCOPE: Every command and flag. Exclude tutorials and task walkthroughs.
+
 Write a CLI flags reference page for codeknit. Frontmatter:
 ---
 title: CLI Reference

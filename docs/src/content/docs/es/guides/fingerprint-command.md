@@ -1,139 +1,190 @@
 ---
 title: Comando Fingerprint
-description: Detecta código duplicado y casi duplicado en archivos y lenguajes utilizando hashing difuso.
+description: Detectar código duplicado y casi duplicado en archivos y lenguajes utilizando fuzzy hashing.
 ---
 
-El comando `codeknit fingerprint` detecta código **duplicado** y **casi duplicado** en tu base de código utilizando **Context-Triggered Piecewise Hashing (CTPH)**. Funciona entre archivos e incluso entre lenguajes de programación al normalizar nombres de variables, literales de cadena y anotaciones de tipos antes de calcular las **huellas estructurales normalizadas**.
+`codeknit fingerprint` calcula un Context-Triggered Piecewise Hash (CTPH) sobre los tokens normalizados del cuerpo de cada función, método, variable y tipo. Los nombres de variables, literales de cadena y anotaciones de tipo se normalizan antes de aplicar el hash. Por lo tanto, las copias renombradas y los ports a otros lenguajes aún pueden coincidir.
 
-## Qué hace
+Esta guía muestra cómo encontrar duplicados, ajustar el rango de similitud, reducir falsos positivos y decidir qué refactorizar.
 
-`codeknit fingerprint` analiza cada función, método, variable y tipo en tu base de código y calcula una **huella estructural normalizada** basada en:
+## Antes de empezar
 
-- Flujo de control (`if`, `for`, `while`, `switch`)
-- Operaciones (`=`, `+`, `==`, `&&`, `||`)
-- Llamadas, retornos, asignaciones y creación de objetos
-- Constructores del lenguaje como `try/catch`, `yield`, `await`, `defer`
+- `codeknit` está instalado. Consulta [Instalación](../../installation/).
+- Tienes un directorio fuente para analizar, como `./src`.
 
-Esta normalización significa que **copiar y pegar con cambios de nombre**, **refactorizaciones triviales** y **lógica equivalente en diferentes lenguajes** aún pueden ser detectados como duplicados.
+## Encontrar duplicados en un proyecto
 
-El algoritmo utiliza **CTPH** (una variante de hash rodante) para encontrar **casi duplicados** de manera eficiente. Código similar produce huellas similares, permitiendo la coincidencia difusa incluso cuando el código ha sido ligeramente modificado.
-
-## Uso básico
+Ejecuta el comando en el directorio que deseas revisar:
 
 ```bash
 codeknit fingerprint ./src
 ```
 
-Este comando:
+El comando escribe `./skeleton/fingerprints.skt` e informa pares con similitud del 65% al 95%.
 
-- Analiza todos los archivos fuente en `./src`
-- Calcula huellas estructurales
-- Genera resultados en `./skeleton/fingerprints.skt`
-- Reporta coincidencias con similitud entre **65% y 95%** (rango predeterminado)
-
-## Flags
-
-| Flag               | Valor predeterminado            | Descripción                                                                                                                                                |
-| ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`   | `./skeleton/fingerprints.skt`   | Ruta del archivo `.skt` de salida                                                                                                                         |
-| `--min-similarity` | `65`                            | Porcentaje mínimo de similitud para reportar (0–100)                                                                                                       |
-| `--max-similarity` | `95`                            | Porcentaje máximo de similitud para reportar (0–100)                                                                                                       |
-| `--show-all`       | `false`                         | Incluir la sección `[fingerprints]` con datos de tokens sin procesar                                                                                       |
-| `--rerank`         | `false`                         | Encontrar vecinos semánticos y reordenar candidatos utilizando embeddings de Ollama (requiere: `ollama serve` y `ollama pull qwen3-embedding:0.6b`) |
-| `--model`          | `qwen3-embedding:0.6b`          | Modelo de embedding de Ollama a utilizar con `--rerank`                                                                                                   |
-| `--collect-test`   | `false`                         | Incluir archivos de prueba en el análisis                                                                                                                  |
-| `--workers`        | `NumCPU`                        | Máximo de goroutines de análisis concurrentes (0 = usar todos los núcleos de CPU)                                                                          |
-| `--verbose`        | `false`                         | Mostrar información de progreso durante el procesamiento                                                                                                   |
-
-## Formato de salida
-
-La salida es un archivo `.skt` con las siguientes secciones:
-
-### `[duplicates]` (siempre presente)
-
-Lista pares de símbolos con similitud por encima del umbral:
+Abre el archivo. La sección `[duplicates]` siempre está presente, con las coincidencias más fuertes primero:
 
 ```skt
 [duplicates]
-similarity:96%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
-similarity:88%  utils/str.go::TrimSpaces <-> lib/text.go::CleanString
+# similarity range: 65%-95%
+similarity:93%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+similarity:88%  src/auth.ts::validateToken <-> src/session.ts::validateSession
+similarity:81%  lib/math.py::compute_tax <-> lib/math.py::compute_vat
 ```
 
-Cada línea muestra:
+Cada línea tiene el formato `similarity:<N>%  <file>::<símbolo> <-> <file>::<símbolo>`. Si no hay nada en el rango, la sección contiene solo `# no duplicates found`.
 
-- Porcentaje de similitud
-- Símbolo izquierdo (ruta del archivo, ámbito, nombre)
-- Símbolo derecho (ruta del archivo, ámbito, nombre)
+Para la gramática completa de salida, consulta la [referencia de formato de salida](../../reference/output-format/).
 
-### `[fingerprints]` (solo con `--show-all`)
+## Encontrar solo duplicados exactos
 
-Contiene datos sin procesar de huellas para cada símbolo:
-
-```skt
-[fingerprints]
-validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
-```
-
-Campos:
-
-- Nombre del símbolo
-- `FP:<versión>:<hash1>:<hash2>` — huella CTPH
-- `tokens:<hex>` — flujo de tokens normalizado del cuerpo
-
-Esta sección es útil para depuración o la creación de herramientas posteriores.
-
-## Patrones comunes
+El rango predeterminado llega hasta el 95%, por lo que se excluyen las coincidencias del 100%. Para listar coincidencias exactas, establece ambos límites en 100:
 
 ```bash
-# Análisis predeterminado
-codeknit fingerprint ./src
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 ```
 
-```bash
-# Encontrar solo duplicados exactos
-codeknit fingerprint ./src --min-similarity 100
-```
+"Exacto" significa que las secuencias de tokens normalizados completas son idénticas dentro de la misma categoría de símbolo. No significa que el texto fuente sea idéntico, ni que los dos símbolos sean equivalentes probados.
+
+## Ampliar el rango para encontrar coincidencias más flexibles
+
+Reduce el mínimo para incluir código que comparta una forma algorítmica pero difiera en detalles:
 
 ```bash
-# Encontrar código moderadamente similar (ej. mismo algoritmo, nombres diferentes)
 codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
-```bash
-# Usar coincidencia semántica para encontrar candidatos adicionales y reducir falsos positivos
-# Requiere: ollama serve && ollama pull qwen3-embedding:0.6b
-codeknit fingerprint ./src --rerank
-```
+Los resultados por debajo del 50% suelen ser ruido.
+
+## Reducir falsos positivos con reranking semántico
+
+Si los resultados estructurales son ruidosos, reranquea los candidatos con embeddings de un servidor Ollama local.
+
+1. Inicia Ollama y descarga el modelo de embedding predeterminado:
+
+   ```bash
+   ollama serve
+   ollama pull qwen3-embedding:0.6b
+   ```
+
+2. Ejecuta el comando con `--rerank`:
+
+   ```bash
+   codeknit fingerprint ./src --rerank
+   ```
+
+Para usar otro modelo de embedding, pasa `--model`:
 
 ```bash
-# Usar un modelo de embedding diferente para la coincidencia semántica
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
+El reranking añade candidatos semánticos y filtra según una puntuación combinada. Reduce falsos positivos pero no los elimina todos. También puede eliminar un candidato que sea estructuralmente exacto, y el rango de similitud sigue aplicándose. Los embeddings se calculan a partir de la misma instantánea de código fuente analizada utilizada para la extracción.
+
+## Inspeccionar las huellas digitales sin procesar
+
+Para ver la huella digital de cada símbolo, añade `--show-all`:
+
 ```bash
-# Generar listado completo de huellas (para herramientas de análisis)
 codeknit fingerprint ./src --show-all
 ```
 
+Esto añade una sección `[fingerprints]`, agrupada por archivo fuente, una línea por símbolo:
+
+```skt
+[fingerprints]
+## src/auth.ts
+validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+```
+
+El formato de la línea es `<nombre-símbolo>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`. `tokens` es la secuencia de tokens normalizados codificada en hexadecimal.
+
+## Escribir el informe en otra ubicación
+
 ```bash
-# Archivo de salida personalizado
 codeknit fingerprint ./src -o duplicates.skt
 ```
 
-## Selección de rango de similitud
+## Controlar qué archivos se analizan
 
-| Rango   | Guía                                                                                     |
-| ------- | ---------------------------------------------------------------------------------------- |
-| 96–100% | **Duplicados** estructurales exactos o casi exactos. Casi con certeza copiar y pegar.    |
-| 85–95%  | **Casi duplicados**. Usualmente copiar y pegar con ediciones menores (ej. variables renombradas, logging añadido). |
-| 65–84%  | Rango predeterminado. Fuerte similitud estructural. Buenos candidatos para refactorización. |
-| 50–64%  | Similitud moderada. Misma forma algorítmica pero con detalles diferentes. Revisar manualmente. |
-| < 50%   | Usualmente ruido. No es un **duplicado** significativo.                                 |
+Los archivos de prueba se omiten de forma predeterminada. Inclúyelos con `--collect-test`:
 
-## Consejos
+```bash
+codeknit fingerprint ./src --collect-test
+```
 
-- **Las huellas miden estructura, no significado**: Una puntuación alta de similitud significa que el código _se ve_ similar, no que _hace_ lo mismo. Siempre revisa ambos símbolos.
-- **Usa `--rerank` para coincidencia semántica**: Los embeddings añaden vecinos semánticos que la recuperación estructural puede pasar por alto y filtran candidatos que no coinciden semánticamente.
-- **Se omiten cuerpos cortos**: Los símbolos con menos de 4 tokens normalizados (ej. getters simples) se ignoran para evitar ruido.
-- **Funciona la coincidencia entre lenguajes**: Constructores equivalentes (ej. una función en Python y una función en Go con la misma lógica) pueden coincidir, pero patrones específicos del lenguaje pueden producir coincidencias espurias de baja similitud.
-- **Una coincidencia es una señal, no un veredicto**: Trata cada coincidencia como un indicio para investigar — no como prueba automática de **duplicado**.
+Para limitar el análisis, usa las opciones de selección de fuentes. Añade comillas a los patrones para que tu shell no los expanda:
+
+```bash
+codeknit fingerprint ./src --include '**/*.ts' --exclude '**/generated/'
+```
+
+Otros controles de selección:
+
+- `--max-file-size BYTES` omite archivos más grandes. El valor predeterminado es `10485760` (10 MiB). `0` desactiva el límite.
+- `--strict` falla antes de escribir la salida si el análisis o el parseo están incompletos.
+- `--header-language c|cpp` selecciona el parser para archivos `.h` ambiguos. Consulta [Soporte de lenguajes](../../reference/language-support/#selección-de-lenguaje-de-encabezado).
+
+Los enlaces simbólicos omitidos, archivos demasiado grandes y advertencias de sintaxis aparecen en stderr. Los includes no anulan `.gitignore` ni el filtrado de pruebas, y los excludes tienen prioridad sobre los includes. Consulta la [referencia de confiabilidad del análisis](../../reference/analysis-reliability/) para garantías exactas.
+
+## Elegir un rango de similitud
+
+| Rango     | Qué suele revelar                                      |
+| --------- | ------------------------------------------------------------- |
+| `96-100%` | Duplicados estructurales exactos o casi exactos; copia-pega clara   |
+| `85-95%`  | Casi duplicados; generalmente copia-pega con ediciones triviales        |
+| `65-84%`  | Rango predeterminado; fuerte similitud estructural, a menudo candidatos para refactorizar |
+| `50-64%`  | Misma forma algorítmica con detalles diferentes                 |
+| Menos del 50% | Generalmente ruido                                                 |
+
+Para ver las dos primeras filas, aumenta `--max-similarity` a `100`.
+
+## Decidir qué refactorizar
+
+1. Comienza con el rango predeterminado y lee los pares principales.
+2. Abre ambos símbolos de cada par y compáralos.
+3. Trata una coincidencia como una señal, no como una prueba. Las huellas digitales miden la forma estructural, no los nombres de identificadores ni la intención. La misma lógica escrita de forma iterativa y recursiva obtiene una puntuación baja, y código no relacionado con la misma forma puede obtener una puntuación alta.
+4. Los pares en el rango del 85–95% suelen ser los candidatos más seguros para consolidar. Los pares en el rango del 65–84% a menudo requieren una revisión más detallada.
+5. Si la lista es ruidosa, reduce el rango o añade `--rerank`.
+
+Las coincidencias entre lenguajes funcionan para constructos equivalentes. Las características específicas del lenguaje pueden producir coincidencias espurias de baja similitud.
+
+Los porcentajes de similitud son una clasificación heurística, no una distancia de edición. La referencia de calibración etiquetada del proyecto informa precisión y recall por separado de las puntuaciones de similitud. Es una verificación de regresión, no una estimación de precisión en tu código.
+
+## Proyectos grandes
+
+- Con menos de 500 símbolos elegibles, codeknit puntúa cada par de la misma categoría.
+- Con 500 o más, los grupos completos de tokens normalizados exactos siempre se conservan. Otros pares usan aproximadamente los 50 vecinos principales por símbolo, por lo que los resultados de casi duplicados pueden estar incompletos.
+- Para duplicados exactos, usa el comando 100/100 anterior. No se ve afectado por la aproximación.
+- El ordenamiento es determinista para entradas y puntuaciones estables.
+
+## Solución de problemas
+
+| Síntoma | Causa y solución |
+| ------- | ------------- |
+| `# no duplicates found` | Ningún par cae en el rango. Reduce `--min-similarity` o aumenta `--max-similarity`. |
+| Falta una función corta conocida | Se omiten los símbolos con menos de 4 tokens normalizados. |
+| Faltan copias exactas | El máximo predeterminado es 95%. Usa `--min-similarity 100 --max-similarity 100`. Con `--rerank`, el filtro semántico también puede eliminarlos. |
+| `--rerank` falla | Verifica que `ollama serve` esté en ejecución y que el modelo esté descargado. |
+| Resultados parciales con advertencias en stderr | Corrige los archivos reportados o añade `--strict` para fallar en lugar de publicar salida incompleta. |
+
+## Opciones utilizadas en esta guía
+
+| Opción               | Valor predeterminado                       | Descripción                                                                 |
+| ------------------ | ----------------------------- | --------------------------------------------------------------------------- |
+| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Ruta del archivo `.skt` de salida.                                                    |
+| `--min-similarity` | `65`                          | Porcentaje mínimo de similitud para informar (0–100).                            |
+| `--max-similarity` | `95`                          | Porcentaje máximo de similitud para informar (0–100).                            |
+| `--show-all`       | `false`                       | También emite la sección `[fingerprints]` con datos de tokens sin procesar.                 |
+| `--rerank`         | `false`                       | Reranquea candidatos con embeddings semánticos vía Ollama. Requiere `ollama serve` y `ollama pull qwen3-embedding:0.6b`. |
+| `--model`          | `qwen3-embedding:0.6b`        | Modelo de embedding de Ollama para usar con `--rerank`.                              |
+| `--collect-test`   | `false`                       | Incluir archivos de prueba en el análisis.                                             |
+| `--workers`        | `NumCPU`                      | Máximo de goroutines de parseo concurrentes.                                      |
+| `--verbose`        | `false`                       | Mostrar información de progreso.                                             |
+
+Para la lista completa, incluyendo `--include`, `--exclude`, `--max-file-size`, `--strict` y `--header-language`, consulta la [referencia de opciones de CLI](../../reference/cli-flags/).
+
+## Relacionado
+
+- [Comando Parse](../parse-command/)
+- [Comandos de grafo](../graph-commands/)

@@ -3,15 +3,33 @@ title: Using with AI Assistants
 description: Install the codeknit plugin for Claude Code, Codex, and Kiro.
 ---
 
-codeknit ships as a plugin for Claude Code, Codex, and Kiro. The plugin contains one skill, `codeknit`, that teaches the assistant when to run `parse`, `graph analyze`, or `fingerprint`, and how to read the `.skt` output.
+Install the codeknit plugin in Claude Code, Codex, or Kiro, keep it current, and ask the assistant structural and duplicate-code questions. The plugin contains one skill, `codeknit`. The skill tells the assistant when to run `codeknit parse`, `codeknit graph analyze`, and `codeknit fingerprint`, and how to read the `.skt` output.
 
-You do not need to install the codeknit binary yourself. On first use, the skill runs its bundled `scripts/install-codeknit.sh`. If `codeknit` is not on `PATH`, the script downloads the latest release for your platform, verifies it against the release `checksums.txt`, and installs it to `~/.local/bin`. Set `CODEKNIT_VERSION` to pin a release, or `CODEKNIT_INSTALL_DIR` to change the location.
+You don't need to install the `codeknit` binary yourself. The first time the skill runs, it runs its bundled `scripts/install-codeknit.sh`, which does the following:
 
-## Installation
+1. Exits immediately if `codeknit` is already on your `PATH` or in `~/.local/bin`.
+2. Otherwise, downloads the latest GitHub release for your OS and architecture.
+3. Verifies the download against the release `checksums.txt`.
+4. Installs the binary to `~/.local/bin` and prints its absolute path on the last line of output.
+
+If `~/.local/bin` is not on your `PATH`, the assistant calls codeknit by that full path for the rest of the session.
+
+To control the install, set these environment variables:
+
+| Variable | Effect |
+| --- | --- |
+| `CODEKNIT_VERSION` | Pins a release, for example `0.6.0`. |
+| `CODEKNIT_INSTALL_DIR` | Changes the install location. |
+
+To install the binary yourself instead, see [Installation](../../installation/).
+
+## Install the plugin
+
+Pick the section for your assistant.
 
 ### Claude Code
 
-Run in your shell, or inside a session as `/plugin ...`:
+Run these commands in your shell. Inside a Claude Code session, run the same commands as `/plugin ...`.
 
 ```bash
 claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
@@ -27,11 +45,13 @@ codex plugin add codeknit@codeknit
 
 ### Kiro IDE
 
-Open the Powers panel, choose **Add Custom Power → Import power from GitHub**, and enter `https://github.com/awslabs/codeknit`.
+1. Open the Powers panel.
+2. Choose **Add Custom Power**, then **Import power from GitHub**.
+3. Enter `https://github.com/awslabs/codeknit`.
 
 ### Kiro CLI
 
-Kiro CLI installs powers from a catalog or a local path:
+The Kiro CLI installs from a local path, so clone the repository first:
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
@@ -39,64 +59,68 @@ git -C ~/.codeknit-power sparse-checkout set skills
 kiro-cli powers install ~/.codeknit-power
 ```
 
-`--sparse` is optional. It limits the clone to the plugin manifests and `skills/` instead of the whole source tree.
+### About `--sparse`
 
-### Updating
+The `--sparse` option is optional. It limits the clone to the plugin manifests and `skills/` instead of the whole source tree.
 
-- Claude Code: `claude plugin marketplace update codeknit`, or enable auto-update under **Marketplaces** in `/plugin`
-- Codex: `codex plugin marketplace upgrade`
-- Kiro IDE: **Check for updates** on the power
-- Kiro CLI: `git -C ~/.codeknit-power pull`, then run `kiro-cli powers install ~/.codeknit-power` again
+### Install the skill by hand
 
-### Manual install
+If your assistant reads Agent Skills but has no plugin support, copy `skills/codeknit/` into the skills directory for your assistant:
 
-For any assistant that reads Agent Skills, copy `skills/codeknit/` into its skills directory, such as `~/.claude/skills/`, `~/.codex/skills/`, or `~/.kiro/skills/`.
+- `~/.claude/skills/`
+- `~/.codex/skills/`
+- `~/.kiro/skills/`
 
-## What the skill teaches
+## Update the plugin
 
-The `codeknit` skill teaches assistants to:
+| Assistant | Command or action |
+| --- | --- |
+| Claude Code | `claude plugin marketplace update codeknit` |
+| Codex | `codex plugin marketplace upgrade` |
+| Kiro IDE | Choose **Check for updates** in the Powers panel. |
+| Kiro CLI | Run `git -C ~/.codeknit-power pull`, then run `kiro-cli powers install ~/.codeknit-power` again. |
 
-- Pick the command by question: `parse` for what exists and what calls what, `graph analyze` for cycles, hubs, dead code, and god classes, and `fingerprint` for copy-paste and refactor candidates
-- Default to `directory-flat` output and read chunks selectively, using `inline` only for single files
-- Read `.skt` output instead of raw source for structural questions. `references/output-format.md` holds the full format.
-- Choose fingerprint similarity ranges (`--min-similarity`, `--max-similarity`), use `--rerank` to cut false positives, and treat matches as signals of structural shape, not semantic intent
+Updating the plugin does not update a binary that is already installed. To change the binary version, set `CODEKNIT_VERSION` as described above.
 
-## Workflow examples
+If you upgrade codeknit and the extraction changes, symbol IDs can change too. Ask the assistant to regenerate all output rather than mixing chunks from different runs.
 
-### Structural analysis
+## What the skill teaches the assistant
 
-1. Ask the assistant to analyze your codebase structure
-2. It runs `codeknit parse ./src` and reads the resulting `.skt` files
-3. It answers structural questions: dependencies, call chains, dead code
-4. For deeper insights, it runs `codeknit graph analyze ./src` and interprets the report
+The skill gives the assistant these rules, so you don't have to repeat them in every request:
 
-```skt
-[symbols]
-## src/service.go
-S1 type/struct L5-L8 AuthService {}
-S2 callable/method L10-L15 Authenticate(token: string) {receiver=*AuthService}
+- **Pick the command by question.**
+  - `parse` answers what exists, where it is, and what calls, inherits, or contains what.
+  - `graph analyze` finds cycles, hubs, dead code, god classes, and bottlenecks.
+  - `fingerprint` finds copy-paste and refactor candidates.
+- **Default to `directory-flat` output.** The assistant writes chunked files to `./skeleton/` and reads only the chunks it needs. It uses `inline` output only for a single file or a handful of files, because `inline` dumps everything into the context window.
+- **Read `.skt` output, not raw source, for structural questions.** The assistant opens source files only to inspect or change implementation details, using the line spans from the output. The skill's `references/output-format.md` holds the full format. See also the [output format reference](../../reference/output-format/).
+- **Choose similarity ranges and treat matches as signals.** Fingerprints compare structural shape, not intent. The assistant reads both symbols of a pair before proposing a refactor.
 
-[edges]
-S1 --contains--> S2
-```
+## Ask for a structural analysis
 
-### Duplicate detection
+1. Ask the assistant to analyze your codebase structure. For example: "Map the structure of `./src` and tell me which modules depend on the auth package."
+2. The assistant ensures the binary is installed, then runs `codeknit parse` with edges enabled and reads the `.skt` output.
+3. Ask follow-up questions about dependencies, call chains, or dead code. The assistant answers from the output.
+4. For deeper analysis, ask for a structural review. For example: "Find cyclic dependencies and god classes in `./src`." The assistant runs `codeknit graph analyze` and reads the report.
 
-1. Ask the assistant to find duplicated code
-2. It runs `codeknit fingerprint ./src`
-3. It reads the `[duplicates]` section in the output
-4. It investigates flagged pairs and proposes consolidation
+Relationships marked `[unresolved]` or `[ambiguous]` in the output are uncertain, not confirmed dependencies. Treat answers that rest on them as candidates to verify.
 
-```skt
-[duplicates]
-S1, S2: 87% similarity
-S3, S4: 76% similarity
-```
+For the commands behind these requests, see [the parse command guide](../parse-command/) and [the graph commands guide](../graph-commands/).
+
+## Ask for duplicate detection
+
+1. Ask the assistant to find duplicated code. For example: "Find copy-pasted functions in `./src`."
+2. The assistant runs `codeknit fingerprint` and reads the `[duplicates]` section of `./skeleton/fingerprints.skt`.
+3. The assistant opens both symbols of each flagged pair, then proposes a refactor.
+4. If the results are noisy, ask it to adjust the similarity range or to add semantic reranking. Reranking requires a local Ollama server with an embedding model pulled.
+
+For the options behind these requests, see [the fingerprint command guide](../fingerprint-command/).
 
 ## Tips
 
-- **Always read `.skt` files, not raw source, for structural questions** — they contain the extracted structure in a compact, reliable format
-- Use `codeknit graph analyze` to uncover code quality issues like cyclic dependencies, hub symbols, and deep inheritance chains
-- Run `codeknit fingerprint` before large refactors to identify copy-pasted code that should be consolidated
-- The `.skt` format is designed to be token-efficient, making it ideal for LLM context windows
-- Use `--minify` to further reduce token usage when processing large codebases
+- Remind the assistant to read `.skt` files, not raw source, for structural questions. This keeps context small, since the format is compact and holds symbols, relationships, and line spans.
+- Use `graph analyze` for code quality insights. Findings are review candidates, because external callers and dynamic dispatch can change the result.
+- Run fingerprint before a large refactor to spot copy-paste that should be consolidated.
+- If the assistant re-runs `parse` into a directory that already holds `.skt` output, codeknit refuses to write. Ask it to pass `--clean` to replace the earlier output.
+- If the binary download fails (offline or unsupported platform), get a release manually from the [releases page](https://github.com/awslabs/codeknit/releases), or see [Installation](../../installation/).
+- If a run reports partial results, check stderr and the `[errors]` section. See [analysis reliability](../../reference/analysis-reliability/) for the details.

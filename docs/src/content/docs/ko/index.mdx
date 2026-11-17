@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit은 소스 코드를 읽고 그 구조를 간결한 맵으로 작성합니다: 함수, 클래스, 메서드, 변수 및 이들의 관계입니다. LLM은 이 맵을 직접 읽을 수 있으므로 수백 개의 파일을 컨텍스트에 로드하지 않고도 리팩토링 계획을 세울 수 있습니다.
+
+## 기능
 
 <CardGrid>
-  <Card title="12개 언어 지원" icon="translate">
-    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala 및 TypeScript를 지원합니다.
+  <Card title="12개 언어" icon="translate">
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala 및 TypeScript. [언어 지원 참조](reference/language-support/)를 확인하세요.
   </Card>
   <Card title="간결한 출력" icon="document">
-    최적의 LLM 컨텍스트 사용을 위한 `.skt` 파일 생성 시 축소화 및 여러 출력 모드(inline, flat, tree)를 제공합니다.
+    함수, 클래스, 메서드, 변수 및 이들의 관계를 LLM 컨텍스트 윈도우를 위해 설계된 `.skt` 파일로 추출합니다. 사전 기반 축소로 더 많은 토큰을 절약합니다. 인라인, directory-flat 또는 directory-tree [출력 모드](guides/output-modes/) 중에서 선택하세요.
   </Card>
   <Card title="그래프 분석" icon="random">
-    22개의 구조 알고리즘을 사용하여 순환 의존성, 허브, 데드 코드, 갓 클래스, 병목 등을 감지합니다.
+    22개의 알고리즘이 순환, 허브, 데드 코드, god class 및 병목을 찾습니다. 대화형 HTML 그래프는 심볼이 어떻게 연결되는지 보여줍니다. [그래프 명령 가이드](guides/graph-commands/)를 참조하세요.
   </Card>
   <Card title="중복 감지" icon="magnifier">
-    CTPH fingerprinting을 사용하여 파일 및 언어 간 중복 및 근사 중복 코드를 찾습니다.
+    CTPH fingerprinting이 파일 간 및 언어 간 중복 및 근사 중복 코드를 찾습니다. [fingerprint 가이드](guides/fingerprint-command/)를 참조하세요.
   </Card>
   <Card title="AI 준비 완료" icon="rocket">
-    Kiro 및 Claude Code용 내장 스킬을 포함하여 AI 어시스턴트가 코드 구조를 자동으로 파싱하고 분석할 수 있도록 지원합니다.
+    Claude Code, Codex 및 Kiro용 플러그인이 단일 `codeknit` 스킬을 추가하여 바이너리를 자동으로 설치합니다. [AI 어시스턴트와 codeknit 사용하기](guides/ai-assistants/)를 참조하세요.
   </Card>
 </CardGrid>
+
+## 다음으로 이동할 위치
+
+### 튜토리얼
+
+- [시작하기](getting-started/): 첫 번째 프로젝트를 파싱하고 결과를 읽어보세요.
+
+### 사용 방법 가이드
+
+- [codeknit 설치](installation/)
+- [코드베이스 파싱](guides/parse-command/)
+- [코드 그래프 분석 및 시각화](guides/graph-commands/)
+- [중복 코드 찾기](guides/fingerprint-command/)
+- [출력 모드 선택](guides/output-modes/)
+- [AI 어시스턴트와 codeknit 사용하기](guides/ai-assistants/)
+
+### 참조
+
+- [출력 형식](reference/output-format/)
+- [CLI 플래그](reference/cli-flags/)
+- [언어 지원](reference/language-support/)
+- [분석 신뢰성](reference/analysis-reliability/)

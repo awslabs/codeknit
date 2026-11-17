@@ -1,113 +1,126 @@
 ---
 title: Verwendung mit KI-Assistenten
-description: Richten Sie codeknit als Skill für Kiro, Claude Code und andere KI-Coding-Assistenten ein.
+description: Installieren Sie das codeknit-Plugin für Claude Code, Codex und Kiro.
 ---
 
-codeknit wird mit vorgefertigten Skills ausgeliefert, die KI-Coding-Assistenten beibringen, wie sie es effektiv nutzen können. Diese Skills ermöglichen es Assistenten, Codestruktur zu extrahieren, Duplikate zu erkennen und strukturelle Analysen ohne manuelle Eingabeaufforderungen durchzuführen.
+Installieren Sie das codeknit-Plugin in Claude Code, Codex oder Kiro, halten Sie es aktuell und stellen Sie dem Assistenten strukturelle Fragen sowie Fragen zu Duplikat-Code. Das Plugin enthält eine Fähigkeit, `codeknit`. Die Fähigkeit teilt dem Assistenten mit, wann `codeknit parse`, `codeknit graph analyze` und `codeknit fingerprint` ausgeführt werden sollen und wie die `.skt`-Ausgabe zu lesen ist.
 
-## Skills-Übersicht
+Sie müssen das `codeknit`-Binary nicht selbst installieren. Beim ersten Ausführen der Fähigkeit führt es das gebündelte `scripts/install-codeknit.sh` aus, das Folgendes tut:
 
-codeknit bietet zwei Skills:
+1. Beendet sich sofort, wenn `codeknit` bereits auf Ihrem `PATH` oder in `~/.local/bin` vorhanden ist.
+2. Lädt andernfalls das neueste GitHub-Release für Ihr Betriebssystem und Ihre Architektur herunter.
+3. Überprüft den Download anhand der Release-Datei `checksums.txt`.
+4. Installiert das Binary nach `~/.local/bin` und gibt den absoluten Pfad in der letzten Zeile der Ausgabe aus.
 
-- **`codeknit-parse`**: Lehrt Assistenten, Codestruktur (Funktionen, Klassen, Methoden, Variablen) und Beziehungen (Aufrufe, Vererbung, Enthaltensein) in `.skt`-Dateien zu extrahieren.
-- **`codeknit-fingerprint`**: Lehrt Assistenten, Duplikate und Beinahe-Duplikate von Code mithilfe von fuzzy hashing zu erkennen.
+Falls `~/.local/bin` nicht in Ihrem `PATH` enthalten ist, ruft der Assistent codeknit für den Rest der Sitzung über den vollständigen Pfad auf.
 
-Jeder Skill enthält Dokumentation, die der Assistent bei Bedarf liest, um Nutzung, Flags, Ausgabeformate und Workflows zu verstehen.
+Um die Installation zu steuern, setzen Sie diese Umgebungsvariablen:
 
-## Installation
+| Variable | Wirkung |
+| --- | --- |
+| `CODEKNIT_VERSION` | Legt eine Release-Version fest, z. B. `0.6.0`. |
+| `CODEKNIT_INSTALL_DIR` | Ändert das Installationsverzeichnis. |
 
-Verwenden Sie den Installationshelfer, um die Skill-Verzeichnisse in den Skills-Ordner Ihres Assistenten zu kopieren. Der Installer lädt nur die gebündelten Skill-Dateien herunter, sodass Sie das Repository nicht klonen müssen.
+Um das Binary stattdessen selbst zu installieren, siehe [Installation](../../installation/).
 
-Installation für **Codex**, **Kiro** und **Claude Code**:
+## Plugin installieren
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
-```
+Wählen Sie den Abschnitt für Ihren Assistenten aus.
 
-Installation für einen Assistenten:
+### Claude Code
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
-```
-
-Aus einem lokalen Checkout können Sie Makefile-Helfer verwenden:
+Führen Sie diese Befehle in Ihrer Shell aus. Innerhalb einer Claude-Code-Sitzung führen Sie dieselben Befehle als `/plugin ...` aus.
 
 ```bash
-make skills-install-dry-run
-make skills-install
+claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+claude plugin install codeknit@codeknit
 ```
 
-Der Installer überspringt standardmäßig vorhandene Skill-Verzeichnisse. Um sie zu ersetzen, fügen Sie `--force` hinzu:
+### Codex
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+codex plugin add codeknit@codeknit
 ```
 
-Nach der Installation weiß der Assistent automatisch, wie er codeknit-Befehle aufruft, geeignete Flags auswählt und `.skt`-Ausgaben interpretiert.
+### Kiro IDE
 
-## Was jeder Skill lehrt
+1. Öffnen Sie das Powers-Panel.
+2. Wählen Sie **Add Custom Power** und dann **Import power from GitHub**.
+3. Geben Sie `https://github.com/awslabs/codeknit` ein.
 
-### codeknit-parse
+### Kiro CLI
 
-Der `codeknit-parse`-Skill lehrt Assistenten:
+Die Kiro-CLI installiert von einem lokalen Pfad, daher klonen Sie zunächst das Repository:
 
-- `codeknit parse` mit geeigneten Flags für verschiedene Szenarien auszuführen
-- Den richtigen Ausgabemodus zu wählen:
-  - `directory-flat` (Standard) für die meisten Projekte
-  - `inline` für einzelne Dateien oder kleine Eingaben
-  - `directory-tree`, um die Quellstruktur widerzuspiegeln
-- `.skt`-Ausgabedateien zu lesen und zu interpretieren, einschließlich `[symbols]`, `[edges]` und optionaler `[dict]`-Abschnitte
-- Strukturelle Daten für Refactoring, Abhängigkeitskartierung und Code-Reviews zu nutzen
-- `codeknit graph analyze` für tiefere Einblicke in die Codequalität auszuführen (zyklische Abhängigkeiten, Hub-Symbole, god classes usw.)
-
-### codeknit-fingerprint
-
-Der `codeknit-fingerprint`-Skill lehrt Assistenten:
-
-- `codeknit fingerprint` für Duplikaterkennung, DRY-Audits und Refaktoridentifizierung zu verwenden
-- Geeignete Ähnlichkeitsbereiche (`--min-similarity`, `--max-similarity`) auszuwählen
-- Den Abschnitt `[duplicates]` zu lesen, um Beinahe-Duplikate von Code zu identifizieren
-- Zu verstehen, dass Fingerprints die strukturelle Form und nicht die semantische Absicht messen
-- `--rerank` mit Ollama-Embeddings zu verwenden, um falsche Positive bei Bedarf zu reduzieren
-
-## Workflow-Beispiele
-
-### Strukturelle Analyse
-
-1. Bitten Sie den Assistenten, die Struktur Ihres Codebase zu analysieren
-2. Er führt `codeknit parse ./src` aus und liest die resultierenden `.skt`-Dateien
-3. Er beantwortet strukturelle Fragen: Abhängigkeiten, Aufrufketten, dead code
-4. Für tiefere Einblicke führt er `codeknit graph analyze ./src` aus und interpretiert den Bericht
-
-```skt
-[symbols]
-## src/service.go
-S1 type/struct L5-L8 AuthService {}
-S2 callable/method L10-L15 Authenticate(token: string) {receiver=*AuthService}
-
-[edges]
-S1 --contains--> S2
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+git -C ~/.codeknit-power sparse-checkout set skills
+kiro-cli powers install ~/.codeknit-power
 ```
 
-### Duplikaterkennung
+### Zu `--sparse`
 
-1. Bitten Sie den Assistenten, duplizierten Code zu finden
-2. Er führt `codeknit fingerprint ./src` aus
-3. Er liest den Abschnitt `[duplicates]` in der Ausgabe
-4. Er untersucht die markierten Paare und schlägt Konsolidierung vor
+Die Option `--sparse` ist optional. Sie beschränkt das Klonen auf die Plugin-Manifeste und `skills/` anstelle des gesamten Quellbaums.
 
-```skt
-[duplicates]
-S1, S2: 87% Ähnlichkeit
-S3, S4: 76% Ähnlichkeit
-```
+### Fähigkeit manuell installieren
+
+Falls Ihr Assistent Agent Skills liest, aber keine Plugin-Unterstützung bietet, kopieren Sie `skills/codeknit/` in das Fähigkeiten-Verzeichnis Ihres Assistenten:
+
+- `~/.claude/skills/`
+- `~/.codex/skills/`
+- `~/.kiro/skills/`
+
+## Plugin aktualisieren
+
+| Assistent | Befehl oder Aktion |
+| --- | --- |
+| Claude Code | `claude plugin marketplace update codeknit` |
+| Codex | `codex plugin marketplace upgrade` |
+| Kiro IDE | Wählen Sie **Check for updates** im Powers-Panel. |
+| Kiro CLI | Führen Sie `git -C ~/.codeknit-power pull` aus und dann erneut `kiro-cli powers install ~/.codeknit-power`. |
+
+Das Aktualisieren des Plugins aktualisiert kein bereits installiertes Binary. Um die Binary-Version zu ändern, setzen Sie `CODEKNIT_VERSION` wie oben beschrieben.
+
+Falls Sie codeknit aktualisieren und sich die Extraktion ändert, können sich auch Symbol-IDs ändern. Bitten Sie den Assistenten, die gesamte Ausgabe neu zu generieren, anstatt Teile aus verschiedenen Läufen zu mischen.
+
+## Was die Fähigkeit dem Assistenten beibringt
+
+Die Fähigkeit gibt dem Assistenten diese Regeln vor, sodass Sie sie nicht in jeder Anfrage wiederholen müssen:
+
+- **Wählen Sie den Befehl anhand der Frage.**
+  - `parse` beantwortet, was existiert, wo es sich befindet und was was aufruft, erbt oder enthält.
+  - `graph analyze` findet Zyklen, Hubs, toten Code, God Classes und Engpässe.
+  - `fingerprint` findet Kopier-Einfüge- und Refactoring-Kandidaten.
+- **Standardmäßig `directory-flat`-Ausgabe verwenden.** Der Assistent schreibt Dateiteile nach `./skeleton/` und liest nur die benötigten Teile. Er verwendet die `inline`-Ausgabe nur für eine einzelne Datei oder eine Handvoll Dateien, da `inline` alles in das Kontextfenster schreibt.
+- **`.skt`-Ausgabe lesen, nicht den Roh-Quellcode, für strukturelle Fragen.** Der Assistent öffnet Quelldateien nur, um Implementierungsdetails zu prüfen oder zu ändern, wobei er die Zeilenbereiche aus der Ausgabe verwendet. Die Datei `references/output-format.md` der Fähigkeit enthält das vollständige Format. Siehe auch die [Referenz zum Ausgabeformat](../../reference/output-format/).
+- **Ähnlichkeitsbereiche auswählen und Treffer als Signale behandeln.** Fingerprints vergleichen die strukturelle Form, nicht die Absicht. Der Assistent liest beide Symbole eines Paares, bevor er ein Refactoring vorschlägt.
+
+## Strukturanalyse anfordern
+
+1. Bitten Sie den Assistenten, die Struktur Ihres Codebase zu analysieren. Beispiel: "Kartografiere die Struktur von `./src` und teile mir mit, welche Module vom Auth-Paket abhängen."
+2. Der Assistent stellt sicher, dass das Binary installiert ist, führt dann `codeknit parse` mit aktivierten Kanten aus und liest die `.skt`-Ausgabe.
+3. Stellen Sie Folgefragen zu Abhängigkeiten, Aufrufketten oder totem Code. Der Assistent antwortet anhand der Ausgabe.
+4. Für eine tiefere Analyse bitten Sie um eine strukturelle Überprüfung. Beispiel: "Finde zyklische Abhängigkeiten und God Classes in `./src`." Der Assistent führt `codeknit graph analyze` aus und liest den Bericht.
+
+Beziehungen, die in der Ausgabe als `[unresolved]` oder `[ambiguous]` markiert sind, sind unsicher und keine bestätigten Abhängigkeiten. Behandeln Sie Antworten, die darauf basieren, als Kandidaten zur Überprüfung.
+
+Für die Befehle hinter diesen Anfragen siehe [Anleitung zum Parse-Befehl](../parse-command/) und [Anleitung zu den Graph-Befehlen](../graph-commands/).
+
+## Duplikaterkennung anfordern
+
+1. Bitten Sie den Assistenten, duplizierten Code zu finden. Beispiel: "Finde kopierte Funktionen in `./src`."
+2. Der Assistent führt `codeknit fingerprint` aus und liest den Abschnitt `[duplicates]` von `./skeleton/fingerprints.skt`.
+3. Der Assistent öffnet beide Symbole jedes markierten Paares und schlägt dann ein Refactoring vor.
+4. Falls die Ergebnisse zu viele falsche Treffer enthalten, bitten Sie ihn, den Ähnlichkeitsbereich anzupassen oder eine semantische Neubewertung hinzuzufügen. Die Neubewertung erfordert einen lokalen Ollama-Server mit einem eingebetteten Modell.
+
+Für die Optionen hinter diesen Anfragen siehe [Anleitung zum Fingerprint-Befehl](../fingerprint-command/).
 
 ## Tipps
 
-- **Lesen Sie immer `.skt`-Dateien und nicht den Rohquellcode für strukturelle Fragen** — sie enthalten die extrahierte Struktur in einem kompakten, zuverlässigen Format
-- Verwenden Sie `codeknit graph analyze`, um Codequalitätsprobleme wie zyklische Abhängigkeiten, Hub-Symbole und tiefe Vererbungsketten aufzudecken
-- Führen Sie `codeknit fingerprint` vor großen Refactorings aus, um kopierten Code zu identifizieren, der konsolidiert werden sollte
-- Das `.skt`-Format ist darauf ausgelegt, token-effizient zu sein, was es ideal für LLM-Kontextfenster macht
-- Verwenden Sie `--minify`, um den Token-Verbrauch bei der Verarbeitung großer Codebasen weiter zu reduzieren
+- Erinnern Sie den Assistenten daran, `.skt`-Dateien und nicht den Roh-Quellcode für strukturelle Fragen zu lesen. Dies hält den Kontext klein, da das Format kompakt ist und Symbole, Beziehungen und Zeilenbereiche enthält.
+- Verwenden Sie `graph analyze` für Erkenntnisse zur Codequalität. Ergebnisse sind Überprüfungskandidaten, da externe Aufrufer und dynamische Dispatches das Ergebnis beeinflussen können.
+- Führen Sie vor einem großen Refactoring einen Fingerprint durch, um Kopier-Einfüge-Code zu erkennen, der konsolidiert werden sollte.
+- Falls der Assistent `parse` in ein Verzeichnis ausführt, das bereits `.skt`-Ausgabe enthält, verweigert codeknit das Schreiben. Bitten Sie ihn, `--clean` zu übergeben, um die frühere Ausgabe zu ersetzen.
+- Falls der Binary-Download fehlschlägt (offline oder nicht unterstützte Plattform), holen Sie sich manuell ein Release von der [Releases-Seite](https://github.com/awslabs/codeknit/releases) oder siehe [Installation](../../installation/).
+- Falls ein Lauf Teilergebnisse meldet, überprüfen Sie stderr und den Abschnitt `[errors]`. Weitere Details finden Sie unter [Analysezuverlässigkeit](../../reference/analysis-reliability/).

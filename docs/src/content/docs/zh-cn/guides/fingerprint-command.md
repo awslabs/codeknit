@@ -1,139 +1,190 @@
 ---
 title: 指纹命令
-description: 使用模糊哈希检测跨文件和跨语言的重复和近似重复代码。
+description: 使用模糊哈希检测跨文件和语言的重复和近似重复代码。
 ---
 
-`codeknit fingerprint` 命令使用 **上下文触发分段哈希（CTPH）** 检测代码库中跨文件甚至跨编程语言的重复和近似重复代码。它通过在计算结构指纹前规范化变量名、字符串字面量和类型注解来实现这一功能。
+`codeknit fingerprint` 计算每个函数、方法、变量和类型的规范化主体标记的上下文触发分段哈希（CTPH）。变量名、字符串字面量和类型注解在哈希前被规范化。因此，重命名的复制粘贴和移植到其他语言的代码仍然可以匹配。
 
-## 功能概述
+本指南展示如何查找重复、调整相似度范围、减少误报，以及决定重构内容。
 
-`codeknit fingerprint` 分析代码库中的每个函数、方法、变量和类型，并基于以下内容计算 **规范化结构指纹**：
+## 开始之前
 
-- 控制流（`if`、`for`、`while`、`switch`）
-- 操作（`=`、`+`、`==`、`&&`、`||`）
-- 调用、返回、赋值和对象创建
-- 语言结构，如 `try/catch`、`yield`、`await`、`defer`
+- 已安装 `codeknit`。请参阅[安装](../../installation/)。
+- 您有一个要扫描的源目录，例如 `./src`。
 
-这种规范化意味着 **重命名的复制粘贴**、**简单重构** 和 **不同语言中的等效逻辑** 仍然可以被检测为重复。
+## 在项目中查找重复
 
-该算法使用 **CTPH**（一种滚动哈希变体）来高效查找近似重复。相似的代码会产生相似的指纹，即使代码经过轻微修改也能实现模糊匹配。
-
-## 基本用法
+在要检查的目录上运行命令：
 
 ```bash
 codeknit fingerprint ./src
 ```
 
-此命令将：
+该命令将写入 `./skeleton/fingerprints.skt` 并报告相似度在 65% 到 95% 之间的匹配对。
 
-- 解析 `./src` 中的所有源文件
-- 计算结构指纹
-- 将结果输出到 `./skeleton/fingerprints.skt`
-- 报告相似度在 **65% 到 95%** 之间的匹配（默认范围）
-
-## 参数
-
-| 参数                 | 默认值                         | 描述                                                                                                                                                     |
-| -------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`     | `./skeleton/fingerprints.skt`  | 输出 `.skt` 文件路径                                                                                                                                     |
-| `--min-similarity`   | `65`                           | 报告的最小相似度百分比（0–100）                                                                                                                          |
-| `--max-similarity`   | `95`                           | 报告的最大相似度百分比（0–100）                                                                                                                          |
-| `--show-all`         | `false`                        | 包含 `[fingerprints]` 部分，其中包含原始标记数据                                                                                                         |
-| `--rerank`           | `false`                        | 查找语义邻近项并使用 Ollama 嵌入重新排序候选项（要求：`ollama serve` 和 `ollama pull qwen3-embedding:0.6b`） |
-| `--model`            | `qwen3-embedding:0.6b`         | 与 `--rerank` 配合使用的 Ollama 嵌入模型                                                                                                                 |
-| `--collect-test`     | `false`                        | 在分析中包含测试文件                                                                                                                                     |
-| `--workers`          | `NumCPU`                       | 最大并发解析 goroutine 数量（0 = 使用所有 CPU 核心）                                                                                                     |
-| `--verbose`          | `false`                        | 在处理过程中打印进度信息                                                                                                                                 |
-
-## 输出格式
-
-输出是一个 `.skt` 文件，包含以下部分：
-
-### `[duplicates]`（始终存在）
-
-列出相似度超过阈值的符号对：
+打开该文件。`[duplicates]` 部分始终存在，最强的匹配排在前面：
 
 ```skt
 [duplicates]
-similarity:96%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
-similarity:88%  utils/str.go::TrimSpaces <-> lib/text.go::CleanString
+# similarity range: 65%-95%
+similarity:93%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+similarity:88%  src/auth.ts::validateToken <-> src/session.ts::validateSession
+similarity:81%  lib/math.py::compute_tax <-> lib/math.py::compute_vat
 ```
 
-每行显示：
+每行的格式为 `similarity:<N>%  <file>::<symbol> <-> <file>::<symbol>`。如果没有匹配项落在该范围内，该部分仅包含 `# no duplicates found`。
 
-- 相似度百分比
-- 左符号（文件路径、作用域、名称）
-- 右符号（文件路径、作用域、名称）
+有关完整的输出语法，请参阅[输出格式参考](../../reference/output-format/)。
 
-### `[fingerprints]`（仅在 `--show-all` 时存在）
+## 仅查找精确重复
 
-包含每个符号的原始指纹数据：
-
-```skt
-[fingerprints]
-validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
-```
-
-字段：
-
-- 符号名称
-- `FP:<version>:<hash1>:<hash2>` — CTPH 指纹
-- `tokens:<hex>` — 规范化的主体标记流
-
-此部分适用于调试或构建下游工具。
-
-## 常见模式
+默认范围上限为 95%，因此 100% 的匹配被排除在外。要列出精确匹配，将两个边界设置为 100：
 
 ```bash
-# 默认扫描
-codeknit fingerprint ./codeknit/de/src
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 ```
 
-```bash
-# 查找完全重复
-codeknit fingerprint ./src --min-similarity 100
-```
+“精确”意味着在相同符号类别内，完整的规范化标记流完全相同。这并不意味着源文本完全相同，也不意味着两个符号被证明是等价的。
+
+## 扩大范围以查找更宽松的匹配
+
+降低最小值以包含共享算法形状但细节不同的代码：
 
 ```bash
-# 查找中等相似的代码（例如相同算法，不同名称）
 codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
-```bash
-# 使用语义匹配查找额外候选项并减少误报
-# 要求：ollama serve && ollama pull qwen3-embedding:0.6b
-codeknit fingerprint ./src --rerank
-```
+低于 50% 的结果通常是噪声。
+
+## 使用语义重排减少误报
+
+如果结构化结果有噪声，使用本地 Ollama 服务器的嵌入重新排序候选项。
+
+1. 启动 Ollama 并拉取默认嵌入模型：
+
+   ```bash
+   ollama serve
+   ollama pull qwen3-embedding:0.6b
+   ```
+
+2. 使用 `--rerank` 运行命令：
+
+   ```bash
+   codeknit fingerprint ./src --rerank
+   ```
+
+要使用其他嵌入模型，请传递 `--model`：
 
 ```bash
-# 使用不同的嵌入模型进行语义匹配
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
+重排会添加语义候选项并基于组合分数进行过滤。它减少了误报，但并不能消除所有误报。它还可能移除结构上精确的候选项，且相似度范围仍然适用。嵌入是从用于提取的相同解析源快照计算得出的。
+
+## 检查原始指纹
+
+要查看每个符号的指纹，请添加 `--show-all`：
+
 ```bash
-# 输出完整指纹列表（用于分析工具）
 codeknit fingerprint ./src --show-all
 ```
 
+这将添加一个 `[fingerprints]` 部分，按源文件分组，每个符号一行：
+
+```skt
+[fingerprints]
+## src/auth.ts
+validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+```
+
+行格式为 `<symbol-name>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`。`tokens` 是十六进制编码的规范化标记流。
+
+## 将报告写入其他位置
+
 ```bash
-# 自定义输出文件
 codeknit fingerprint ./src -o duplicates.skt
 ```
 
+## 控制扫描的文件
+
+默认情况下，测试文件会被跳过。使用 `--collect-test` 包含它们：
+
+```bash
+codeknit fingerprint ./src --collect-test
+```
+
+要缩小扫描范围，请使用源选择标志。用引号括起模式，以防止 shell 展开：
+
+```bash
+codeknit fingerprint ./src --include '**/*.ts' --exclude '**/generated/'
+```
+
+其他选择控制：
+
+- `--max-file-size BYTES` 跳过更大的文件。默认值为 `10485760`（10 MiB）。`0` 禁用限制。
+- `--strict` 如果扫描或解析不完整，则在写入输出前失败。
+- `--header-language c|cpp` 为模糊的 `.h` 文件选择解析器。请参阅[语言支持](../../reference/language-support/#header-language-selection)。
+
+跳过的符号链接、过大的文件和语法警告会显示在 stderr 上。包含项不会覆盖 `.gitignore` 或测试过滤，且排除项优先于包含项。有关精确保证，请参阅[分析可靠性参考](../../reference/analysis-reliability/)。
+
 ## 选择相似度范围
 
-| 范围     | 指导建议                                                                                     |
-| -------- | -------------------------------------------------------------------------------------------- |
-| 96–100%  | 完全或近乎完全的结构重复。几乎可以确定是复制粘贴。                                           |
-| 85–95%   | 近似重复。通常是复制粘贴后经过微小编辑（例如重命名变量、添加日志）。                           |
-| 65–84%   | 默认范围。结构高度相似。适合重构的良好候选项。                                               |
-| 50–64%   | 中等相似度。算法形状相同但细节不同。需手动审查。                                             |
-| < 50%    | 通常为噪声。无意义的重复。                                                                   |
+| 范围       | 通常发现的内容                                      |
+| ---------- | --------------------------------------------------- |
+| `96-100%`  | 精确或近似精确的结构重复；明显的复制粘贴            |
+| `85-95%`   | 近似重复；通常是带有微小编辑的复制粘贴              |
+| `65-84%`   | 默认范围；强结构相似性，通常是重构候选              |
+| `50-64%`   | 算法形状相同但细节不同                              |
+| 低于 50%   | 通常是噪声                                          |
 
-## 提示
+要查看前两行，请将 `--max-similarity` 提高到 `100`。
 
-- **指纹衡量的是结构而非含义**：高相似度得分意味着代码 _看起来_ 相似，而不是 _做_ 相同的事情。始终审查两个符号。
-- **使用 `--rerank` 进行语义匹配**：嵌入可以添加结构化检索可能遗漏的语义邻近项，并过滤语义不一致的候选项。
-- **短主体会被跳过**：规范化标记少于 4 个的符号（例如简单的 getter）会被忽略以避免噪声。
-- **跨语言匹配有效**：等效结构（例如具有相同逻辑的 Python 函数和 Go 函数）可以匹配，但特定于语言的模式可能会产生虚假的低相似度匹配。
-- **匹配是信号而非定论**：将每个匹配视为调查的提示，而非重复的自动证明。
+## 决定重构内容
+
+1. 从默认范围开始，阅读最顶部的匹配对。
+2. 打开每对符号并进行比较。
+3. 将匹配视为信号，而非证明。指纹衡量的是结构形状，而非标识符名称或意图。以迭代和递归方式编写的相同逻辑得分较低，而具有相同形状的无关代码可能得分较高。
+4. 85–95% 范围内的匹配对通常是最安全的合并候选。65–84% 范围内的匹配对通常需要更仔细的检查。
+5. 如果列表有噪声，请缩小范围或添加 `--rerank`。
+
+跨语言匹配适用于等效结构。特定于语言的特性可能产生虚假的低相似度匹配。
+
+相似度百分比是一种启发式排序，而非编辑距离。项目的标记校准固件单独报告精确度和召回率，与相似度得分无关。这是一种回归检查，而非对您代码准确性的估计。
+
+## 大型项目
+
+- 符号数量少于 500 时，codeknit 会对每个同类别对进行评分。
+- 符号数量为 500 或更多时，完全精确的规范化标记组始终保留。其他对使用每个符号的近似 top-50 邻居，因此近似重复结果可能不完整。
+- 对于精确重复，请使用上述 100/100 命令。它不受近似影响。
+- 对于稳定的输入和分数，排序是确定性的。
+
+## 故障排除
+
+| 症状                     | 原因及解决方法                                      |
+| ------------------------ | --------------------------------------------------- |
+| `# no duplicates found`  | 没有匹配对落在范围内。降低 `--min-similarity` 或提高 `--max-similarity`。 |
+| 已知的短函数缺失         | 少于 4 个规范化标记的符号会被跳过。                 |
+| 精确副本缺失             | 默认最大值为 95%。使用 `--min-similarity 100 --max-similarity 100`。使用 `--rerank` 时，语义过滤器也可能移除它们。 |
+| `--rerank` 失败          | 检查 `ollama serve` 是否正在运行，以及模型是否已拉取。 |
+| 带有 stderr 警告的部分结果 | 修复报告的文件，或添加 `--strict` 以在发布不完整输出前失败。 |
+
+## 本指南中使用的标志
+
+| 标志                     | 默认值                     | 描述                                                                 |
+| ------------------------ | -------------------------- | -------------------------------------------------------------------- |
+| `-o`, `--output`         | `./skeleton/fingerprints.skt` | 输出 `.skt` 文件路径。                                               |
+| `--min-similarity`       | `65`                       | 报告的最小相似度百分比（0–100）。                                   |
+| `--max-similarity`       | `95`                       | 报告的最大相似度百分比（0–100）。                                   |
+| `--show-all`             | `false`                    | 同时输出包含原始标记数据的 `[fingerprints]` 部分。                  |
+| `--rerank`               | `false`                    | 通过 Ollama 使用语义嵌入重新排序候选项。需要 `ollama serve` 和 `ollama pull qwen3-embedding:0.6b`。 |
+| `--model`                | `qwen3-embedding:0.6b`     | 与 `--rerank` 一起使用的 Ollama 嵌入模型。                          |
+| `--collect-test`         | `false`                    | 在分析中包含测试文件。                                               |
+| `--workers`              | `NumCPU`                   | 最大并发解析 goroutine 数量。                                        |
+| `--verbose`              | `false`                    | 打印进度信息。                                                       |
+
+有关完整列表，包括 `--include`、`--exclude`、`--max-file-size`、`--strict` 和 `--header-language`，请参阅[CLI 标志参考](../../reference/cli-flags/)。
+
+## 相关
+
+- [解析命令](../parse-command/)
+- [图命令](../graph-commands/)

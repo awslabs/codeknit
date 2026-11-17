@@ -3,58 +3,87 @@ title: Referenz zum Ausgabefomat
 description: Vollständige Referenz für das von codeknit verwendete .skt-Ausgabeformat.
 ---
 
-Das `.skt`-Format (Skeleton) ist ein kompaktes, menschenlesbares Textformat, das von `codeknit` verwendet wird, um extrahierte **Codestruktur** darzustellen. Es enthält Symbole, Beziehungen und Metadaten in einer minimalen Form, die für die Nutzung durch LLMs und strukturelle Analysen geeignet ist.
+Diese Seite beschreibt die Grammatik der `.skt`-Ausgabe und die äquivalente JSON-Ausgabe. Für die Regeln, die entscheiden, wie Beziehungen aufgelöst werden, siehe [Sprachunterstützung und API-Treue](../language-support/).
 
-Eine `.skt`-Datei ist in Abschnitte unterteilt. Jeder Abschnitt beginnt mit einer Überschrift in eckigen Klammern. Die Abschnitte können in beliebiger Reihenfolge erscheinen, obwohl `[symbols]` typischerweise zuerst kommt.
+## Übersicht
+
+Eine `.skt`-Datei ist eine kompakte Textdatei, die aus Abschnitten besteht. Jeder Abschnitt beginnt mit einer Kopfzeile in eckigen Klammern.
+
+| Abschnitt     | Vorhanden, wenn                                      | Inhalt                                           |
+| ------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| `[symbols]`   | Immer                                                | Symboldefinitionen, gruppiert nach Quelldatei    |
+| `[edges]`     | `--edges` ist gesetzt                                | Beziehungen zwischen Symbolen                    |
+| `[errors]`    | Ein Scan- oder Parse-Diagnose ist aufgetreten        | Dateien, die nicht vollständig verarbeitet werden konnten |
+| `[dict]`      | `--minify` ist gesetzt                               | Wörterbuch, das Kurzkodierungen zu wiederholten Tokens abbildet |
+
+In Verzeichnis-Ausgabemodi können `[errors]` und `[dict]` in die Hilfsdateien `warnings.skt` und `dict.skt` geschrieben werden. Im `inline`-Modus erscheinen sie in derselben Ausgabe wie die anderen Abschnitte.
+
+`--format json` erzeugt ein JSON-Dokument mit denselben Informationen. Siehe [JSON-Ausgabe](#json-ausgabe).
 
 ## [symbols]
 
-Der Abschnitt `[symbols]` listet alle extrahierten Symbole, gruppiert nach ihrer Quelldatei. Jede Datei wird mit einer `##`-Überschrift gefolgt vom Dateipfad eingeführt.
+Symbole sind nach Quelldatei gruppiert. Jede Gruppe beginnt mit einer Kopfzeile `## <Pfad>`, gefolgt von einer Zeile pro Symbol.
 
-### Zeilenformat
-
-Jedes Symbol wird in einer einzelnen Zeile mit folgender Struktur dargestellt:
-
+```skt
+[symbols]
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
 ```
-ShortID category/kind Lstart-Lend signature {properties}
+
+### Symbolzeile
+
+```text
+ShortID Kategorie/Art Lstart-Lend Signatur {Eigenschaften}
 ```
 
-### Felder
+| Feld            | Beschreibung                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| `ShortID`       | Sequenzielle Kennung: `S1`, `S2`, `S3` usw. Kanten verweisen auf Symbole mit diesem Wert.                 |
+| `Kategorie/Art` | Klassifizierung des Symbols. Siehe [Kategorien und Arten](#kategorien-und-arten).                         |
+| `Lstart-Lend`   | Erste und letzte Zeile des Symbols in der Quelldatei.                                                     |
+| `Signatur`      | Symbolname, mit Parametern und Rückgabetyp für Callables. Siehe [Signaturformate](#signaturformate).     |
+| `{Eigenschaften}` | Metadaten in Klammern. Siehe [Eigenschaften](#eigenschaften).                                             |
 
-- **ShortID**: Eine sequentielle Kennung, die jedem Symbol zugewiesen wird (z. B. `S1`, `S2`, `S3`). Wird als Referenz in Kanten und anderen Abschnitten verwendet.
-- **Kategorie/Art**: Ein durch Schrägstrich getrenntes Paar, das die Kategorie und die spezifische Art des Symbols angibt.
-- **Lstart-Lend**: Der **Zeilenbereich** im Quellcode, in dem das Symbol definiert ist (z. B. `L10-L15`).
-- **Signatur**: Der Name und die Typinformationen des Symbols. Das Format hängt vom Symbol ab:
-  - `name` — für Typen, Werte, Module
-  - `name(params)` — für Callables ohne Rückgabetyp
-  - `name(params) -> returnType` — für Callables mit Rückgabetyp
-- **{Eigenschaften}**: Optionale Metadaten, die in geschweiften Klammern eingeschlossen sind. Mehrere Eigenschaften werden durch Kommas getrennt.
+Eine Symbolzeile bleibt auf einer physischen Zeile. Zeilenumbrüche innerhalb einer Signatur werden als `\n` und `\r` escaped.
 
-### Parameter
+Symbol-IDs können sich ändern, wenn sich die Extraktion ändert. Erzeugen Sie alle Ausgabechunks gemeinsam, anstatt Chunks aus verschiedenen Läufen zu mischen. Dies gilt insbesondere beim Upgrade auf 0.5.0, da sich Symbol-IDs und Ergebnisse der Beziehungsauflösung ändern können.
 
-- In untypisierten Sprachen: `paramName`
-- In typisierten Sprachen: `paramName: type`
-- Typreferenzen, die bekannten Symbolen entsprechen, werden durch ihre ShortIDs ersetzt (z. B. `config: S5` anstelle von `config: Config`).
+### Kategorien und Arten
+
+| Kategorie | Arten                                      | Beispiele                                           |
+| --------- | ------------------------------------------ | --------------------------------------------------- |
+| `callable` | function, method, constructor              | `callable/function`, `callable/method`              |
+| `type`     | class, interface, struct, enum             | `type/class`, `type/interface`                      |
+| `value`    | variable, constant, field                  | `value/variable`, `value/constant`                  |
+| `module`   | package, namespace                         | `module/package`                                    |
+| `meta`     | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include`  |
+
+### Signaturformate
+
+| Form                         | Verwendet für                                  |
+| ---------------------------- | ---------------------------------------------- |
+| `name`                       | Typen, Werte und Module                        |
+| `name(params)`               | Callables ohne Rückgabetyp                     |
+| `name(params) -> returnType` | Callables mit Rückgabetyp                      |
+
+Parameter werden wie folgt geschrieben:
+
+| Form          | Verwendet für                  |
+| ------------- | ------------------------------ |
+| `name`        | Sprachen ohne Typen            |
+| `name: type`  | Sprachen mit Typen             |
+
+Wenn ein Typverweis mit einem bekannten Symbol übereinstimmt, wird der Typname durch die ShortID dieses Symbols ersetzt. Zum Beispiel verweist `-> *S2` auf einen Zeiger auf das Symbol `S2`.
 
 ### Eigenschaften
 
-Häufige Eigenschaften sind:
+Eigenschaften erscheinen in Klammern nach der Signatur, getrennt durch Kommas. Leere Klammern (`{}`) bedeuten, dass das Symbol keine Eigenschaften hat.
 
-- `async`: `true` oder `false`
-- `exported`: `true` oder `false`
-- `static`: vorhanden, wenn das Symbol statisch ist
-- `visibility=public|private|protected`
-- `receiver=*TypeName`: für Methoden, gibt den Empfängertyp an
-
-### Symbolkategorien und -arten
-
-| Kategorie   | Arten                                      | Beispiele                                           |
-| ----------- | ------------------------------------------ | --------------------------------------------------- |
-| `callable`  | function, method, constructor              | `callable/function`, `callable/method`              |
-| `type`      | class, interface, struct, enum             | `type/class`, `type/interface`                      |
-| `value`     | variable, constant, field                  | `value/variable`, `value/constant`                  |
-| `module`    | package, namespace                         | `module/package`                                    |
-| `meta`      | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include`  |
+| Eigenschaftsform   | Beispiel                 |
+| ------------------ | ------------------------ |
+| Flag               | `exported`, `async`, `static` |
+| `Schlüssel=Wert`   | `visibility=public`, `receiver=*AuthService`, `exported=false`, `resolution=unresolved` |
 
 ### Beispiel
 
@@ -70,19 +99,45 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-Der Abschnitt `[edges]` zeichnet Beziehungen auf, wenn `--edges` aktiviert ist. Bekannte Endpunkte verwenden ihre ShortIDs; Ziele, die nicht zu einem Symbol aufgelöst werden können, können als Namen erscheinen.
+Der Abschnitt `[edges]` listet Beziehungen zwischen Symbolen auf. Er wird nur geschrieben, wenn Kanten mit `--edges` angefordert werden.
 
-### Zeilenformat
+### Kantenzeile
 
+```text
+FromID --Art--> ToID1, ToID2
+FromID --Art[unresolved]--> Ziel1, Ziel2
+FromID --Art[ambiguous]--> Ziel [candidates=KandidatID1, KandidatID2]
 ```
-FromID --kind--> ToID1, ToID2
-FromID --kind[unresolved]--> Target1, Target2
-FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
-```
 
-Ein fehlender Status bedeutet, dass der Analysator die Beziehung aufgelöst hat. `unresolved` bedeutet, dass die Abhängigkeit nicht hergestellt werden konnte; `ambiguous` bedeutet, dass konkurrierende Interpretationen möglich bleiben. Kandidaten-IDs identifizieren mögliche Ziele, keine bestätigten Verbindungen. Die Auflösung basiert auf Syntax und Gültigkeitsbereich, nicht auf einer Compiler-Garantie.
+| Teil                     | Beschreibung                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `FromID`                 | Quellendpunkt.                                                                         |
+| `Art`                    | Art der Beziehung. Siehe [Kantenarten](#kantenarten).                                  |
+| `[unresolved]`, `[ambiguous]` | Optionaler Auflösungsmarker. Siehe [Auflösungsmarker](#auflösungsmarker).          |
+| `ToID1, ToID2`           | Ein oder mehrere Ziele, durch Kommas getrennt.                                         |
+| `[candidates=...]`       | Mögliche Ziele für eine mehrdeutige Kante, als kommagetrennte Liste in Klammern.       |
 
-Ziele werden nur gruppiert, wenn ihre Quelle, Art, Auflösung und Kandidatenmenge übereinstimmen. Namen ohne Symbole sind relativ zur Quelldatei. Komplexe Identitäten verwenden zitierte vollständige IDs mit escaped Anführungszeichen, Backslashes und Zeilenumbrüchen. Ein wörtlicher Name, der einer ShortID ähnelt, muss als vollständige ID zitiert werden, z. B. `"app.go::S2"`. Symboldefinitionen können in späteren Dateien oder Ausgabe-Chunks vorkommen.
+Ziele teilen sich eine Zeile nur, wenn Quelle, Art, Auflösungsmarker und Kandidatensatz identisch sind. Eine Definition, auf die eine Kante verweist, kann in einer späteren Datei oder einem Ausgabechunk vorkommen. Laden Sie alle Chunks, bevor Sie Kanten interpretieren.
+
+### Auflösungsmarker
+
+| Marker         | Bedeutung                                                                              |
+| -------------- | -------------------------------------------------------------------------------------- |
+| Keiner         | Der Analysator hat die Beziehung aufgelöst.                                            |
+| `[unresolved]` | Der Analysator konnte die Abhängigkeit nicht herstellen.                               |
+| `[ambiguous]`  | Mehr als eine Interpretation bleibt möglich. Die Kandidaten-IDs listen mögliche Ziele auf. |
+
+Ein fehlender Marker ist keine Compiler-Garantie. Kandidaten-IDs identifizieren mögliche Ziele, keine bestätigten Verbindungen. Unsicherheit wird immer in dieser SKT-Grammatik geschrieben, niemals als eingebettetes JSON.
+
+### Endpunktformen
+
+| Form                      | Wann verwendet                                                                                         | Beispiel                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------- |
+| ShortID                   | Der Endpunkt oder Kandidat ist ein bekanntes Symbol. Dies umfasst Endpunkte von unaufgelösten Kanten und Include-Symbolen. | `S4`, `S8`       |
+| Bare Name                 | Das Ziel hat kein Symbol. Der Name ist relativ zur Quelldatei.                                        | `Refresh`, `string`         |
+| Angeführter vollständiger ID | Die Identität ist komplex oder ein Literalname ähnelt einer ShortID.                                  | `"app.go::S2"`              |
+
+Angeführte vollständige IDs escapen Anführungszeichen, Backslashes und Zeilenumbrüche. Ein Literalname wie `S2` muss als angeführter vollständiger ID geschrieben werden, damit er nicht als ShortID gelesen wird.
 
 ```skt
 S4 --references[unresolved]--> string, bool
@@ -90,39 +145,43 @@ S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
 S6 --references[unresolved]--> "app.go::S2"
 ```
 
-### Datei- und Include-Endpunkte
+### Kantenarten
 
-C/C++-Includes haben explizite Metadaten-Symbole. Header-Schreibweisen erscheinen einmal in der Symbolliste, und Kanten verwenden ShortIDs, obwohl die Header-Auflösung ungelöst bleibt:
+| Art          | Bedeutung                                         |
+| ------------ | ------------------------------------------------- |
+| `calls`      | Funktions-/Methodenaufruf                         |
+| `contains`   | Klasse enthält Methode, Modul enthält Funktion    |
+| `inherits`   | Klasse erweitert eine andere                      |
+| `implements` | Klasse implementiert Interface                    |
+| `overrides`  | Methode überschreibt Elternmethode                |
+| `references` | Symbol verweist auf ein anderes                   |
+| `imports`    | Modul importiert ein anderes                      |
+| `decorates`  | Dekorator wird auf Symbol angewendet              |
+
+Zurückgegebene Callables und Callback-Argumente werden als `references` aufgezeichnet, nicht als separate Art.
+
+### C- und C++-Datei- und Include-Symbole
+
+C- und C++-Quellen erzeugen `meta/file`- und `meta/include`-Symbole, sodass Include-Beziehungen ShortIDs haben. Jede Header-Schreibweise erscheint einmal in der Symbolliste, und Kanten verwenden die ShortIDs. Wiederholte Includes innerhalb einer Datei teilen sich einen Endpunkt.
 
 ```skt
 [symbols]
 ## src/main.c
-S1 meta/file L1-L3 main.c
+S1 meta/file L1-L4 main.c
 S2 meta/include L1-L1 "config.h" {resolution=unresolved}
-S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+S3 meta/include L2-L2 "utils.h" {resolution=unresolved}
+S4 meta/include L3-L3 <stdio.h> {resolution=unresolved}
 
 [edges]
-S1 --references[unresolved]--> S2, S3
+S1 --references[unresolved]--> S2, S3, S4
 ```
 
-Ein Include-Symbol zeichnet die geschriebene Direktive auf, nicht eine aufgelöste Header-Deklaration. Wiederholte Includes innerhalb einer Datei teilen sich einen Endpunkt. Datei-/Include-Metadaten werden aus Abhängigkeitsrankings und **Dead-Code**-Ergebnissen ausgeschlossen.
+Ein Include-Symbol zeichnet die Direktive so auf, wie sie geschrieben wurde. Es stellt keine aufgelöste Header-Deklaration dar.
 
-Unsichere Beziehungen werden im Parse-Output beibehalten, aber aus Abhängigkeitsmetriken ausgeschlossen. Graphberichte zeigen die Anzahl ausgeschlossener Beziehungen an; der HTML-Viewer zeigt deren Anzahl an, ohne einzelne unsichere Kanten zu zeichnen.
+### Auswirkungen auf Analyse und Visualisierung
 
-Beim Upgrade auf `0.5.0` sollten alle Ausgabe-Chunks gemeinsam neu generiert werden. Symbol-IDs und Beziehungsergebnisse können sich ändern, daher dürfen Chunks aus verschiedenen Läufen nicht gemischt werden.
-
-### Kantenarten
-
-| Art           | Bedeutung                                      |
-| ------------- | ---------------------------------------------- |
-| `calls`       | Funktions-/Methodenaufruf                      |
-| `contains`    | Klasse enthält Methode, Modul enthält Funktion |
-| `inherits`    | Klasse erweitert eine andere Klasse            |
-| `implements`  | Klasse implementiert Interface                 |
-| `overrides`   | Methode überschreibt Elternmethode             |
-| `references`  | Symbol referenziert ein anderes Symbol         |
-| `imports`     | Modul importiert ein anderes Modul             |
-| `decorates`   | Dekorator auf ein Symbol angewendet            |
+- Unsichere Kanten und Datei-/Include-Metadaten tragen nicht zu Abhängigkeitsmetriken bei. Berichte zeigen die Anzahl der ausgeschlossenen Beziehungen an.
+- Der HTML-Graph zeichnet aufgelöste Links und zeigt eine Anzahl unsicherer Beziehungen an. Er zeichnet keine einzelnen unsicheren Kanten.
 
 ### Beispiel
 
@@ -136,43 +195,29 @@ S24 --implements--> S19
 
 ## [errors]
 
-Der Abschnitt `[errors]` listet Dateien auf, die nicht vollständig geparst werden konnten.
+Der Abschnitt `[errors]` listet Dateien auf, die nicht vollständig verarbeitet wurden. Er ist nur vorhanden, wenn Diagnosen existieren.
 
-### Format
-
-Jede Zeile beginnt mit `-`, gefolgt vom Dateipfad und der Fehlermeldung:
-
+```text
+- <Pfad>: <Nachricht>
 ```
-- path/to/file.go: syntax error at line 42
-```
-
-### Beispiel
 
 ```skt
 [errors]
-- src/broken.go: unexpected token at line 10
-- tests/corner_case.py: unterminated string literal
+- path/to/broken.go: syntax error at line 42
 ```
 
 ## [dict]
 
-Der Abschnitt `[dict]` erscheint nur, wenn das Flag `--minify` verwendet wird. Er bildet kurze Dictionary-Codes auf wiederholte String-Tokens ab, um die Ausgabegröße zu reduzieren.
+Der Abschnitt `[dict]` erscheint nur in minimierter Ausgabe (`--minify`). Er bildet Kurzkodierungen auf wiederholte Tokens ab.
 
-### Format
+| Teil       | Beschreibung                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `d0`, `d1`, … | Wörterbuchcodes.                                                        |
+| Eintragszeile | `- <Code>: <Token>`                                                         |
 
-Jede Zeile bildet einen Dictionary-Code (`d0`, `d1` usw.) auf seinen erweiterten Wert ab:
+Um minimierte Ausgabe zu lesen, ersetzen Sie jeden Code durch seinen Wörterbuchwert. Codes können Kategorie/Art-Paare und Eigenschaften in `[symbols]` ersetzen. Sie können auch Beziehungsarten in `[edges]` ersetzen. Unsicherheitsmarker bleiben lesbar. Zum Beispiel ist `S1 --d2[unresolved]--> S3` eine unaufgelöste Kante, deren Art der Wert von `d2` ist.
 
-```
-- d0: async=false
-- d1: callable/method
-- d2: exported
-```
-
-Im Rest der Datei ersetzen diese Codes ihre vollständigen Werte.
-
-Beziehungstypen können ebenfalls Dictionary-Codes verwenden, während Statusbezeichnungen lesbar bleiben: `S1 --d2[unresolved]--> S3`. Erweitern Sie `d2` mithilfe des Dictionarys und behalten Sie den `unresolved`-Status bei.
-
-### Beispiel
+### Minimiertes Beispiel
 
 ```skt
 [dict]
@@ -190,51 +235,37 @@ S3 d1 L5-L6 handle(request) {d0}
 S1 --contains--> S2, S3
 ```
 
+Hier ist `S2` ein `callable/method` mit der Eigenschaft `async=false`.
+
 ## Vollständiges Beispiel
 
-```skt
-[dict]
-- d0: exported
-- d1: callable/function
+Die folgende Ausgabe enthält `[symbols]`, `[edges]` und `[errors]`. Sie ist nicht minimiert, hat also keinen `[dict]`-Abschnitt; siehe [das minimierte Beispiel](#minimiertes-beispiel).
 
+```skt
 [symbols]
-## main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {d0}
-S3 d1 L10-L12 NewServer(addr: string) -> *S2 {d0}
-S4 callable/method L14-L20 Serve() {d0, receiver=*Server}
-S5 callable/function L22-L25 handleError(err: error) -> bool {}
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
+S3 callable/function L10-L12 NewAuthService(secret: string, ttl: int) -> *S2 {exported}
+S4 callable/method L14-L19 Authenticate(token: string) {exported, receiver=*AuthService}
+S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
+## pkg/util/hash.go
+S6 callable/function L3-L5 Hash(data: string) -> string {exported}
+## pkg/util/hash_alt.go
+S7 callable/function L3-L5 Hash(data: string) -> string {exported}
 
 [edges]
+S1 --contains--> S2, S3, S4, S5
 S2 --contains--> S4
-S4 --calls--> S5
 S3 --references--> S2
+S4 --calls--> S5
+S4 --calls[unresolved]--> Refresh
+S5 --calls[ambiguous]--> Hash [candidates=S6, S7]
 
 [errors]
-- utils/broken.go: syntax error at line 5
+- pkg/legacy/broken.go: syntax error at line 42
 ```
 
-## JSON-Beziehungen
+## JSON-Ausgabe
 
-Verwenden Sie JSON, wenn ein Skript oder eine Integration strukturierte Ausgabe benötigt:
-
-```bash
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-Jede Kante enthält `from`, `to` und `kind`. Bekannte Quell-IDs erscheinen in `from_short`; aufgelöste Ziel-IDs erscheinen in `to_short`. Unsichere Kanten fügen `resolution` und, falls verfügbar, `candidates` mit vollständigen Symbol-IDs hinzu. Sie lassen `to_short` weg, selbst wenn das Ziel ein Include-Metadaten-Symbol hat.
-
-Zum Beispiel kann ein mehrdeutiger Aufruf wie folgt dargestellt werden:
-
-```json
-{
-  "from": "app.py::run",
-  "from_short": "S1",
-  "to": "app.py::Helper",
-  "kind": "calls",
-  "resolution": "ambiguous",
-  "candidates": ["helpers/a.py::Helper", "helpers/b.py::Helper"]
-}
-```
-
-JSON und SKT bewahren dieselbe Unsicherheit mit unterschiedlichen Kodierungen. Weitere Informationen zu Auflösungsregeln und bekannten Grenzen finden Sie unter [Sprachunterstützung und API-Treue](../language-support/).
+`--format json`

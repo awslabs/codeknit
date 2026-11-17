@@ -1,101 +1,125 @@
 ---
 title: Erste Schritte
-description: codeknit in unter 5 Minuten in Betrieb nehmen.
+description: Legen Sie mit codeknit in unter 5 Minuten los.
 ---
 
-# Erste Schritte
+In diesem Tutorial werden Sie codeknit aus dem Quellcode erstellen, Ihren ersten Parse-Vorgang durchführen und die von ihm geschriebenen `.skt`-Ausgaben lesen. Sie werden ein kleines Paket aus dem codeknit-Repository parsen, sodass Sie kein eigenes Projekt benötigen.
 
-codeknit in unter 5 Minuten in Betrieb nehmen.
+## Voraussetzungen
 
-## 1. Voraussetzungen
+- **Go 1.26 oder höher.** Führen Sie `go version` aus, um dies zu überprüfen.
+- **Ein C-Compiler.** codeknit verwendet tree-sitter, das CGo benötigt.
+- **Git** und **Make**.
 
-Sie benötigen:
+## 1. codeknit erstellen
 
-- Go 1.26+
-- Einen C-Compiler (CGo ist für tree-sitter erforderlich)
-
-## 2. Installation aus dem Quellcode
+Klone Sie das Repository und erstellen Sie es:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# Binary befindet sich unter ./bin/codeknit
 ```
 
-## 3. Zum PATH hinzufügen
+Sie sollten sehen, dass der Build ohne Fehler abgeschlossen wird und eine Binary unter `./bin/codeknit` erstellt wird.
 
-Fügen Sie das Binary zur PATH-Umgebungsvariable Ihrer Shell hinzu:
+## 2. codeknit zu Ihrem PATH hinzufügen
+
+Fügen Sie vom `codeknit`-Verzeichnis aus `bin` zu Ihrem `PATH` hinzu, indem Sie die Zeile für Ihre Shell verwenden.
+
+Für bash oder zsh:
 
 ```bash
-# bash (~/.bashrc)
 export PATH="$PATH:$(pwd)/bin"
-
-# zsh (~/.zshrc)
-export PATH="$PATH:$(pwd)/bin"
-
-# fish (~/.config/fish/config.fish)
-fish_add_path $(pwd)/bin
 ```
 
-Laden Sie Ihre Shell neu oder führen Sie `source ~/.bashrc` (oder `~/.zshrc`) aus, damit die Änderung wirksam wird.
+Für fish:
 
-## 4. Installation überprüfen
+```fish
+fish_add_path (pwd)/bin
+```
 
-Stellen Sie sicher, dass codeknit funktioniert:
+Dies gilt für Ihre aktuelle bash- oder zsh-Sitzung. Um es für spätere Sitzungen beizubehalten, fügen Sie dieselbe Zeile zu `~/.bashrc` oder `~/.zshrc` hinzu, wobei der absolute Pfad zu `bin` anstelle von `$(pwd)/bin` verwendet wird.
+
+## 3. Installation überprüfen
 
 ```bash
 codeknit --version
 ```
 
-## 5. Ersten Parse-Vorgang durchführen
+Sie sollten die codeknit-Version angezeigt bekommen.
 
-Führen Sie Ihren ersten Parse-Vorgang für ein Code-Repository durch:
+## 4. Ersten Parse-Vorgang durchführen
 
-```bash
-codeknit parse ./myproject
-```
-
-Dieser Befehl:
-
-- Parst alle Quelldateien in `./myproject`
-- Extrahiert strukturelle Informationen (Funktionen, Klassen, Beziehungen)
-- Schreibt chunkierte `.skt`-Dateien in `./skeleton/` (Standard-Ausgabeverzeichnis)
-
-Wenn Sie diesen Befehl erneut ausführen, verwenden Sie `--clean`, um vorherige Ausgaben zu entfernen:
+Bleiben Sie im `codeknit`-Verzeichnis und parsen Sie das Paket `internal/console`:
 
 ```bash
-codeknit parse ./myproject --clean
+codeknit parse ./internal/console --edges
 ```
 
-## 6. Die Ausgabe lesen
+codeknit durchsucht das Verzeichnis, parst jede unterstützte Quelldatei und schreibt `.skt`-Dateien. Eine *`.skt`-Datei* ist eine kompakte Textdatei, die die Symbole in Ihrem Code und die Beziehungen zwischen ihnen auflistet. Das Flag `--edges` fügt die Beziehungen hinzu. Diese werden standardmäßig weggelassen, um Platz zu sparen.
 
-Die `.skt`-Dateien enthalten strukturierte Code-Informationen. Hier ein kleines Beispiel:
+Sie sollten eine kurze Zusammenfassung sehen, wenn der Befehl abgeschlossen ist, sowie ein neues Verzeichnis `./skeleton` in Ihrem aktuellen Verzeichnis.
+
+Listen Sie die Ausgabe auf:
+
+```bash
+ls ./skeleton
+```
+
+Sie sollten eine Datei wie `map_001.skt` sehen.
+
+## 5. Ausgabe lesen
+
+Öffnen Sie die Datei:
+
+```bash
+cat ./skeleton/map_001.skt
+```
+
+Sie sollten zuerst einen Abschnitt `[symbols]` sehen. Ein *Symbol* ist ein benanntes Element in Ihrem Code, wie z. B. eine Funktion, ein Typ oder ein Feld. Symbole sind unter einer Überschrift `## <Quelldatei>` gruppiert. Ihre Ausgabe enthält Zeilen wie diese:
 
 ```skt
 [symbols]
-## src/main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {exported}
-S3 callable/function L10-L12 NewServer(addr: string) -> *S2 {exported}
-S4 callable/method L14-L19 Start() {receiver=*Server}
-
-[edges]
-S2 --contains--> S4
-S3 --returns--> S2
+## <Pfad zu>/console.go
+S1 module/package L5-L5 console
+S2 type/struct L17-L25 Console {exported}
+...
+S10 callable/function L28-L41 New() -> *S2 {exported}
+...
+S12 callable/method L49-L49 Error(msg: string) {exported, receiver=*Console}
 ```
 
-Wichtige Abschnitte:
+Jede Zeile hat dieselben Teile:
 
-- `[symbols]`: Definitionen, gruppiert nach Datei, mit Name, Zeilenbereich und Metadaten
-- `[edges]`: Beziehungen wie `contains`, `calls`, `inherits` oder `returns`
+| Teil | Beispiel | Bedeutung |
+| --- | --- | --- |
+| ShortID | `S10` | Eine kurze Bezeichnung für das Symbol, die an anderer Stelle in der Ausgabe verwendet wird |
+| Kategorie und Art | `callable/function` | Um welche Art von Symbol es sich handelt |
+| Zeilenbereich | `L28-L41` | Die Zeilen, die das Symbol in der Quelldatei umfasst |
+| Signatur | `New() -> *S2` | Der Name, die Parameter und der Rückgabetyp |
+| Eigenschaften | `{exported}` | Zusätzliche Details in Klammern |
 
-## 7. Nächste Schritte
+In `New() -> *S2` ist `S2` die ShortID des Typs `Console`. codeknit ersetzt Typnamen durch ShortIDs, wenn es das Symbol kennt. Zeilennummern können leicht abweichen, wenn Ihr Checkout neuer ist.
 
-Nachdem Sie Ihren ersten Parse-Vorgang durchgeführt haben:
+Scrollen Sie nach unten zum Abschnitt `[edges]`. Eine *Kante* ist eine Beziehung zwischen zwei Symbolen. Jede Kantenzeile nennt das Quellsymbol, die Art der Beziehung und das Zielsymbol oder die Zielsymbole:
 
-- Erfahren Sie mehr über den Parse-Befehl: [Parse-Befehlsleitfaden](/codeknit/de/guides/parse-command/)
-- Erkunden Sie die strukturelle Analyse: [Graph-Befehlsleitfaden](/codeknit/de/guides/graph-commands/)
-- Verstehen Sie die Duplikaterkennung: [Fingerprint-Befehlsleitfaden](/codeknit/de/guides/fingerprint-command/)
-- Lesen Sie das vollständige Ausgabeformat: [Ausgabeformat-Referenz](/codeknit/de/reference/output-format/)
-- Sehen Sie sich alle verfügbaren Flags an: [CLI-Flags-Referenz](/codeknit/de/reference/cli-flags/)
+```skt
+[edges]
+S2 --contains--> S4
+S4 --calls--> S5
+```
+
+Dieses Beispiel zeigt die Struktur einer Kantenzeile. Es bedeutet "`S2` enthält `S4`" und "`S4` ruft `S5` auf". Sie können jede ShortID im Abschnitt `[symbols]` nachschlagen, um zu sehen, worauf sie sich bezieht.
+
+## Was Sie erreicht haben
+
+Sie haben codeknit erstellt, es zu Ihrem `PATH` hinzugefügt, `codeknit parse` ausgeführt und die Abschnitte `[symbols]` und `[edges]` der `.skt`-Ausgabe gelesen.
+
+## Nächste Schritte
+
+- Parsen Sie Ihr eigenes Projekt, wählen Sie ein anderes Ausgabe-Layout und führen Sie es sicher erneut aus: siehe den [Leitfaden zum Parse-Befehl](../guides/parse-command/).
+- Visualisieren und analysieren Sie Ihre Codestruktur: siehe den [Leitfaden zu Graph-Befehlen](../guides/graph-commands/).
+- Finden Sie Duplikate und Beinahe-Duplikate: siehe den [Leitfaden zum Fingerprint-Befehl](../guides/fingerprint-command/).
+- Schlagen Sie jedes Detail des `.skt`-Formats nach: siehe die [Referenz zum Ausgabeformat](../reference/output-format/).
+- Schlagen Sie jedes Befehlszeilen-Flag nach: siehe die [Referenz zu CLI-Flags](../reference/cli-flags/).

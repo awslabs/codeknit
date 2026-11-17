@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit lit votre code source et écrit une carte compacte de sa structure : fonctions, classes, méthodes, variables, et leurs relations. Les LLM peuvent lire cette carte directement, ce qui leur permet de planifier des refactorisations sur des centaines de fichiers sans charger chaque fichier dans le contexte.
+
+## Fonctionnalités
 
 <CardGrid>
   <Card title="12 Langages" icon="translate">
-    Prend en charge C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala et TypeScript.
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala et TypeScript. Consultez la [référence de support des langages](reference/language-support/).
   </Card>
   <Card title="Sortie compacte" icon="document">
-    Génère des fichiers `.skt` avec minification et plusieurs modes de sortie (inline, directory-flat, directory-tree) pour une utilisation optimale du contexte des LLM.
+    Extrait les fonctions, classes, méthodes, variables et leurs relations dans des fichiers `.skt` conçus pour les fenêtres de contexte des LLM. La minification basée sur un dictionnaire permet d'économiser des tokens. Choisissez parmi les [modes de sortie](guides/output-modes/) inline, directory-flat ou directory-tree.
   </Card>
   <Card title="Analyse de graphe" icon="random">
-    Détecte les cycles, les hubs, le code mort, les god classes, les goulots d'étranglement et bien plus encore à l'aide de 22 algorithmes structurels.
+    22 algorithmes détectent les dépendances cycliques, les hubs, le code mort, les god classes et les goulots d'étranglement. Un graphe HTML interactif montre comment les symboles sont connectés. Consultez le [guide des commandes de graphe](guides/graph-commands/).
   </Card>
   <Card title="Détection de doublons" icon="magnifier">
-    Identifie les doublons et quasi-doublons dans le code à travers les fichiers et les langages en utilisant le fingerprinting CTPH.
+    Le fingerprinting CTPH détecte les doublons et les quasi-doublons dans le code, entre fichiers et entre langages. Consultez le [guide de la commande fingerprint](guides/fingerprint-command/).
   </Card>
   <Card title="Prêt pour l'IA" icon="rocket">
-    Inclut des compétences intégrées pour Kiro et Claude Code afin de permettre aux assistants IA d'analyser et de comprendre la structure du code de manière autonome.
+    Un plugin pour Claude Code, Codex et Kiro ajoute une seule compétence `codeknit` qui installe le binaire pour vous. Consultez [Utiliser codeknit avec des assistants IA](guides/ai-assistants/).
   </Card>
 </CardGrid>
+
+## Où aller ensuite
+
+### Tutoriel
+
+- [Prise en main](getting-started/) : analysez votre premier projet et lisez le résultat.
+
+### Guides pratiques
+
+- [Installer codeknit](installation/)
+- [Analyser une base de code](guides/parse-command/)
+- [Analyser et visualiser le graphe de code](guides/graph-commands/)
+- [Trouver du code dupliqué](guides/fingerprint-command/)
+- [Choisir un mode de sortie](guides/output-modes/)
+- [Utiliser codeknit avec des assistants IA](guides/ai-assistants/)
+
+### Référence
+
+- [Format de sortie](reference/output-format/)
+- [Options de l'interface en ligne de commande](reference/cli-flags/)
+- [Support des langages](reference/language-support/)
+- [Fiabilité de l'analyse](reference/analysis-reliability/)

@@ -1,3 +1,8 @@
+DOCUMENT TYPE: Explanation
+AUDIENCE: Developers deciding how codeknit should write its output for their project size and workflow.
+USER GOAL: Understand the trade-offs between output modes, output formats, and minification well enough to choose.
+SCOPE: Why each output mode and format exists, when each fits, and their consequences (chunking, file naming, staging). Exclude the full .skt grammar (link to the output format reference) and step-by-step instructions (link to the parse command guide).
+
 Write a guide explaining codeknit output modes. Frontmatter:
 ---
 title: Output Modes

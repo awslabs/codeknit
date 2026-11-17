@@ -1,3 +1,8 @@
+DOCUMENT TYPE: Reference
+AUDIENCE: Developers and tools that read codeknit output.
+USER GOAL: Look up the exact syntax and meaning of any .skt section, field, or JSON key.
+SCOPE: Complete .skt and JSON output grammar with examples. Exclude how to run commands and why the format was designed this way.
+
 Write a reference page for the .skt output format. Frontmatter:
 ---
 title: Output Format Reference

@@ -1,113 +1,126 @@
 ---
 title: Menggunakan dengan Asisten AI
-description: Siapkan codeknit sebagai skill untuk Kiro, Claude Code, dan asisten pengodean AI lainnya.
+description: Pasang plugin codeknit untuk Claude Code, Codex, dan Kiro.
 ---
 
-codeknit dilengkapi dengan skill siap pakai yang mengajarkan asisten pengodean AI cara menggunakannya secara efektif. Skill ini memungkinkan asisten untuk mengekstrak struktur kode, mendeteksi duplikat, dan melakukan analisis struktural tanpa perlu prompting manual.
+Pasang plugin codeknit di Claude Code, Codex, atau Kiro, tetap perbarui, dan ajukan pertanyaan tentang struktur dan kode duplikat kepada asisten. Plugin ini berisi satu keterampilan, `codeknit`. Keterampilan ini memberi tahu asisten kapan harus menjalankan `codeknit parse`, `codeknit graph analyze`, dan `codeknit fingerprint`, serta cara membaca keluaran `.skt`.
 
-## Gambaran skill
+Anda tidak perlu memasang biner `codeknit` sendiri. Pertama kali keterampilan dijalankan, ia akan menjalankan `scripts/install-codeknit.sh` yang terikat, yang melakukan hal berikut:
 
-codeknit menyediakan dua skill:
+1. Keluar segera jika `codeknit` sudah ada di `PATH` atau di `~/.local/bin`.
+2. Jika tidak, mengunduh rilis GitHub terbaru untuk OS dan arsitektur Anda.
+3. Memverifikasi unduhan terhadap `checksums.txt` rilis.
+4. Memasang biner ke `~/.local/bin` dan mencetak jalur absolutnya pada baris terakhir keluaran.
 
-- **`codeknit-parse`**: Mengajarkan asisten untuk mengekstrak struktur kode (fungsi, kelas, metode, variabel) dan hubungan (panggilan, pewarisan, penampungan) ke dalam file `.skt`.
-- **`codeknit-fingerprint`**: Mengajarkan asisten untuk mendeteksi kode duplikat dan hampir duplikat menggunakan fuzzy hashing.
+Jika `~/.local/bin` tidak ada di `PATH`, asisten akan memanggil codeknit dengan jalur lengkap tersebut selama sisa sesi.
 
-Setiap skill mencakup dokumentasi yang dibaca oleh asisten sesuai kebutuhan untuk memahami penggunaan, flag, format keluaran, dan alur kerja.
+Untuk mengontrol pemasangan, atur variabel lingkungan ini:
 
-## Instalasi
+| Variabel | Efek |
+| --- | --- |
+| `CODEKNIT_VERSION` | Memperbaiki rilis, misalnya `0.6.0`. |
+| `CODEKNIT_INSTALL_DIR` | Mengubah lokasi pemasangan. |
 
-Gunakan helper installer untuk menyalin direktori skill ke folder skill asisten Anda. Installer hanya mengunduh file skill yang sudah dibundel, sehingga Anda tidak perlu mengkloning repositori.
+Untuk memasang biner sendiri, lihat [Pemasangan](../../installation/).
 
-Instal untuk **Codex**, **Kiro**, dan **Claude Code**:
+## Pasang plugin
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
-```
+Pilih bagian sesuai dengan asisten Anda.
 
-Instal untuk satu asisten:
+### Claude Code
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
-```
-
-Dari checkout lokal, Anda dapat menggunakan helper Makefile:
+Jalankan perintah berikut di shell Anda. Di dalam sesi Claude Code, jalankan perintah yang sama sebagai `/plugin ...`.
 
 ```bash
-make skills-install-dry-run
-make skills-install
+claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+claude plugin install codeknit@codeknit
 ```
 
-Installer melewati direktori skill yang sudah ada secara default. Untuk menggantinya, tambahkan `--force`:
+### Codex
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+codex plugin add codeknit@codeknit
 ```
 
-Setelah instalasi, asisten secara otomatis mengetahui cara menjalankan perintah codeknit, memilih flag yang sesuai, dan menginterpretasikan keluaran `.skt`.
+### Kiro IDE
 
-## Apa yang diajarkan oleh setiap skill
+1. Buka panel Powers.
+2. Pilih **Add Custom Power**, lalu **Import power from GitHub**.
+3. Masukkan `https://github.com/awslabs/codeknit`.
 
-### codeknit-parse
+### Kiro CLI
 
-Skill `codeknit-parse` mengajarkan asisten untuk:
+Kiro CLI memasang dari jalur lokal, jadi klon repositori terlebih dahulu:
 
-- Menjalankan `codeknit parse` dengan flag yang sesuai untuk berbagai skenario
-- Memilih mode keluaran yang tepat:
-  - `directory-flat` (default) untuk sebagian besar proyek
-  - `inline` untuk file tunggal atau input kecil
-  - `directory-tree` untuk mencerminkan struktur sumber
-- Membaca dan menginterpretasikan file keluaran `.skt`, termasuk bagian `[symbols]`, `[edges]`, dan bagian opsional `[dict]`
-- Menggunakan data struktural untuk refactoring, pemetaan dependensi, dan tinjauan kode
-- Menjalankan `codeknit graph analyze` untuk wawasan kualitas kode yang lebih mendalam (dependensi siklik, simbol hub, god class, dll.)
-
-### codeknit-fingerprint
-
-Skill `codeknit-fingerprint` mengajarkan asisten untuk:
-
-- Menggunakan `codeknit fingerprint` untuk deteksi duplikat, audit DRY, dan identifikasi refactor
-- Memilih rentang kemiripan yang sesuai (`--min-similarity`, `--max-similarity`)
-- Membaca bagian `[duplicates]` untuk mengidentifikasi kode hampir duplikat
-- Memahami bahwa fingerprint mengukur bentuk struktural, bukan maksud semantik
-- Menggunakan `--rerank` dengan embeddings Ollama untuk mengurangi false positive jika diperlukan
-
-## Contoh alur kerja
-
-### Analisis struktural
-
-1. Minta asisten untuk menganalisis struktur basis kode Anda
-2. Asisten menjalankan `codeknit parse ./src` dan membaca file `.skt` yang dihasilkan
-3. Asisten menjawab pertanyaan struktural: dependensi, rantai panggilan, dead code
-4. Untuk wawasan yang lebih mendalam, asisten menjalankan `codeknit graph analyze ./src` dan menginterpretasikan laporan
-
-```skt
-[symbols]
-## src/service.go
-S1 type/struct L5-L8 AuthService {}
-S2 callable/method L10-L15 Authenticate(token: string) {receiver=*AuthService}
-
-[edges]
-S1 --contains--> S2
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+git -C ~/.codeknit-power sparse-checkout set skills
+kiro-cli powers install ~/.codeknit-power
 ```
 
-### Deteksi duplikat
+### Tentang `--sparse`
 
-1. Minta asisten untuk menemukan kode yang diduplikasi
-2. Asisten menjalankan `codeknit fingerprint ./src`
-3. Asisten membaca bagian `[duplicates]` dalam keluaran
-4. Asisten menyelidiki pasangan yang ditandai dan mengusulkan konsolidasi
+Opsi `--sparse` bersifat opsional. Opsi ini membatasi klon hanya pada manifes plugin dan `skills/` alih-alih seluruh pohon sumber.
 
-```skt
-[duplicates]
-S1, S2: 87% similarity
-S3, S4: 76% similarity
-```
+### Pasang keterampilan secara manual
+
+Jika asisten Anda membaca Agent Skills tetapi tidak mendukung plugin, salin `skills/codeknit/` ke direktori keterampilan untuk asisten Anda:
+
+- `~/.claude/skills/`
+- `~/.codex/skills/`
+- `~/.kiro/skills/`
+
+## Perbarui plugin
+
+| Asisten | Perintah atau tindakan |
+| --- | --- |
+| Claude Code | `claude plugin marketplace update codeknit` |
+| Codex | `codex plugin marketplace upgrade` |
+| Kiro IDE | Pilih **Check for updates** di panel Powers. |
+| Kiro CLI | Jalankan `git -C ~/.codeknit-power pull`, lalu jalankan `kiro-cli powers install ~/.codeknit-power` lagi. |
+
+Memperbarui plugin tidak akan memperbarui biner yang sudah terpasang. Untuk mengubah versi biner, atur `CODEKNIT_VERSION` seperti dijelaskan di atas.
+
+Jika Anda meningkatkan codeknit dan ekstraksi berubah, ID simbol juga dapat berubah. Minta asisten untuk menghasilkan ulang semua keluaran alih-alih mencampur potongan dari berbagai eksekusi.
+
+## Apa yang diajarkan keterampilan kepada asisten
+
+Keterampilan ini memberikan aturan berikut kepada asisten, sehingga Anda tidak perlu mengulanginya di setiap permintaan:
+
+- **Pilih perintah berdasarkan pertanyaan.**
+  - `parse` menjawab apa yang ada, di mana lokasinya, dan apa yang memanggil, mewarisi, atau mengandung apa.
+  - `graph analyze` menemukan siklus, hub, kode mati, god class, dan hambatan.
+  - `fingerprint` menemukan kandidat salin-tempel dan refaktor.
+- **Gunakan `directory-flat` sebagai mode keluaran default.** Asisten menulis file terpotong ke `./skeleton/` dan hanya membaca potongan yang diperlukan. Asisten menggunakan mode keluaran `inline` hanya untuk satu file atau beberapa file, karena `inline` membuang semuanya ke jendela konteks.
+- **Baca keluaran `.skt`, bukan sumber mentah, untuk pertanyaan struktural.** Asisten membuka file sumber hanya untuk memeriksa atau mengubah detail implementasi, menggunakan rentang baris dari keluaran. `references/output-format.md` keterampilan berisi format lengkap. Lihat juga [referensi format keluaran](../../reference/output-format/).
+- **Pilih rentang kemiripan dan perlakukan kecocokan sebagai sinyal.** Fingerprint membandingkan bentuk struktural, bukan maksud. Asisten membaca kedua simbol dari setiap pasangan sebelum mengusulkan refaktor.
+
+## Minta analisis struktural
+
+1. Minta asisten untuk menganalisis struktur basis kode Anda. Misalnya: "Petakan struktur `./src` dan beri tahu saya modul mana yang bergantung pada paket auth."
+2. Asisten memastikan biner terpasang, lalu menjalankan `codeknit parse` dengan sisi diaktifkan dan membaca keluaran `.skt`.
+3. Ajukan pertanyaan lanjutan tentang dependensi, rantai panggilan, atau kode mati. Asisten menjawab dari keluaran.
+4. Untuk analisis yang lebih mendalam, minta tinjauan struktural. Misalnya: "Temukan dependensi siklik dan god class di `./src`." Asisten menjalankan `codeknit graph analyze` dan membaca laporan.
+
+Hubungan yang ditandai `[unresolved]` atau `[ambiguous]` dalam keluaran tidak pasti, bukan dependensi yang dikonfirmasi. Perlakukan jawaban yang bergantung padanya sebagai kandidat untuk diverifikasi.
+
+Untuk perintah di balik permintaan ini, lihat [panduan perintah parse](../parse-command/) dan [panduan perintah graf](../graph-commands/).
+
+## Minta deteksi duplikat
+
+1. Minta asisten untuk menemukan kode yang diduplikasi. Misalnya: "Temukan fungsi salin-tempel di `./src`."
+2. Asisten menjalankan `codeknit fingerprint` dan membaca bagian `[duplicates]` dari `./skeleton/fingerprints.skt`.
+3. Asisten membuka kedua simbol dari setiap pasangan yang ditandai, lalu mengusulkan refaktor.
+4. Jika hasilnya bising, minta asisten untuk menyesuaikan rentang kemiripan atau menambahkan pemeringkatan semantik ulang. Pemeringkatan ulang memerlukan server Ollama lokal dengan model embedding yang diunduh.
+
+Untuk opsi di balik permintaan ini, lihat [panduan perintah fingerprint](../fingerprint-command/).
 
 ## Tips
 
-- **Selalu baca file `.skt`, bukan sumber mentah, untuk pertanyaan struktural** — file tersebut berisi struktur yang diekstrak dalam format yang ringkas dan dapat diandalkan
-- Gunakan `codeknit graph analyze` untuk mengungkap masalah kualitas kode seperti dependensi siklik, simbol hub, dan rantai pewarisan yang dalam
-- Jalankan `codeknit fingerprint` sebelum refactor besar untuk mengidentifikasi kode yang disalin-tempel yang harus dikonsolidasikan
-- Format `.skt` dirancang untuk efisien dalam penggunaan token, menjadikannya ideal untuk jendela konteks LLM
-- Gunakan `--minify` untuk lebih mengurangi penggunaan token saat memproses basis kode besar
+- Ingatkan asisten untuk membaca file `.skt`, bukan sumber mentah, untuk pertanyaan struktural. Hal ini menjaga konteks tetap kecil, karena formatnya ringkas dan menyimpan simbol, hubungan, dan rentang baris.
+- Gunakan `graph analyze` untuk mendapatkan wawasan kualitas kode. Temuan adalah kandidat tinjauan, karena pemanggil eksternal dan pengiriman dinamis dapat mengubah hasil.
+- Jalankan fingerprint sebelum refaktor besar untuk menemukan salin-tempel yang harus dikonsolidasikan.
+- Jika asisten menjalankan ulang `parse` ke direktori yang sudah berisi keluaran `.skt`, codeknit akan menolak untuk menulis. Minta asisten untuk menambahkan `--clean` untuk mengganti keluaran sebelumnya.
+- Jika unduhan biner gagal (offline atau platform tidak didukung), dapatkan rilis secara manual dari [halaman rilis](https://github.com/awslabs/codeknit/releases), atau lihat [Pemasangan](../../installation/).
+- Jika suatu eksekusi melaporkan hasil parsial, periksa stderr dan bagian `[errors]`. Lihat [keandalan analisis](../../reference/analysis-reliability/) untuk detailnya.

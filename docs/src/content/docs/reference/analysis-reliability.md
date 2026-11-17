@@ -11,12 +11,12 @@ These behaviors describe the unreleased Go/CLI changes following 0.5.0.
 
 All five source-processing commands (`parse`, `fingerprint`, `graph show`, `graph analyze`, and `graph hotspots`) accept:
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--include GLOB` | All supported sources | Include matching source paths; repeat to select several patterns. |
-| `--exclude GLOB` | None | Exclude matching paths or directories; repeat for several patterns. |
-| `--max-file-size BYTES` | `10485760` (10 MiB) | Skip larger source files; `0` disables this limit. |
-| `--strict` | `false` | Fail before emitting results if scan or parse diagnostics occur. |
+| Flag                    | Default               | Meaning                                                             |
+| ----------------------- | --------------------- | ------------------------------------------------------------------- |
+| `--include GLOB`        | All supported sources | Include matching source paths; repeat to select several patterns.   |
+| `--exclude GLOB`        | None                  | Exclude matching paths or directories; repeat for several patterns. |
+| `--max-file-size BYTES` | `10485760` (10 MiB)   | Skip larger source files; `0` disables this limit.                  |
+| `--strict`              | `false`               | Fail before emitting results if scan or parse diagnostics occur.    |
 
 Patterns use slash-separated, gitignore-style globs relative to the selected input directory. For a single-file input, patterns match its basename. Quote patterns so the shell does not expand them. Includes form a union; excludes take precedence. Includes do not override `.gitignore`, test filtering, or built-in exclusions. Negation patterns (`!pattern`) are not accepted in these flags; use the separate include and exclude controls.
 

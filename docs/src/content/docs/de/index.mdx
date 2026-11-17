@@ -1,9 +1,9 @@
 ---
 title: codeknit
-description: Ein statischer Code-Struktur-Extraktor für KI-gestütztes Refactoring.
+description: Ein statischer Extractor für Codestrukturen zur KI-gestützten Refaktorierung.
 template: splash
 hero:
-  tagline: Parse Quellcode in kompakte strukturelle Karten, die LLMs tatsächlich nutzen können.
+  tagline: Parsen Sie Quellcode in kompakte strukturelle Karten, die LLMs tatsächlich nutzen können.
   actions:
     - text: Erste Schritte
       link: /codeknit/de/getting-started/
@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit liest Ihren Quellcode und erstellt eine kompakte Karte seiner **Codestruktur**: Funktionen, Klassen, Methoden, Variablen und deren Beziehungen. LLMs können diese Karte direkt lesen, sodass sie Refactorings über Hunderte von Dateien planen können, ohne jede Datei in den Kontext laden zu müssen.
+
+## Funktionen
 
 <CardGrid>
   <Card title="12 Sprachen" icon="translate">
-    Unterstützt C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala und TypeScript.
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala und TypeScript. Siehe die [Referenz zur Sprachunterstützung](reference/language-support/).
   </Card>
   <Card title="Kompakte Ausgabe" icon="document">
-    Erzeugt `.skt`-Dateien mit Minifizierung und mehreren Ausgabemodi (inline, flat, tree) für eine optimale Nutzung des LLM-Kontexts.
+    Extrahiert Funktionen, Klassen, Methoden, Variablen und deren Beziehungen in `.skt`-Dateien, die für LLM-Kontextfenster entwickelt wurden. Wörterbuchbasierte Minimierung spart weitere Tokens. Wählen Sie zwischen inline, directory-flat oder directory-tree [Ausgabemodi](guides/output-modes/).
   </Card>
   <Card title="Graphanalyse" icon="random">
-    Erkennt Zyklen, Hubs, dead code, god classes, Engpässe und mehr mit 22 strukturellen Algorithmen.
+    22 Algorithmen finden Zyklen, Hubs, **dead code**, **god classes** und Engpässe. Ein interaktiver HTML-Graph zeigt, wie **Symbole** verbunden sind. Siehe den [Leitfaden zu Graphbefehlen](guides/graph-commands/).
   </Card>
   <Card title="Duplikaterkennung" icon="magnifier">
-    Findet Duplikate und Beinahe-Duplikate im Code über Dateien und Sprachen hinweg mithilfe von CTPH-Fingerprinting.
+    **CTPH**-Fingerprinting findet Duplikate und Beinahe-Duplikate im Code über Dateien und Sprachen hinweg. Siehe den [Fingerprint-Leitfaden](guides/fingerprint-command/).
   </Card>
-  <Card title="KI-bereit" icon="rocket">
-    Enthält integrierte Skills für Kiro und Claude Code, um KI-Assistenten das autonome Parsen und Analysieren von Codestrukturen zu ermöglichen.
+  <Card title="KI-Ready" icon="rocket">
+    Ein Plugin für Claude Code, Codex und Kiro fügt eine einzelne `codeknit`-Fähigkeit hinzu, die das Binary für Sie installiert. Siehe [codeknit mit KI-Assistenten verwenden](guides/ai-assistants/).
   </Card>
 </CardGrid>
+
+## Wo geht es als Nächstes hin?
+
+### Tutorial
+
+- [Erste Schritte](getting-started/): Parsen Sie Ihr erstes Projekt und lesen Sie das Ergebnis.
+
+### Anleitungen
+
+- [codeknit installieren](installation/)
+- [Eine Codebasis parsen](guides/parse-command/)
+- [Den Codegraphen analysieren und visualisieren](guides/graph-commands/)
+- [Doppelten Code finden](guides/fingerprint-command/)
+- [Einen Ausgabemodus wählen](guides/output-modes/)
+- [codeknit mit KI-Assistenten verwenden](guides/ai-assistants/)
+
+### Referenz
+
+- [Ausgabeformat](reference/output-format/)
+- [CLI-Flags](reference/cli-flags/)
+- [Sprachunterstützung](reference/language-support/)
+- [Analysezuverlässigkeit](reference/analysis-reliability/)

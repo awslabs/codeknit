@@ -1,101 +1,125 @@
 ---
-title: Introduzione
+title: Guida introduttiva
 description: Inizia a utilizzare codeknit in meno di 5 minuti.
 ---
 
-# Introduzione
+In questa guida introduttiva compilerai codeknit dal sorgente, eseguirai il tuo primo parsing e leggerai l'output `.skt` generato. Analizzerai un piccolo pacchetto dalla repository di codeknit, quindi non avrai bisogno di un tuo progetto.
 
-Inizia a utilizzare codeknit in meno di 5 minuti.
+## Prerequisiti
 
-## 1. Prerequisiti
+- **Go 1.26 o successivo.** Esegui `go version` per verificare.
+- **Un compilatore C.** codeknit utilizza tree-sitter, che necessita di CGo.
+- **Git** e **Make**.
 
-Avrai bisogno di:
+## 1. Compilare codeknit
 
-- Go 1.26+
-- Un compilatore C (CGo è richiesto per tree-sitter)
-
-## 2. Installazione da sorgente
+Clona la repository e compila:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# Il binario si trova in ./bin/codeknit
 ```
 
-## 3. Aggiungi al PATH
+Dovresti vedere la compilazione terminare senza errori e trovare un binario in `./bin/codeknit`.
 
-Aggiungi il binario al PATH della tua shell:
+## 2. Aggiungere codeknit al PATH
+
+Dalla directory `codeknit`, aggiungi `bin` al tuo `PATH` utilizzando la riga appropriata per la tua shell.
+
+Per bash o zsh:
 
 ```bash
-# bash (~/.bashrc)
 export PATH="$PATH:$(pwd)/bin"
-
-# zsh (~/.zshrc)
-export PATH="$PATH:$(pwd)/bin"
-
-# fish (~/.config/fish/config.fish)
-fish_add_path $(pwd)/bin
 ```
 
-Ricarica la tua shell o esegui `source ~/.bashrc` (o `~/.zshrc`) affinché la modifica abbia effetto.
+Per fish:
 
-## 4. Verifica dell'installazione
+```fish
+fish_add_path (pwd)/bin
+```
 
-Controlla che codeknit funzioni:
+Questa modifica si applica solo alla sessione corrente di bash o zsh. Per mantenerla anche nelle sessioni future, aggiungi la stessa riga a `~/.bashrc` o `~/.zshrc`, sostituendo `$(pwd)/bin` con il percorso assoluto alla directory `bin`.
+
+## 3. Verificare l'installazione
 
 ```bash
 codeknit --version
 ```
 
-## 5. Primo parse
+Dovresti vedere la versione di codeknit stampata a schermo.
 
-Esegui il tuo primo parse su una codebase:
+## 4. Eseguire il primo parsing
 
-```bash
-codeknit parse ./myproject
-```
-
-Questo comando:
-
-- Effettua il parse di tutti i file sorgente in `./myproject`
-- Estrae informazioni strutturali (funzioni, classi, relazioni)
-- Scrive file `.skt` suddivisi in `./skeleton/` (directory di output predefinita)
-
-Se riesegui questo comando, usa `--clean` per rimuovere l'output precedente:
+Rimani nella directory `codeknit` e analizza il pacchetto `internal/console`:
 
 ```bash
-codeknit parse ./myproject --clean
+codeknit parse ./internal/console --edges
 ```
 
-## 6. Lettura dell'output
+codeknit scansiona la directory, analizza ogni file sorgente supportato e scrive i file `.skt`. Un *file `.skt`* è un file di testo compatto che elenca i simboli nel tuo codice e le relazioni tra di essi. Il flag `--edges` aggiunge le relazioni. Queste sono omesse di default per risparmiare spazio.
 
-I file `.skt` contengono informazioni strutturate sul codice. Ecco un piccolo esempio:
+Dovresti vedere un breve riassunto al termine del comando e una nuova directory `./skeleton` nella directory corrente.
+
+Elenca l'output:
+
+```bash
+ls ./skeleton
+```
+
+Dovresti vedere un file come `map_001.skt`.
+
+## 5. Leggere l'output
+
+Apri il file:
+
+```bash
+cat ./skeleton/map_001.skt
+```
+
+Dovresti vedere prima una sezione `[symbols]`. Un *simbolo* è un elemento nominato nel tuo codice, come una funzione, un tipo o un campo. I simboli sono raggruppati sotto un'intestazione `## <percorso del file>`. Il tuo output includerà righe come queste:
 
 ```skt
 [symbols]
-## src/main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {exported}
-S3 callable/function L10-L12 NewServer(addr: string) -> *S2 {exported}
-S4 callable/method L14-L19 Start() {receiver=*Server}
-
-[edges]
-S2 --contains--> S4
-S3 --returns--> S2
+## <path to>/console.go
+S1 module/package L5-L5 console
+S2 type/struct L17-L25 Console {exported}
+...
+S10 callable/function L28-L41 New() -> *S2 {exported}
+...
+S12 callable/method L49-L49 Error(msg: string) {exported, receiver=*Console}
 ```
 
-Sezioni chiave:
+Ogni riga ha le stesse parti:
 
-- `[symbols]`: Definizioni raggruppate per file, che mostrano nome, intervallo di righe e metadati
-- `[edges]`: Relazioni come `contains`, `calls`, `inherits` o `returns`
+| Parte | Esempio | Significato |
+| --- | --- | --- |
+| Short ID | `S10` | Un'etichetta breve per il simbolo, utilizzata altrove nell'output |
+| Categoria e tipo | `callable/function` | Che tipo di simbolo è |
+| Intervallo di righe | `L28-L41` | Le righe coperte dal simbolo nel file sorgente |
+| Firma | `New() -> *S2` | Il nome, i parametri e il tipo di ritorno |
+| Proprietà | `{exported}` | Dettagli aggiuntivi tra parentesi graffe |
 
-## 7. Passaggi successivi
+In `New() -> *S2`, `S2` è lo Short ID del tipo `Console`. codeknit sostituisce i nomi dei tipi con gli Short ID quando conosce il simbolo. I numeri di riga possono differire leggermente se la tua copia è più recente.
 
-Ora che hai eseguito il tuo primo parse:
+Scorri verso il basso fino alla sezione `[edges]`. Un *arco* è una relazione tra due simboli. Ogni riga di arco indica il simbolo di origine, il tipo di relazione e il simbolo o i simboli di destinazione:
 
-- Approfondisci il comando parse: [Guida al comando parse](/codeknit/it/guides/parse-command/)
-- Esplora l'analisi strutturale: [Guida ai comandi graph](/codeknit/it/guides/graph-commands/)
-- Comprendi il rilevamento dei duplicati: [Guida al comando fingerprint](/codeknit/it/guides/fingerprint-command/)
-- Leggi il formato di output completo: [Riferimento al formato di output](/codeknit/it/reference/output-format/)
-- Visualizza tutti i flag disponibili: [Riferimento ai flag CLI](/codeknit/it/reference/cli-flags/)
+```skt
+[edges]
+S2 --contains--> S4
+S4 --calls--> S5
+```
+
+Questo esempio mostra la struttura di una riga di arco. Significa che "`S2` contiene `S4`" e "`S4` chiama `S5`". Puoi cercare ogni Short ID nella sezione `[symbols]` per vedere a cosa si riferisce.
+
+## Cosa hai ottenuto
+
+Hai compilato codeknit, lo hai aggiunto al tuo `PATH`, eseguito `codeknit parse` e letto le sezioni `[symbols]` e `[edges]` dell'output `.skt`.
+
+## Passaggi successivi
+
+- Analizza il tuo progetto, scegli un layout di output diverso e riesegui in sicurezza: consulta la [guida al comando parse](../guides/parse-command/).
+- Visualizza e analizza la struttura del codice: consulta la [guida ai comandi graph](../guides/graph-commands/).
+- Trova codice duplicato e quasi duplicato: consulta la [guida al comando fingerprint](../guides/fingerprint-command/).
+- Consulta ogni parte del formato `.skt`: vedi il [riferimento al formato di output](../reference/output-format/).
+- Consulta ogni flag della riga di comando: vedi il [riferimento ai flag CLI](../reference/cli-flags/).

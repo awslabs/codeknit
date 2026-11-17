@@ -1,3 +1,8 @@
+DOCUMENT TYPE: Landing page
+AUDIENCE: First-time visitors deciding whether codeknit fits their need.
+USER GOAL: Understand what codeknit does in seconds and find the right next page.
+SCOPE: What codeknit is, its main capabilities, and links into the docs. Exclude detailed usage, flags, and output format details.
+
 Write a landing page (index.mdx) for the codeknit documentation site. This is the homepage.
 
 Start with this exact frontmatter:

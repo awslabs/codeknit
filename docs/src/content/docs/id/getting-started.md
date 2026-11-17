@@ -3,99 +3,123 @@ title: Memulai
 description: Mulai menggunakan codeknit dalam waktu kurang dari 5 menit.
 ---
 
-# Memulai
+Dalam tutorial ini, Anda akan membangun codeknit dari sumber, menjalankan parse pertama, dan membaca keluaran `.skt` yang dihasilkan. Anda akan mem-parsing paket kecil dari repositori codeknit, sehingga Anda tidak memerlukan proyek sendiri.
 
-Mulai menggunakan codeknit dalam waktu kurang dari 5 menit.
+## Prasyarat
 
-## 1. Prasyarat
+- **Go 1.26 atau lebih baru.** Jalankan `go version` untuk memeriksa.
+- **Kompiler C.** codeknit menggunakan tree-sitter, yang membutuhkan CGo.
+- **Git** dan **Make**.
 
-Anda memerlukan:
+## 1. Bangun codeknit
 
-- Go 1.26+
-- Kompilator C (CGo diperlukan untuk tree-sitter)
-
-## 2. Instalasi dari sumber
+Klona repositori dan bangun:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# Binary is at ./bin/codeknit
 ```
 
-## 3. Tambahkan ke PATH
+Anda akan melihat proses pembangunan selesai tanpa kesalahan, dan biner di `./bin/codeknit`.
 
-Tambahkan binary ke PATH shell Anda:
+## 2. Tambahkan codeknit ke PATH Anda
+
+Dari direktori `codeknit`, tambahkan `bin` ke `PATH` Anda menggunakan baris untuk shell Anda.
+
+Untuk bash atau zsh:
 
 ```bash
-# bash (~/.bashrc)
 export PATH="$PATH:$(pwd)/bin"
-
-# zsh (~/.zshrc)
-export PATH="$PATH:$(pwd)/bin"
-
-# fish (~/.config/fish/config.fish)
-fish_add_path $(pwd)/bin
 ```
 
-Muat ulang shell Anda atau jalankan `source ~/.bashrc` (atau `~/.zshrc`) agar perubahan berlaku.
+Untuk fish:
 
-## 4. Verifikasi instalasi
+```fish
+fish_add_path (pwd)/bin
+```
 
-Pastikan codeknit berfungsi:
+Ini berlaku untuk sesi bash atau zsh saat ini. Untuk menyimpannya untuk sesi berikutnya, tambahkan baris yang sama ke `~/.bashrc` atau `~/.zshrc`, dengan path absolut ke `bin` menggantikan `$(pwd)/bin`.
+
+## 3. Verifikasi instalasi
 
 ```bash
 codeknit --version
 ```
 
-## 5. Parse pertama
+Anda akan melihat versi codeknit tercetak.
 
-Jalankan parse pertama pada basis kode:
+## 4. Jalankan parse pertama Anda
 
-```bash
-codeknit parse ./myproject
-```
-
-Perintah ini:
-
-- Mem-parsing semua file sumber di `./myproject`
-- Mengekstrak informasi struktur kode (fungsi, kelas, hubungan)
-- Menulis file `.skt` yang telah di-chunk ke `./skeleton/` (direktori keluaran default)
-
-Jika Anda menjalankan perintah ini lagi, gunakan `--clean` untuk menghapus keluaran sebelumnya:
+Tetap di direktori `codeknit` dan parse paket `internal/console`:
 
 ```bash
-codeknit parse ./myproject --clean
+codeknit parse ./internal/console --edges
 ```
 
-## 6. Membaca keluaran
+codeknit memindai direktori, mem-parsing setiap file sumber yang didukung, dan menulis file `.skt`. *File `.skt`* adalah file teks ringkas yang mencantumkan simbol dalam kode Anda dan hubungan di antara mereka. Bendera `--edges` menambahkan hubungan. Hubungan ini dihilangkan secara default untuk menghemat ruang.
 
-File `.skt` berisi informasi kode terstruktur. Berikut contoh kecil:
+Anda akan melihat ringkasan singkat saat perintah selesai, dan direktori `./skeleton` baru di direktori saat ini.
+
+Daftar keluaran:
+
+```bash
+ls ./skeleton
+```
+
+Anda akan melihat file seperti `map_001.skt`.
+
+## 5. Baca keluaran
+
+Buka file:
+
+```bash
+cat ./skeleton/map_001.skt
+```
+
+Anda akan melihat bagian `[symbols]` terlebih dahulu. *Simbol* adalah item bernama dalam kode Anda, seperti fungsi, tipe, atau field. Simbol dikelompokkan di bawah heading `## <source file>`. Keluaran Anda mencakup baris seperti ini:
 
 ```skt
 [symbols]
-## src/main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {exported}
-S3 callable/function L10-L12 NewServer(addr: string) -> *S2 {exported}
-S4 callable/method L14-L19 Start() {receiver=*Server}
-
-[edges]
-S2 --contains--> S4
-S3 --returns--> S2
+## <path to>/console.go
+S1 module/package L5-L5 console
+S2 type/struct L17-L25 Console {exported}
+...
+S10 callable/function L28-L41 New() -> *S2 {exported}
+...
+S12 callable/method L49-L49 Error(msg: string) {exported, receiver=*Console}
 ```
 
-Bagian utama:
+Setiap baris memiliki bagian yang sama:
 
-- `[symbols]`: Definisi dikelompokkan berdasarkan file, menampilkan nama, rentang baris, dan metadata
-- `[edges]`: Hubungan seperti `contains`, `calls`, `inherits`, atau `returns`
+| Bagian | Contoh | Arti |
+| --- | --- | --- |
+| ShortID | `S10` | Label pendek untuk simbol, digunakan di tempat lain dalam keluaran |
+| Kategori dan jenis | `callable/function` | Jenis simbol apa itu |
+| Rentang baris | `L28-L41` | Baris yang dicakup simbol dalam file sumber |
+| Tanda tangan | `New() -> *S2` | Nama, parameter, dan tipe pengembalian |
+| Properti | `{exported}` | Detail tambahan dalam kurung kurawal |
 
-## 7. Langkah selanjutnya
+Dalam `New() -> *S2`, `S2` adalah ShortID dari tipe `Console`. codeknit mengganti nama tipe dengan ShortID ketika mengetahui simbolnya. Nomor baris dapat sedikit berbeda jika checkout Anda lebih baru.
 
-Setelah menjalankan parse pertama:
+Gulir ke bawah ke bagian `[edges]`. *Sisi* adalah hubungan antara dua simbol. Setiap baris sisi mencantumkan simbol sumber, jenis hubungan, dan simbol target atau simbol:
 
-- Pelajari lebih lanjut tentang perintah parse: [Panduan perintah parse](/codeknit/id/guides/parse-command/)
-- Jelajahi analisis struktur: [Panduan perintah graf](/codeknit/id/guides/graph-commands/)
-- Pahami deteksi duplikat: [Panduan perintah fingerprint](/codeknit/id/guides/fingerprint-command/)
-- Baca format keluaran lengkap: [Referensi format keluaran](/codeknit/id/reference/output-format/)
-- Lihat semua flag yang tersedia: [Referensi flag CLI](/codeknit/id/reference/cli-flags/)
+```skt
+[edges]
+S2 --contains--> S4
+S4 --calls--> S5
+```
+
+Contoh ini menunjukkan bentuk baris sisi. Ini berarti "`S2` contains `S4`" dan "`S4` calls `S5`". Anda dapat mencari setiap ShortID di `[symbols]` untuk melihat apa yang dirujuknya.
+
+## Apa yang telah Anda capai
+
+Anda telah membangun codeknit, menambahkannya ke `PATH`, menjalankan `codeknit parse`, dan membaca bagian `[symbols]` dan `[edges]` dari keluaran `.skt`.
+
+## Langkah selanjutnya
+
+- Parse proyek Anda sendiri, pilih tata letak keluaran yang berbeda, dan jalankan kembali dengan aman: lihat [panduan perintah parse](../guides/parse-command/).
+- Visualisasikan dan analisis struktur kode Anda: lihat [panduan perintah graf](../guides/graph-commands/).
+- Temukan kode duplikat dan hampir duplikat: lihat [panduan perintah fingerprint](../guides/fingerprint-command/).
+- Cari setiap bagian dari format `.skt`: lihat [referensi format keluaran](../reference/output-format/).
+- Cari setiap bendera baris perintah: lihat [referensi bendera CLI](../reference/cli-flags/).

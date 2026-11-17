@@ -3,99 +3,123 @@ title: Getting Started
 description: Get up and running with codeknit in under 5 minutes.
 ---
 
-# Getting Started
+In this tutorial you will build codeknit from source, run your first parse, and read the `.skt` output it writes. You will parse a small package from the codeknit repository, so you do not need a project of your own.
 
-Get up and running with codeknit in under 5 minutes.
+## Prerequisites
 
-## 1. Prerequisites
+- **Go 1.26 or later.** Run `go version` to check.
+- **A C compiler.** codeknit uses tree-sitter, which needs CGo.
+- **Git** and **Make**.
 
-You'll need:
+## 1. Build codeknit
 
-- Go 1.26+
-- A C compiler (CGo is required for tree-sitter)
-
-## 2. Installation from source
+Clone the repository and build:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# Binary is at ./bin/codeknit
 ```
 
-## 3. Add to PATH
+You should see the build finish without errors, and a binary at `./bin/codeknit`.
 
-Add the binary to your shell's PATH:
+## 2. Add codeknit to your PATH
+
+From the `codeknit` directory, add `bin` to your `PATH` using the line for your shell.
+
+For bash or zsh:
 
 ```bash
-# bash (~/.bashrc)
 export PATH="$PATH:$(pwd)/bin"
-
-# zsh (~/.zshrc)
-export PATH="$PATH:$(pwd)/bin"
-
-# fish (~/.config/fish/config.fish)
-fish_add_path $(pwd)/bin
 ```
 
-Reload your shell or run `source ~/.bashrc` (or `~/.zshrc`) for the change to take effect.
+For fish:
 
-## 4. Verify installation
+```fish
+fish_add_path (pwd)/bin
+```
 
-Check that codeknit is working:
+This applies to your current bash or zsh session. To keep it for later sessions, add the same line to `~/.bashrc` or `~/.zshrc`, with the absolute path to `bin` in place of `$(pwd)/bin`.
+
+## 3. Verify the installation
 
 ```bash
 codeknit --version
 ```
 
-## 5. First parse
+You should see the codeknit version printed.
 
-Run your first parse on a codebase:
+## 4. Run your first parse
 
-```bash
-codeknit parse ./myproject
-```
-
-This command:
-
-- Parses all source files in `./myproject`
-- Extracts structural information (functions, classes, relationships)
-- Writes chunked `.skt` files to `./skeleton/` (default output directory)
-
-If you re-run this command, use `--clean` to remove previous output:
+Stay in the `codeknit` directory and parse the `internal/console` package:
 
 ```bash
-codeknit parse ./myproject --clean
+codeknit parse ./internal/console --edges
 ```
 
-## 6. Reading the output
+codeknit scans the directory, parses each supported source file, and writes `.skt` files. A *`.skt` file* is a compact text file that lists the symbols in your code and the relationships between them. The `--edges` flag adds the relationships. They are left out by default to save space.
 
-The `.skt` files contain structured code information. Here's a small example:
+You should see a short summary when the command finishes, and a new `./skeleton` directory in your current directory.
+
+List the output:
+
+```bash
+ls ./skeleton
+```
+
+You should see a file such as `map_001.skt`.
+
+## 5. Read the output
+
+Open the file:
+
+```bash
+cat ./skeleton/map_001.skt
+```
+
+You should see a `[symbols]` section first. A *symbol* is a named item in your code, such as a function, type, or field. Symbols are grouped under a `## <source file>` heading. Your output includes lines like these:
 
 ```skt
 [symbols]
-## src/main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {exported}
-S3 callable/function L10-L12 NewServer(addr: string) -> *S2 {exported}
-S4 callable/method L14-L19 Start() {receiver=*Server}
-
-[edges]
-S2 --contains--> S4
-S3 --returns--> S2
+## <path to>/console.go
+S1 module/package L5-L5 console
+S2 type/struct L17-L25 Console {exported}
+...
+S10 callable/function L28-L41 New() -> *S2 {exported}
+...
+S12 callable/method L49-L49 Error(msg: string) {exported, receiver=*Console}
 ```
 
-Key sections:
+Each line has the same parts:
 
-- `[symbols]`: Definitions grouped by file, showing name, line span, and metadata
-- `[edges]`: Relationships like `contains`, `calls`, `inherits`, or `returns`
+| Part | Example | Meaning |
+| --- | --- | --- |
+| Short ID | `S10` | A short label for the symbol, used elsewhere in the output |
+| Category and kind | `callable/function` | What kind of symbol it is |
+| Line span | `L28-L41` | The lines the symbol covers in the source file |
+| Signature | `New() -> *S2` | The name, parameters, and return type |
+| Properties | `{exported}` | Extra details in braces |
 
-## 7. Next steps
+In `New() -> *S2`, `S2` is the short ID of the `Console` type. codeknit replaces type names with short IDs when it knows the symbol. Line numbers can differ slightly if your checkout is newer.
 
-Now that you've run your first parse:
+Scroll down to the `[edges]` section. An *edge* is a relationship between two symbols. Each edge line names the source symbol, the kind of relationship, and the target symbol or symbols:
 
-- Learn more about the parse command: [Parse command guide](../guides/parse-command/)
-- Explore structural analysis: [Graph commands guide](../guides/graph-commands/)
-- Understand duplicate detection: [Fingerprint command guide](../guides/fingerprint-command/)
-- Read the full output format: [Output format reference](../reference/output-format/)
-- See all available flags: [CLI flags reference](../reference/cli-flags/)
+```skt
+[edges]
+S2 --contains--> S4
+S4 --calls--> S5
+```
+
+This example shows the shape of an edge line. It means "`S2` contains `S4`" and "`S4` calls `S5`". You can look up each short ID in `[symbols]` to see what it refers to.
+
+## What you achieved
+
+You built codeknit, put it on your `PATH`, ran `codeknit parse`, and read the `[symbols]` and `[edges]` sections of the `.skt` output.
+
+## Next steps
+
+- Parse your own project, choose a different output layout, and re-run safely: see the [parse command guide](../guides/parse-command/).
+- Visualize and analyze your code structure: see the [graph commands guide](../guides/graph-commands/).
+- Find duplicate and near-duplicate code: see the [fingerprint command guide](../guides/fingerprint-command/).
+- Look up every part of the `.skt` format: see the [output format reference](../reference/output-format/).
+- Look up every command-line flag: see the [CLI flags reference](../reference/cli-flags/).

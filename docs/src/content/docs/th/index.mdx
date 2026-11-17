@@ -1,6 +1,6 @@
 ---
 title: codeknit
-description: เครื่องมือดึงโครงสร้างโค้ดแบบสแตติกสำหรับการรีแฟคเตอร์ด้วย LLM
+description: เครื่องมือสกัดโครงสร้างโค้ดแบบสแตติกสำหรับการรีแฟคเตอร์ที่ขับเคลื่อนด้วย LLM
 template: splash
 hero:
   tagline: แปลงซอร์สโค้ดเป็นแผนที่โครงสร้างขนาดกะทัดรัดที่ LLM สามารถใช้งานได้จริง
@@ -14,22 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+`codeknit` อ่านซอร์สโค้ดของคุณและเขียนแผนที่ขนาดกะทัดรัดของโครงสร้างโค้ด ได้แก่ ฟังก์ชัน คลาส เมธอด ตัวแปร และความสัมพันธ์ระหว่างกัน LLM สามารถอ่านแผนที่นี้ได้โดยตรง ทำให้สามารถวางแผนการรีแฟคเตอร์ข้ามไฟล์หลายร้อยไฟล์โดยไม่ต้องโหลดทุกไฟล์เข้าไปในบริบท
+
+## คุณสมบัติ
 
 <CardGrid>
   <Card title="12 ภาษา" icon="translate">
-    รองรับ C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala และ TypeScript
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala และ TypeScript ดูรายละเอียดใน [เอกสารอ้างอิงการรองรับภาษา](reference/language-support/)
   </Card>
   <Card title="เอาต์พุตขนาดกะทัดรัด" icon="document">
-    สร้างไฟล์ `.skt` ด้วยการย่อขนาดและหลายโหมดเอาต์พุต (inline, flat, tree) เพื่อการใช้งานบริบทของ LLM อย่างเหมาะสม
+    สกัดฟังก์ชัน คลาส เมธอด ตัวแปร และความสัมพันธ์ระหว่างกันลงในไฟล์ `.skt` ที่ออกแบบมาสำหรับหน้าต่างบริบทของ LLM การย่อขนาดแบบใช้พจนานุกรมช่วยประหยัดโทเค็นได้มากขึ้น เลือกโหมดเอาต์พุตได้จาก inline, directory-flat หรือ directory-tree [โหมดเอาต์พุต](guides/output-modes/)
   </Card>
   <Card title="การวิเคราะห์กราฟ" icon="random">
-    ตรวจจับการพึ่งพาแบบวนรอบ, ศูนย์กลาง, โค้ดที่ไม่ถูกใช้งาน, god classes, คอขวด และอื่นๆ โดยใช้ขั้นตอนวิธีโครงสร้าง 22 แบบ
+    อัลกอริทึม 22 แบบค้นหาการวนรอบ ฮับ โค้ดที่ไม่ใช้งาน god classes และคอขวด กราฟ HTML แบบโต้ตอบแสดงการเชื่อมต่อของสัญลักษณ์ ดูรายละเอียดใน [คู่มือคำสั่งกราฟ](guides/graph-commands/)
   </Card>
   <Card title="การตรวจจับรายการซ้ำ" icon="magnifier">
-    ค้นหารายการซ้ำและรายการที่เกือบซ้ำของโค้ดข้ามไฟล์และภาษาโดยใช้การทำ fingerprinting แบบ CTPH
+    การทำ fingerprinting ด้วย CTPH ค้นหารายการซ้ำและรายการที่เกือบซ้ำของโค้ดข้ามไฟล์และข้ามภาษา ดูรายละเอียดใน [คู่มือคำสั่ง fingerprint](guides/fingerprint-command/)
   </Card>
   <Card title="พร้อมสำหรับ AI" icon="rocket">
-    รวมทักษะในตัวสำหรับ Kiro และ Claude Code เพื่อให้ผู้ช่วย AI สามารถแปลงและวิเคราะห์โครงสร้างโค้ดได้อย่างอัตโนมัติ
+    ปลั๊กอินสำหรับ Claude Code, Codex และ Kiro เพิ่มทักษะ `codeknit` เพียงอย่างเดียวที่ติดตั้งไบนารีให้คุณโดยอัตโนมัติ ดูรายละเอียดใน [ใช้ codeknit กับผู้ช่วย AI](guides/ai-assistants/)
   </Card>
 </CardGrid>
+
+## ไปต่อที่ไหนดี
+
+### บทแนะนำ
+
+- [เริ่มต้นใช้งาน](getting-started/): แปลงโปรเจ็กต์แรกของคุณและอ่านผลลัพธ์
+
+### คู่มือวิธีการ
+
+- [ติดตั้ง codeknit](installation/)
+- [แปลงโค้ดเบส](guides/parse-command/)
+- [วิเคราะห์และแสดงภาพกราฟโค้ด](guides/graph-commands/)
+- [ค้นหารายการซ้ำของโค้ด](guides/fingerprint-command/)
+- [เลือกโหมดเอาต์พุต](guides/output-modes/)
+- [ใช้ codeknit กับผู้ช่วย AI](guides/ai-assistants/)
+
+### เอกสารอ้างอิง
+
+- [รูปแบบเอาต์พุต](reference/output-format/)
+- [แฟล็ก CLI](reference/cli-flags/)
+- [การรองรับภาษา](reference/language-support/)
+- [ความน่าเชื่อถือของการวิเคราะห์](reference/analysis-reliability/)

@@ -1,3 +1,8 @@
+DOCUMENT TYPE: Tutorial
+AUDIENCE: Developers new to codeknit, comfortable with a terminal and Git.
+USER GOAL: Build codeknit, run a first parse, and read the resulting .skt output in under 5 minutes.
+SCOPE: One path from zero to a first parse and a first look at the output. Exclude alternative install methods, every flag, and graph or fingerprint analysis beyond next-step links.
+
 Write a "Getting Started" guide for codeknit. Frontmatter:
 ---
 title: Getting Started

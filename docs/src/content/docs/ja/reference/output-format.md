@@ -1,60 +1,89 @@
 ---
 title: 出力フォーマットリファレンス
-description: codeknitが使用する.skt出力フォーマットの完全なリファレンスです。
+description: codeknitで使用される.skt出力フォーマットの完全なリファレンスです。
 ---
 
-`.skt`（skeleton）フォーマットは、`codeknit`が抽出したコード構造を表現するためのコンパクトで人間が読めるテキストフォーマットです。シンボル、関係性、メタデータを最小限の形式で含み、LLMの消費や構造分析に適しています。
+このページでは、`.skt`出力の文法と同等のJSON出力について説明します。関係性がどのように解決されるかについてのルールは、[言語サポートとAPI忠実度](../language-support/)を参照してください。
 
-`.skt`ファイルはセクションに分かれています。各セクションは角括弧で囲まれたヘッダーで始まります。セクションは任意の順序で現れることがありますが、`[symbols]`が通常最初に来ます。
+## 概要
+
+`.skt`ファイルはセクションで構成されるコンパクトなテキストファイルです。各セクションは角括弧で囲まれたヘッダ行で始まります。
+
+| セクション    | 存在する条件                                      | 内容                                          |
+| ------------- | ------------------------------------------------- | --------------------------------------------- |
+| `[symbols]`   | 常に                                              | ソースファイルごとにグループ化されたシンボル定義 |
+| `[edges]`     | `--edges`が設定されている場合                     | シンボル間の関係性                            |
+| `[errors]`    | スキャンまたはパースの診断が発生した場合          | 完全に処理できなかったファイル                |
+| `[dict]`      | `--minify`が設定されている場合                    | 繰り返しトークンに短縮コードをマッピングする辞書 |
+
+ディレクトリ出力モードでは、`[errors]`と`[dict]`は補助ファイル`warnings.skt`と`dict.skt`に書き込まれることがあります。`inline`モードでは、これらのセクションは他のセクションと同じ出力に表示されます。
+
+`--format json`は同じ情報を含むJSONドキュメントを生成します。詳細は[JSON出力](#json出力)を参照してください。
 
 ## [symbols]
 
-`[symbols]`セクションには、抽出されたすべてのシンボルがソースファイルごとにグループ化されてリストされています。各ファイルは`##`ヘッダーとそれに続くファイルパスで紹介されます。
+シンボルはソースファイルごとにグループ化されます。各グループは`## <path>`ヘッダ行で始まり、その後にシンボルごとに1行が続きます。
 
-### 行フォーマット
-
-各シンボルは以下の構造を持つ1行で表現されます：
-
+```skt
+[symbols]
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
 ```
-ShortID category/kind Lstart-Lend signature {properties}
+
+### シンボル行
+
+```text
+ShortID カテゴリ/種類 L開始-終了 シグネチャ {プロパティ}
 ```
 
-### フィールド
+| フィールド          | 説明                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `ShortID`           | 連続した識別子: `S1`、`S2`、`S3`など。エッジはこの値でシンボルを参照します。                       |
+| `カテゴリ/種類`     | シンボルの分類。詳細は[カテゴリと種類](#カテゴリと種類)を参照してください。                        |
+| `L開始-終了`        | ソースファイル内のシンボルの最初と最後の行。                                                       |
+| `シグネチャ`        | シンボル名。呼び出し可能なシンボルにはパラメータと戻り値の型が含まれます。詳細は[シグネチャ形式](#シグネチャ形式)を参照してください。 |
+| `{プロパティ}`      | 中括弧内のメタデータ。詳細は[プロパティ](#プロパティ)を参照してください。                          |
 
-- **ShortID**: 各シンボルに割り当てられた連続識別子（例：`S1`、`S2`、`S3`）。エッジや他のセクションで参照するために使用されます。
-- **category/kind**: シンボルのカテゴリと特定の種類をスラッシュで区切ったペア。
-- **Lstart-Lend**: シンボルが定義されているソースファイル内の行範囲（例：`L10-L15`）。
-- **signature**: シンボルの名前と型情報。シンボルの種類によってフォーマットが異なります：
-  - `name` — 型、値、モジュール用
-  - `name(params)` — 戻り値の型がないcallable用
-  - `name(params) -> returnType` — 戻り値の型があるcallable用
-- **{properties}**: 波括弧で囲まれたオプションのメタデータ。複数のプロパティはカンマで区切られます。
+シンボル行は1つの物理行に収まります。シグネチャ内の改行は`\n`と`\r`としてエスケープされます。
 
-### パラメータ
+シンボルIDは抽出が変更されると変わる可能性があります。異なる実行からのチャンクを混ぜるのではなく、すべての出力チャンクを一緒に再生成してください。これは特に0.5.0へのアップグレード時には重要です。シンボルIDと関係性解決の結果が変わる可能性があるためです。
 
-- 型のない言語：`paramName`
-- 型のある言語：`paramName: type`
-- 既知のシンボルと一致する型参照は、そのShortIDに置き換えられます（例：`config: S5`の代わりに`config: Config`）。
+### カテゴリと種類
+
+| カテゴリ     | 種類                                      | 例                                           |
+| ------------ | ----------------------------------------- | -------------------------------------------- |
+| `callable`   | function, method, constructor             | `callable/function`、`callable/method`       |
+| `type`       | class, interface, struct, enum            | `type/class`、`type/interface`               |
+| `value`      | variable, constant, field                 | `value/variable`、`value/constant`           |
+| `module`     | package, namespace                        | `module/package`                             |
+| `meta`       | type parameters, files, includes, metadata | `meta/type_parameter`、`meta/file`、`meta/include` |
+
+### シグネチャ形式
+
+| 形式                         | 使用対象                                  |
+| ---------------------------- | ----------------------------------------- |
+| `name`                       | 型、値、モジュール                        |
+| `name(params)`               | 戻り値の型がない呼び出し可能なシンボル    |
+| `name(params) -> returnType` | 戻り値の型がある呼び出し可能なシンボル    |
+
+パラメータは次のように記述されます:
+
+| 形式          | 使用対象                  |
+| ------------- | ------------------------- |
+| `name`        | 型がない言語              |
+| `name: type`  | 型がある言語              |
+
+型参照が既知のシンボルと一致する場合、型名はそのシンボルのShortIDに置き換えられます。例えば、`-> *S2`はシンボル`S2`へのポインタを参照します。
 
 ### プロパティ
 
-一般的なプロパティには以下が含まれます：
+プロパティはシグネチャの後に中括弧で表示され、カンマで区切られます。空の中括弧(`{}`)はシンボルにプロパティがないことを意味します。
 
-- `async`: `true`または`false`
-- `exported`: `true`または`false`
-- `static`: シンボルが静的である場合に存在
-- `visibility=public|private|protected`
-- `receiver=*TypeName`: メソッドの場合、レシーバーの型を示す
-
-### シンボルのカテゴリと種類
-
-| カテゴリ   | 種類                                      | 例                                           |
-| ---------- | ------------------------------------------ | -------------------------------------------- |
-| `callable` | function, method, constructor              | `callable/function`, `callable/method`       |
-| `type`     | class, interface, struct, enum             | `type/class`, `type/interface`               |
-| `value`    | variable, constant, field                  | `value/variable`, `value/constant`           |
-| `module`   | package, namespace                         | `module/package`                             |
-| `meta`     | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
+| プロパティ形式        | 例                     |
+| -------------------- | ----------------------- |
+| フラグ               | `exported`、`async`、`static` |
+| `キー=値`            | `visibility=public`、`receiver=*AuthService`、`exported=false`、`resolution=unresolved` |
 
 ### 例
 
@@ -70,19 +99,45 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-`[edges]`セクションは、`--edges`フラグが有効な場合に関係性を記録します。既知のエンドポイントはShortIDを使用します。シンボルに解決できないターゲットは名前として表示されることがあります。
+`[edges]`セクションはシンボル間の関係性をリストします。このセクションは`--edges`が指定された場合にのみ書き込まれます。
 
-### 行フォーマット
+### エッジ行
 
+```text
+FromID --種類--> ToID1, ToID2
+FromID --種類[unresolved]--> Target1, Target2
+FromID --種類[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
 ```
-FromID --kind--> ToID1, ToID2
-FromID --kind[unresolved]--> Target1, Target2
-FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
-```
 
-ステータスが省略されている場合、アナライザーが関係性を解決したことを意味します。`unresolved`は依存関係を確立できなかったことを、`ambiguous`は競合する解釈が可能であることを意味します。候補IDは可能性のあるターゲットを識別し、確認された接続ではありません。解決は構文とスコープに基づいており、コンパイラの保証ではありません。
+| 部分                     | 説明                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `FromID`                 | ソースエンドポイント。                                                        |
+| `種類`                   | 関係性の種類。詳細は[エッジの種類](#エッジの種類)を参照してください。         |
+| `[unresolved]`、`[ambiguous]` | オプションの解決マーカー。詳細は[解決マーカー](#解決マーカー)を参照してください。 |
+| `ToID1, ToID2`           | カンマで区切られた1つ以上のターゲット。                                       |
+| `[candidates=...]`       | あいまいなエッジの可能性のあるターゲット。括弧内にカンマ区切りのリストとして表示されます。 |
 
-ターゲットは、ソース、種類、解決、候補セットが一致する場合にのみグループ化されます。シンボルのない名前はソースファイルに対して相対的です。複雑な識別子は、エスケープされた引用符、バックスラッシュ、改行を含む引用符付きのフルIDを使用します。ShortIDに似たリテラル名は、フルIDとして引用する必要があります（例：`"app.go::S2"`）。シンボル定義は後続のファイルや出力チャンクに現れることがあります。
+ソース、種類、解決マーカー、候補セットが同一の場合にのみ、ターゲットは1行を共有します。エッジによって参照される定義は、後のファイルや出力チャンクで発生することがあります。すべてのチャンクを読み込んでからエッジを解釈してください。
+
+### 解決マーカー
+
+| マーカー         | 意味                                                                              |
+| -------------- | --------------------------------------------------------------------------------- |
+| なし           | アナライザが関係性を解決しました。                                                |
+| `[unresolved]` | アナライザが依存関係を確立できませんでした。                                      |
+| `[ambiguous]`  | 複数の解釈が可能なまま残っています。候補IDは可能性のあるターゲットをリストします。 |
+
+マーカーがないことはコンパイラの保証ではありません。候補IDは可能性のあるターゲットを識別し、確認された接続ではありません。不確実性は常にこのSKT文法で記述され、埋め込みJSONとしては記述されません。
+
+### エンドポイント形式
+
+| 形式                      | 使用時機                                                                                         | 例                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------- |
+| Short ID                  | エンドポイントまたは候補が既知のシンボルである場合。これには未解決のエッジのエンドポイントやインクルードシンボルが含まれます。 | `S4`、`S8`       |
+| ベア名                    | ターゲットにシンボルがない場合。名前はソースファイルに対して相対的です。                        | `Refresh`、`string`     |
+| 引用されたフルID          | IDが複雑であるか、リテラル名がShort IDに似ている場合。                                          | `"app.go::S2"`          |
+
+引用されたフルIDは引用符、バックスラッシュ、改行をエスケープします。`S2`のようなリテラル名はShort IDとして読み取られないように引用されたフルIDとして記述する必要があります。
 
 ```skt
 S4 --references[unresolved]--> string, bool
@@ -90,39 +145,43 @@ S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
 S6 --references[unresolved]--> "app.go::S2"
 ```
 
-### ファイルとインクルードのエンドポイント
+### エッジの種類
 
-C/C++のインクルードには明示的なメタデータシンボルがあります。ヘッダーのスペルはシンボルリストに一度だけ現れ、エッジはShortIDを使用しますが、ヘッダーの解決は未解決のままです：
+| 種類         | 意味                                         |
+| ------------ | ------------------------------------------- |
+| `calls`      | 関数/メソッドの呼び出し                     |
+| `contains`   | クラスがメソッドを含む、モジュールが関数を含む |
+| `inherits`   | クラスが他のクラスを継承する                 |
+| `implements` | クラスがインターフェースを実装する           |
+| `overrides`  | メソッドが親をオーバーライドする             |
+| `references` | シンボルが他のシンボルを参照する             |
+| `imports`    | モジュールが他のモジュールをインポートする   |
+| `decorates`  | デコレータがシンボルに適用される             |
+
+返された呼び出し可能なシンボルやコールバック引数は`references`として記録され、別の種類としては記録されません。
+
+### CおよびC++のファイルとインクルードシンボル
+
+CおよびC++のソースは`meta/file`および`meta/include`シンボルを生成するため、インクルード関係性にはShort IDが使用されます。各ヘッダのスペルはシンボルリストに一度だけ表示され、エッジはShort IDを使用します。ファイル内の繰り返しインクルードは1つのエンドポイントを共有します。
 
 ```skt
 [symbols]
 ## src/main.c
-S1 meta/file L1-L3 main.c
+S1 meta/file L1-L4 main.c
 S2 meta/include L1-L1 "config.h" {resolution=unresolved}
-S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
+S3 meta/include L2-L2 "utils.h" {resolution=unresolved}
+S4 meta/include L3-L3 <stdio.h> {resolution=unresolved}
 
 [edges]
-S1 --references[unresolved]--> S2, S3
+S1 --references[unresolved]--> S2, S3, S4
 ```
 
-インクルードシンボルは、解決されたヘッダー宣言ではなく、書かれたディレクティブを記録します。ファイル内の繰り返しインクルードはエンドポイントを共有します。ファイル/インクルードのメタデータは依存性ランキングやデッドコードの発見から除外されます。
+インクルードシンボルは書かれたディレクティブを記録します。これは解決されたヘッダ宣言を表すものではありません。
 
-不確実な関係性はパース出力に保持されますが、依存性メトリクスからは除外されます。グラフレポートには除外された関係性のカウントが表示され、HTMLビューアーでは個々の不確実なエッジを描画せずにそのカウントを表示します。
+### 分析と可視化への影響
 
-`0.5.0`にアップグレードする際は、すべての出力チャンクを一緒に再生成してください。シンボルIDと関係性の結果は変更される可能性があるため、異なる実行からのチャンクを混ぜてはいけません。
-
-### エッジの種類
-
-| 種類         | 意味                                         |
-| ------------ | -------------------------------------------- |
-| `calls`      | 関数/メソッドの呼び出し                      |
-| `contains`   | クラスがメソッドを含む、モジュールが関数を含む |
-| `inherits`   | クラスが他のクラスを継承する                 |
-| `implements` | クラスがインターフェースを実装する           |
-| `overrides`  | メソッドが親メソッドをオーバーライドする     |
-| `references` | シンボルが他のシンボルを参照する             |
-| `imports`    | モジュールが他のモジュールをインポートする   |
-| `decorates`  | デコレーターがシンボルに適用される           |
+- 不確実なエッジおよびファイル/インクルードのメタデータは依存性メトリクスに寄与しません。レポートには除外された関係性の数が表示されます。
+- HTMLグラフは解決されたリンクを描画し、不確実な関係性の数を表示します。個々の不確実なエッジは描画されません。
 
 ### 例
 
@@ -136,43 +195,29 @@ S24 --implements--> S19
 
 ## [errors]
 
-`[errors]`セクションには、完全にパースできなかったファイルがリストされます。
+`[errors]`セクションは完全に処理できなかったファイルをリストします。このセクションは診断が存在する場合にのみ表示されます。
 
-### フォーマット
-
-各行は`-`で始まり、ファイルパスとエラーメッセージが続きます：
-
+```text
+- <path>: <message>
 ```
-- path/to/file.go: syntax error at line 42
-```
-
-### 例
 
 ```skt
 [errors]
-- src/broken.go: unexpected token at line 10
-- tests/corner_case.py: unterminated string literal
+- path/to/broken.go: syntax error at line 42
 ```
 
 ## [dict]
 
-`[dict]`セクションは、`--minify`フラグが使用された場合にのみ表示されます。出力サイズを削減するために、繰り返し使用される文字列トークンを短い辞書コードにマッピングします。
+`[dict]`セクションは圧縮出力(`--minify`)でのみ表示されます。短縮コードを繰り返しトークンにマッピングします。
 
-### フォーマット
+| 部分       | 説明                                                                 |
+| ---------- | -------------------------------------------------------------------- |
+| `d0`、`d1`、… | 辞書コード。                                                        |
+| エントリ行 | `- <code>: <token>`                                                  |
 
-各行は辞書コード（`d0`、`d1`など）を展開された値にマッピングします：
+圧縮出力を読むには、各コードを辞書の値で置き換えます。コードは`[symbols]`内のカテゴリ/種類のペアやプロパティを置き換えることができます。また、`[edges]`内の関係性の種類も置き換えることができます。不確実性マーカーは読み取り可能なままです。例えば、`S1 --d2[unresolved]--> S3`は種類が`d2`の値である未解決のエッジです。
 
-```
-- d0: async=false
-- d1: callable/method
-- d2: exported
-```
-
-ファイルの残りの部分では、これらのコードが完全な値の代わりに使用されます。
-
-関係性の種類も辞書コードを使用できますが、ステータスラベルは読み取り可能なままです：`S1 --d2[unresolved]--> S3`。`d2`を辞書を使用して展開し、unresolvedステータスを保持します。
-
-### 例
+### 圧縮例
 
 ```skt
 [dict]
@@ -190,51 +235,37 @@ S3 d1 L5-L6 handle(request) {d0}
 S1 --contains--> S2, S3
 ```
 
+ここで`S2`は`callable/method`であり、プロパティ`async=false`を持っています。
+
 ## 完全な例
 
-```skt
-[dict]
-- d0: exported
-- d1: callable/function
+以下の出力には`[symbols]`、`[edges]`、および`[errors]`が含まれています。圧縮されていないため、`[dict]`セクションはありません。圧縮例は[圧縮例](#圧縮例)を参照してください。
 
+```skt
 [symbols]
-## main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {d0}
-S3 d1 L10-L12 NewServer(addr: string) -> *S2 {d0}
-S4 callable/method L14-L20 Serve() {d0, receiver=*Server}
-S5 callable/function L22-L25 handleError(err: error) -> bool {}
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
+S3 callable/function L10-L12 NewAuthService(secret: string, ttl: int) -> *S2 {exported}
+S4 callable/method L14-L19 Authenticate(token: string) {exported, receiver=*AuthService}
+S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
+## pkg/util/hash.go
+S6 callable/function L3-L5 Hash(data: string) -> string {exported}
+## pkg/util/hash_alt.go
+S7 callable/function L3-L5 Hash(data: string) -> string {exported}
 
 [edges]
+S1 --contains--> S2, S3, S4, S5
 S2 --contains--> S4
-S4 --calls--> S5
 S3 --references--> S2
+S4 --calls--> S5
+S4 --calls[unresolved]--> Refresh
+S5 --calls[ambiguous]--> Hash [candidates=S6, S7]
 
 [errors]
-- utils/broken.go: syntax error at line 5
+- pkg/legacy/broken.go: syntax error at line 42
 ```
 
-## JSON関係性
+## JSON出力
 
-スクリプトや統合が構造化された出力を必要とする場合は、JSONを使用します：
-
-```bash
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-各エッジには`from`、`to`、`kind`が含まれます。既知のソースIDは`from_short`に表示され、解決されたターゲットIDは`to_short`に表示されます。不確実なエッジは`resolution`を追加し、利用可能な場合は`candidates`にフルシンボルIDを含みます。ターゲットにインクルードメタデータシンボルがあっても、`to_short`は省略されます。
-
-例えば、曖昧な呼び出しは次のように表現できます：
-
-```json
-{
-  "from": "app.py::run",
-  "from_short": "S1",
-  "to": "app.py::Helper",
-  "kind": "calls",
-  "resolution": "ambiguous",
-  "candidates": ["helpers/a.py::Helper", "helpers/b.py::Helper"]
-}
-```
-
-JSONとSKTは、異なるエンコーディングで同じ不確実性を保持します。解決ルールと既知の制限については、[言語サポートとAPI忠実度](../language-support/)を参照してください。
+`--format json`

@@ -1,113 +1,126 @@
 ---
 title: AIアシスタントとの連携
-description: codeknitをKiro、Claude Code、およびその他のAIコーディングアシスタントのスキルとして設定する方法。
+description: Claude Code、Codex、Kiro用のcodeknitプラグインをインストールします。
 ---
 
-codeknitには、AIコーディングアシスタントが効果的に使用する方法を教える、すぐに使えるスキルが同梱されています。これらのスキルにより、アシスタントは手動でのプロンプトなしでコード構造の抽出、重複の検出、および構造分析を実行できます。
+Claude Code、Codex、またはKiroにcodeknitプラグインをインストールし、最新の状態に保ち、構造や重複コードに関する質問をアシスタントに行います。このプラグインには、`codeknit`という1つのスキルが含まれています。このスキルは、アシスタントに`codeknit parse`、`codeknit graph analyze`、`codeknit fingerprint`をいつ実行するか、そして`.skt`出力をどのように読み取るかを指示します。
 
-## スキルの概要
+`codeknit`バイナリを自分でインストールする必要はありません。スキルが初めて実行されると、バンドルされた`scripts/install-codeknit.sh`が実行され、以下の処理を行います：
 
-codeknitは2つのスキルを提供します：
+1. `codeknit`がすでに`PATH`または`~/.local/bin`に存在する場合は、即座に終了します。
+2. それ以外の場合は、お使いのOSとアーキテクチャに対応した最新のGitHubリリースをダウンロードします。
+3. ダウンロードをリリースの`checksums.txt`と照合して検証します。
+4. バイナリを`~/.local/bin`にインストールし、出力の最後の行に絶対パスを表示します。
 
-- **`codeknit-parse`**：アシスタントにコード構造（関数、クラス、メソッド、変数）と関係性（呼び出し、継承、包含）を`.skt`ファイルに抽出する方法を教えます。
-- **`codeknit-fingerprint`**：アシスタントにファジー・ハッシングを使用して重複および近似重複コードを検出する方法を教えます。
+`~/.local/bin`が`PATH`に含まれていない場合、アシスタントはセッションの残りの部分でそのフルパスを使用してcodeknitを呼び出します。
 
-各スキルには、アシスタントが使用方法、フラグ、出力形式、およびワークフローを理解するためにオンデマンドで読み取るドキュメントが含まれています。
+インストールを制御するには、以下の環境変数を設定します：
 
-## インストール
+| 変数 | 効果 |
+| --- | --- |
+| `CODEKNIT_VERSION` | リリースを固定します。例：`0.6.0`。 |
+| `CODEKNIT_INSTALL_DIR` | インストール場所を変更します。 |
 
-インストーラーヘルパーを使用して、スキルディレクトリをアシスタントのスキルフォルダにコピーします。インストーラーはバンドルされたスキルファイルのみをダウンロードするため、リポジトリをクローンする必要はありません。
+代わりに自分でバイナリをインストールする場合は、[インストール](../../installation/)を参照してください。
 
-**Codex**、**Kiro**、および**Claude Code**用にインストール：
+## プラグインのインストール
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
-```
+お使いのアシスタントに応じたセクションを選択してください。
 
-特定のアシスタント用にインストール：
+### Claude Code
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
-```
-
-ローカルチェックアウトからは、Makefileヘルパーを使用できます：
+シェルで以下のコマンドを実行します。Claude Codeセッション内では、`/plugin ...`として同じコマンドを実行します。
 
 ```bash
-make skills-install-dry-run
-make skills-install
+claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+claude plugin install codeknit@codeknit
 ```
 
-インストーラーは既存のスキルディレクトリをデフォルトでスキップします。置き換えるには、`--force`を追加します：
+### Codex
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+codex plugin add codeknit@codeknit
 ```
 
-インストール後、アシスタントは自動的にcodeknitコマンドの呼び出し方法、適切なフラグの選択、および`.skt`出力の解釈方法を理解します。
+### Kiro IDE
 
-## 各スキルが教える内容
+1. Powersパネルを開きます。
+2. **Add Custom Power**を選択し、**Import power from GitHub**を選択します。
+3. `https://github.com/awslabs/codeknit`を入力します。
 
-### codeknit-parse
+### Kiro CLI
 
-`codeknit-parse`スキルは、アシスタントに以下を教えます：
+Kiro CLIはローカルパスからインストールするため、まずリポジトリをクローンします：
 
-- 様々なシナリオに適したフラグで`codeknit parse`を実行する
-- 適切な出力モードを選択する：
-  - `directory-flat`（デフォルト）ほとんどのプロジェクト向け
-  - `inline` 単一ファイルまたは小さな入力向け
-  - `directory-tree` ソース構造をミラーリングするため
-- `.skt`出力ファイルを読み取り、解釈する。これには`[symbols]`、`[edges]`、およびオプションの`[dict]`セクションが含まれる
-- 構造データをリファクタリング、依存関係マッピング、およびコードレビューに使用する
-- `codeknit graph analyze`を実行して、より深いコード品質の洞察を得る（循環依存、ハブシンボル、god classesなど）
-
-### codeknit-fingerprint
-
-`codeknit-fingerprint`スキルは、アシスタントに以下を教えます：
-
-- `codeknit fingerprint`を使用して重複検出、DRY監査、およびリファクタ識別を行う
-- 適切な類似度範囲（`--min-similarity`、`--max-similarity`）を選択する
-- `[duplicates]`セクションを読み取り、近似重複コードを識別する
-- フィンガープリントは意味的な意図ではなく、構造的な形状を測定することを理解する
-- 必要に応じてOllama埋め込みで`--rerank`を使用して偽陽性を減らす
-
-## ワークフローの例
-
-### 構造分析
-
-1. アシスタントにコードベースの構造を分析するよう依頼する
-2. アシスタントが`codeknit parse ./src`を実行し、結果の`.skt`ファイルを読み取る
-3. アシスタントが構造的な質問に答える：依存関係、呼び出しチェーン、dead code
-4. より深い洞察のために、`codeknit graph analyze ./src`を実行し、レポートを解釈する
-
-```skt
-[symbols]
-## src/service.go
-S1 type/struct L5-L8 AuthService {}
-S2 callable/method L10-L15 Authenticate(token: string) {receiver=*AuthService}
-
-[edges]
-S1 --contains--> S2
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+git -C ~/.codeknit-power sparse-checkout set skills
+kiro-cli powers install ~/.codeknit-power
 ```
 
-### 重複検出
+### `--sparse`について
 
-1. アシスタントに重複コードを見つけるよう依頼する
-2. アシスタントが`codeknit fingerprint ./src`を実行する
-3. アシスタントが出力の`[duplicates]`セクションを読み取る
-4. アシスタントがフラグ付けされたペアを調査し、統合を提案する
+`--sparse`オプションは任意です。このオプションは、クローンをプラグインマニフェストと`skills/`に限定し、ソースツリー全体をクローンしません。
 
-```skt
-[duplicates]
-S1, S2: 87% 類似度
-S3, S4: 76% 類似度
-```
+### スキルを手動でインストール
+
+アシスタントがAgent Skillsを読み込むがプラグイン機能がない場合は、`skills/codeknit/`をアシスタントのスキルディレクトリにコピーします：
+
+- `~/.claude/skills/`
+- `~/.codex/skills/`
+- `~/.kiro/skills/`
+
+## プラグインの更新
+
+| アシスタント | コマンドまたは操作 |
+| --- | --- |
+| Claude Code | `claude plugin marketplace update codeknit` |
+| Codex | `codex plugin marketplace upgrade` |
+| Kiro IDE | Powersパネルで**Check for updates**を選択します。 |
+| Kiro CLI | `git -C ~/.codeknit-power pull`を実行し、再度`kiro-cli powers install ~/.codeknit-power`を実行します。 |
+
+プラグインの更新では、すでにインストールされているバイナリは更新されません。バイナリのバージョンを変更するには、上記のように`CODEKNIT_VERSION`を設定します。
+
+codeknitをアップグレードして抽出内容が変更された場合、シンボルIDも変更される可能性があります。異なる実行からのチャンクを混在させるのではなく、アシスタントにすべての出力を再生成させてください。
+
+## スキルがアシスタントに教えること
+
+このスキルは、アシスタントに以下のルールを教えるため、リクエストごとに繰り返す必要はありません：
+
+- **質問に応じてコマンドを選択。**
+  - `parse`は、何が存在し、どこにあり、何が何を呼び出し、継承し、または含んでいるかを回答します。
+  - `graph analyze`は、循環依存、ハブ、デッドコード、ゴッドクラス、ボトルネックを見つけます。
+  - `fingerprint`は、コピー＆ペーストやリファクタリングの候補を見つけます。
+- **デフォルトで`directory-flat`出力モードを使用。** アシスタントはチャンク化されたファイルを`./skeleton/`に書き込み、必要なチャンクのみを読み込みます。`inline`出力モードは、単一のファイルまたは少数のファイルに対してのみ使用します。これは、`inline`がすべてをコンテキストウィンドウにダンプするためです。
+- **構造に関する質問には、生のソースではなく`.skt`出力を読み取る。** アシスタントは、実装の詳細を検査または変更する場合にのみソースファイルを開き、出力の行範囲を使用します。スキルの`references/output-format.md`に完全なフォーマットが記載されています。[出力フォーマットリファレンス](../../reference/output-format/)も参照してください。
+- **類似度の範囲を選択し、マッチをシグナルとして扱う。** フィンガープリントは、意図ではなく構造的な形状を比較します。アシスタントは、リファクタリングを提案する前に、ペアの両方のシンボルを読み取ります。
+
+## 構造分析を依頼する
+
+1. アシスタントにコードベースの構造を分析させます。例：「`./src`の構造をマップし、authパッケージに依存しているモジュールを教えてください。」
+2. アシスタントはバイナリがインストールされていることを確認し、`codeknit parse`をエッジを有効にして実行し、`.skt`出力を読み取ります。
+3. 依存関係、呼び出しチェーン、またはデッドコードについてのフォローアップの質問をします。アシスタントは出力から回答します。
+4. より深い分析のために、構造レビューを依頼します。例：「`./src`の循環依存とゴッドクラスを見つけてください。」アシスタントは`codeknit graph analyze`を実行し、レポートを読み取ります。
+
+出力で`[unresolved]`または`[ambiguous]`とマークされた関係は不確定であり、確認された依存関係ではありません。これらに基づく回答は、検証が必要な候補として扱ってください。
+
+これらのリクエストの背後にあるコマンドについては、[parseコマンドガイド](../parse-command/)と[graphコマンドガイド](../graph-commands/)を参照してください。
+
+## 重複検出を依頼する
+
+1. アシスタントに重複コードを見つけさせます。例：「`./src`内のコピー＆ペーストされた関数を見つけてください。」
+2. アシスタントは`codeknit fingerprint`を実行し、`./skeleton/fingerprints.skt`の`[duplicates]`セクションを読み取ります。
+3. アシスタントは、フラグが付けられた各ペアの両方のシンボルを開き、リファクタリングを提案します。
+4. 結果がノイズの場合は、類似度の範囲を調整するか、セマンティックな再ランキングを追加するように依頼します。再ランキングには、プルされた埋め込みモデルを持つローカルのOllamaサーバーが必要です。
+
+これらのリクエストの背後にあるオプションについては、[fingerprintコマンドガイド](../fingerprint-command/)を参照してください。
 
 ## ヒント
 
-- **構造的な質問には、生のソースではなく`.skt`ファイルを読み取る** — これらは抽出された構造をコンパクトで信頼性の高い形式で含んでいる
-- `codeknit graph analyze`を使用して、循環依存、ハブシンボル、深い継承チェーンなどのコード品質の問題を発見する
-- 大規模なリファクタリングの前に`codeknit fingerprint`を実行して、統合すべきコピー＆ペーストされたコードを識別する
-- `.skt`形式はトークン効率が良く設計されており、LLMのコンテキストウィンドウに理想的
-- 大規模なコードベースを処理する際には、`--minify`を使用してトークン使用量をさらに削減する
+- 構造に関する質問には、生のソースではなく`.skt`ファイルを読み取るようにアシスタントにリマインドしてください。このフォーマットはコンパクトで、シンボル、関係、行範囲を含んでいるため、コンテキストを小さく保つことができます。
+- コード品質の洞察には`graph analyze`を使用します。発見事項はレビューの候補です。外部の呼び出し元や動的ディスパッチによって結果が変わる可能性があるためです。
+- 大規模なリファクタリングの前にfingerprintを実行し、統合すべきコピー＆ペーストを見つけます。
+- アシスタントがすでに`.skt`出力を含むディレクトリに`parse`を再実行する場合、codeknitは書き込みを拒否します。以前の出力を置き換えるために`--clean`を渡すように依頼してください。
+- バイナリのダウンロードが失敗した場合（オフラインまたはサポートされていないプラットフォーム）、[リリースページ](https://github.com/awslabs/codeknit/releases)から手動でリリースを取得するか、[インストール](../../installation/)を参照してください。
+- 実行が部分的な結果を報告した場合は、stderrと`[errors]`セクションを確認してください。詳細は[分析の信頼性](../../reference/analysis-reliability/)を参照してください。

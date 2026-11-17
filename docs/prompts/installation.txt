@@ -1,3 +1,8 @@
+DOCUMENT TYPE: How-to guide
+AUDIENCE: Developers who want codeknit on their machine.
+USER GOAL: Install codeknit, put it on PATH, enable shell completions, and verify it runs.
+SCOPE: Installation, PATH setup, completions, and verification. Exclude usage of the commands themselves.
+
 Write an "Installation" page for codeknit. Frontmatter:
 ---
 title: Installation
@@ -5,6 +10,8 @@ description: How to install codeknit on your system.
 ---
 
 Cover:
+
+0. Right after the intro, a Starlight tip aside (:::tip[Using an AI coding assistant?]) saying that Claude Code, Codex, and Kiro users can install the codeknit plugin instead, which downloads the binary on first use, linking to ../guides/ai-assistants/.
 
 1. From source (primary method):
    - Requires Go 1.26+ and a C compiler (CGo needed for tree-sitter)

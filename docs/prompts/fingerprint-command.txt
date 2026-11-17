@@ -1,3 +1,8 @@
+DOCUMENT TYPE: How-to guide
+AUDIENCE: Developers looking for duplicate or near-duplicate code before a refactor.
+USER GOAL: Find duplicate code, tune the similarity range, reduce false positives, and decide what to refactor.
+SCOPE: Tasks performed with codeknit fingerprint and how to interpret its output. Link to the CLI reference for exhaustive flags.
+
 Write a guide for the codeknit fingerprint command. Frontmatter:
 ---
 title: Fingerprint Command

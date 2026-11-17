@@ -1,169 +1,207 @@
 ---
 title: Graph-Befehle
-description: Visualisieren und analysieren Sie die Struktur Ihres Codebase mit Graph-Algorithmen.
+description: Visualisieren und analysieren Sie die Codestruktur Ihres Projekts mit Graphalgorithmen.
 ---
 
-codeknit bietet Graph-Befehle zur Visualisierung der Struktur, zur Durchführung automatisierter Analysen und zur Kombination des aktuellen Abhängigkeitsgraphen mit der Git-Änderungshistorie.
+Verwenden Sie die `graph`-Unterbefehle, um zu sehen, wie Ihr Code verbunden ist, strukturelle Probleme zu finden und zu entscheiden, welche Dateien zuerst refaktorisiert werden sollten. Dieser Leitfaden setzt voraus, dass Sie [codeknit installiert haben](../../installation/) und [`codeknit parse`](../parse-command/) ausführen können.
 
-## graph show
+| Aufgabe | Befehl |
+| --- | --- |
+| Den Graphen visuell erkunden | `codeknit graph show` |
+| Strukturelle Probleme finden | `codeknit graph analyze` |
+| Volatile, wichtige Dateien finden | `codeknit graph hotspots` |
 
-Erzeugt eine interaktive HTML-Graph-Visualisierung Ihres Codebase.
+## Visualisieren des Codegraphen
 
-```bash
-codeknit graph show <input-path>
-```
-
-Dieser Befehl parst Ihr Codebase und erzeugt eine eigenständige HTML-Datei mit einer interaktiven Graph-Visualisierung. Symbole (Funktionen, Klassen, Typen) erscheinen als Knoten, und ihre Beziehungen (Aufrufe, enthält, implementiert) als Kanten. Die Visualisierung öffnet sich automatisch in Ihrem Standardbrowser.
-
-Der Viewer zeichnet aufgelöste Beziehungen. Er zeigt eine Unsicherheitsanzahl an, zeichnet jedoch keine einzelnen unaufgelösten oder mehrdeutigen Beziehungen oder deren Kandidatenlinks. Überprüfen Sie diese Beziehungen mit der Parse-Ausgabe:
+`graph show` parst die Eingabe und schreibt eine eigenständige HTML-Datei. Symbole (Funktionen, Klassen, Typen) sind Knoten. Beziehungen (Aufrufe, enthält, implementiert) sind Kanten.
 
 ```bash
-codeknit parse ./src --output-mode inline --edges
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-### Flags
-
-| Flag             | Standardwert                     | Beschreibung                                  |
-| ---------------- | -------------------------------- | -------------------------------------------- |
-| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Pfad zur Ausgabe-HTML-Datei                  |
-| `--collect-test` | `false`                          | Testdateien in die Analyse einbeziehen       |
-| `--workers`      | `NumCPU`                         | Maximale Anzahl paralleler Parsing-Goroutinen|
-| `--verbose`      | `false`                          | Fortschrittsinformationen während der Verarbeitung anzeigen |
-
-### Beispiele
-
-```bash
-# Generate default visualization
 codeknit graph show ./myproject
+```
 
-# Custom output file
+Die Datei wird nach `./skeleton/codeknit-graph.html` geschrieben und öffnet sich in Ihrem Standardbrowser.
+
+Um den Ausgabepfad zu wählen oder Testdateien einzuschließen:
+
+```bash
 codeknit graph show ./myproject -o graph.html
-
-# Include test files
 codeknit graph show ./src --collect-test
 ```
 
-## graph analyze
+| Flag | Standardwert | Zweck |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Pfad zur HTML-Ausgabedatei |
+| `--collect-test` | `false` | Testdateien einschließen |
+| `--workers` | `0` (`NumCPU`) | Maximale Anzahl gleichzeitiger Parsing-Goroutinen |
+| `--verbose` | `false` | Fortschrittsinformationen ausgeben |
 
-Führt strukturelle Graph-Algorithmen auf Ihrem Codebase aus und erzeugt einen LLM-lesbaren `.skt`-Bericht mit Codequalitäts-Einsichten.
+### Unaufgelöste Beziehungen inspizieren
+
+Der Viewer zeichnet nur aufgelöste Beziehungen. Er zeigt eine Anzahl unsicherer (`unresolved` oder `ambiguous`) Beziehungen an, zeichnet sie jedoch nicht oder deren Kandidatenlinks.
+
+Um einzelne unsichere Kanten zu sehen, führen Sie `parse` mit `--edges` aus:
 
 ```bash
-codeknit graph analyze <input-path>
+codeknit parse ./src --output-mode inline --edges
 ```
 
-Dieser Befehl meldet Kandidaten zur Überprüfung, einschließlich zyklischer Abhängigkeiten, Hub-Symbolen, totem Code, God-Klassen und architektonischen Engpässen.
+Fügen Sie `--format json` für die JSON-Ausgabe hinzu. Informationen dazu, wie Kanten und Kandidaten geschrieben werden, finden Sie im [Referenzhandbuch zum Ausgabeformat](../../reference/output-format/).
 
-### Algorithmen
+## Struktur analysieren und Probleme finden
 
-Die Analyse umfasst 22 strukturelle Graph-Algorithmen:
-
-- Zyklische Abhängigkeiten (Tarjans SCC)
-- Hub-Erkennung (hohe Fan-in/Fan-out-Kopplung)
-- Waisen-Erkennung (Kandidaten für toten Code)
-- God-Klasse/Funktion-Erkennung (übermäßige Kinder)
-- Instabilitätsmetrik (Robert C. Martins Ce/(Ca+Ce))
-- Tiefe Vererbungsketten
-- Betweenness-Zentralität (Engpass-Erkennung)
-- Artikulationspunkte (einzelne Fehlerpunkte)
-- PageRank (rekursive Wichtigkeit)
-- Transitives Fan-in (Auswirkungsradius)
-- Änderungssimulation
-- Zirkuläre Paketabhängigkeiten
-- Schichtverletzungserkennung
-- Erreichbarkeit von Einstiegspunkten
-- Schwach verbundene Komponenten
-- Abhängigkeitsgewicht (Paketkopplungsstärke)
-- Abstand von der Main Sequence (A+I-Balance)
-- Schrotflinten-Chirurgie-Erkennung
-- Feature-Neid-Erkennung
-- Stabile Abhängigkeitsverletzungen
-- Interface-Segregationsverletzungen
-- Containment-Tiefe
-
-### Interpretation des Berichts
-
-Abhängigkeitsmetriken verwenden aufgelöste Beziehungen. Der Bericht zählt ausgeschlossene unaufgelöste und mehrdeutige Beziehungen. Datei-/Include-Metadaten sind von Abhängigkeitsrankings und Dead-Code-Findings ausgeschlossen.
-
-- Fan-in und Fan-out zählen unterschiedliche Nachbarn. Wiederholte Beziehungen erhöhen diese Zählungen nicht, und Containment gilt nicht als Abhängigkeit.
-- Vererbungstiefe berücksichtigt alle Basen und Interfaces. Zyklische Hierarchien wird keine Tiefe zugewiesen.
-- Erreichbarkeit beginnt bei Callables mit den Namen `main`, `Main` oder `init` und folgt Abhängigkeitskanten. Das Erreichen eines Mitglieds macht seinen Container relevant, ohne jedes Geschwisterkind als erreichbar zu markieren. Ohne einen erkannten Einstiegspunkt werden Erreichbarkeits-Findings ausgelassen.
-- Callback-Argumente und zurückgegebene Callables sind Referenzen, kein Beweis dafür, dass der Callback ausgeführt wird.
-- Änderungssimulation verwendet den stärksten Abhängigkeitspfad. Ihre Scores und verzeichnisbasierten Schichtregeln sind Heuristiken, keine gemessenen Wahrscheinlichkeiten.
-
-Externe Aufrufer, dynamische Dispatches und Abhängigkeiten außerhalb des Scans können die Schlussfolgerungen ändern. Weitere Informationen finden Sie unter [Sprachunterstützung und API-Treue](../../reference/language-support/).
-
-### Flags
-
-| Flag                      | Standardwert                     | Beschreibung                                              |
-| ------------------------- | ------------------------------- | -------------------------------------------------------- |
-| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Pfad zur `.skt`-Ausgabedatei                             |
-| `--collect-test`          | `false`                         | Testdateien in die Analyse einbeziehen                   |
-| `--workers`               | `NumCPU`                        | Maximale Anzahl paralleler Parsing-Goroutinen            |
-| `--verbose`               | `false`                         | Fortschrittsinformationen während der Verarbeitung anzeigen |
-| `--fan-threshold`         | `10`                            | Mindest-Fan-in oder Fan-out, um ein Hub-Symbol zu kennzeichnen |
-| `--god-threshold`         | `15`                            | Mindestanzahl von Contains-Kanten, um eine God-Klasse/Funktion zu kennzeichnen |
-| `--max-inheritance-depth` | `5`                             | Vererbungsketten kennzeichnen, die tiefer sind als dieser Wert |
-| `--top-n`                 | `30`                            | Begrenzung der gerankten Ausgabesektionen; 0 = keine Begrenzung |
-| `--betweenness-threshold` | `0.001`                         | Mindestwert der Betweenness-Zentralität, der gemeldet wird |
-| `--propagation-cutoff`    | `0.05`                          | Mindest-Heuristik-Score, um die Änderungssimulation fortzusetzen |
-
-### Beispiele
+`graph analyze` führt 22 Graphalgorithmen aus und schreibt einen LLM-lesbaren `.skt`-Bericht.
 
 ```bash
-# Run structural analysis with defaults
 codeknit graph analyze ./myproject
+```
 
-# Custom output and thresholds
+Der Bericht wird nach `./skeleton/graph_analysis.skt` geschrieben. Lesen Sie ihn direkt oder geben Sie ihn zusammen mit dem relevanten Quellcode an ein LLM weiter.
+
+### Den Bericht anpassen
+
+Erhöhen Sie einen Schwellenwert, um weniger Ergebnisse zu sehen, oder senken Sie ihn, um mehr zu sehen:
+
+```bash
 codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
-
-# Show more results per section
-codeknit graph analyze ./myproject --top-n 50
-
-# Remove the cap on ranked sections
-codeknit graph analyze ./myproject --top-n 0
-
-# Include test files
+codeknit graph graph analyze ./myproject --top-n 50
 codeknit graph analyze ./src --collect-test
 ```
 
-## graph hotspots
+`--top-n 0` entfernt die Obergrenze für gerankte Abschnitte.
 
-Rankt Dateien, die sowohl häufig geändert als auch strukturell wichtig sind:
+| Flag | Standardwert | Zweck |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/graph_analysis.skt` | Pfad zur `.skt`-Ausgabedatei |
+| `--collect-test` | `false` | Testdateien einschließen |
+| `--workers` | `0` (`NumCPU`) | Maximale Anzahl gleichzeitiger Parsing-Goroutinen |
+| `--verbose` | `false` | Fortschrittsinformationen ausgeben |
+| `--fan-threshold` | `10` | Mindest-Fan-in oder Fan-out, um ein Hub-Symbol zu kennzeichnen |
+| `--god-threshold` | `15` | Mindestanzahl von Contains-Kanten, um eine god class oder Funktion zu kennzeichnen |
+| `--max-inheritance-depth` | `5` | Kennzeichnet Vererbungsketten, die tiefer als dieser Wert sind |
+| `--top-n` | `30` | Obergrenze für gerankte Abschnitte; `0` bedeutet keine Grenze |
+| `--betweenness-threshold` | `0.001` | Mindest-Betweenness-Centrality für die Berichterstattung |
+| `--propagation-cutoff` | `0.05` | Mindest-heuristischer Score für die Fortsetzung der Änderungsausbreitung |
+
+### Wissen, welche Antwort welche Frage beantwortet
+
+| Algorithmus | Dient zum Finden von |
+| --- | --- |
+| Zyklische Abhängigkeiten (Tarjans SCC) | Gruppen von Symbolen, die in einer Schleife voneinander abhängen |
+| Hub-Erkennung | Symbole mit hoher Fan-in- oder Fan-out-Kopplung |
+| Waisen-Erkennung | Kandidaten für dead code |
+| Erkennung von god classes/Funktionen | Symbole, die eine übermäßige Anzahl von Kindern enthalten |
+| Instabilitätsmetrik | Symbole und Pakete, die fragil oder stabil sind, unter Verwendung von Ce/(Ca+Ce) |
+| Tiefe Vererbungsketten | Hierarchien, die tiefer als `--max-inheritance-depth` sind |
+| Betweenness-Centrality | Engpass-Symbole, durch die viele Abhängigkeitspfade verlaufen |
+| Artikulationspunkte | Einzelne Fehlerpunkte, deren Entfernung den Graphen aufteilt |
+| PageRank | Symbole, die rekursiv wichtig sind |
+| Transitives Fan-in | Auswirkungsradius: alles, was direkt oder indirekt von einem Symbol abhängt |
+| Änderungsausbreitungssimulation | Wie weit sich eine Änderung an einem Symbol wahrscheinlich ausbreitet |
+| Zirkuläre Paketabhängigkeiten | Paketabhängigkeitsschleifen auf Paketebene |
+| Schichtverletzungserkennung | Abhängigkeiten, die Schichten in die falsche Richtung durchqueren |
+| Erreichbarkeit von Einstiegspunkten | Code, den kein Einstiegspunkt erreicht |
+| Schwach verbundene Komponenten | Isolierte Codecluster |
+| Abhängigkeitsgewicht | Wie stark Pakete gekoppelt sind |
+| Abstand von der Main Sequence | Pakete, deren Abstraktheit und Instabilität aus dem Gleichgewicht sind |
+| Erkennung von Schrotflinten-Chirurgie | Änderungen, die viele Stellen in einem Paket betreffen würden |
+| Erkennung von Feature Envy | Symbole, die ein anderes Paket mehr nutzen als ihr eigenes |
+| Verstöße gegen stabile Abhängigkeiten | Stabile Pakete, die von weniger stabilen abhängen |
+| Verstöße gegen Interface-Segregation | Schnittstellen, deren Mitglieder meist von ihren Nutzern ungenutzt bleiben |
+| Containment-Tiefe | Tief verschachtelte Symbole |
+
+### Ergebnisse richtig lesen
+
+Diese Regeln beeinflussen, wie sehr Sie einem Ergebnis vertrauen können:
+
+- **Unsichere Beziehungen werden ausgeschlossen.** Abhängigkeitsmetriken verwenden nur aufgelöste Kanten. Der Bericht zählt die `unresolved` und `ambiguous` Beziehungen, die ausgelassen wurden.
+- **Datei- und Include-Metadaten werden ignoriert.** `meta/file`- und `meta/include`-Symbole beeinflussen keine Abhängigkeitsrankings oder Dead-Code-Ergebnisse.
+- **Fan-in und Fan-out zählen unterschiedliche Nachbarn.** Containment zählt nicht als Abhängigkeit.
+- **Vererbungstiefe umfasst alle Basen und Schnittstellen.** Zyklische Hierarchien wird keine Tiefe zugewiesen.
+- **Erreichbarkeit beginnt bei `main`-, `Main`- oder `init`-Callable** und folgt Abhängigkeitskanten. Ein erreichbares Mitglied macht seinen Container relevant, aber nicht seine Geschwistermitglieder. Wenn der Scan keinen erkannten Einstiegspunkt findet, werden Erreichbarkeitsergebnisse ausgelassen.
+- **Callbacks sind Referenzen, keine Aufrufe.** Ein Callback-Argument oder zurückgegebener Callable beweist nicht, dass der Callback ausgeführt wird.
+- **Scores sind Heuristiken.** Die Änderungsausbreitung verwendet den stärksten Abhängigkeitspfad. Ihre Scores und die Schichtregeln sind keine gemessenen Wahrscheinlichkeiten oder Compiler-Garantien.
+
+### Sicher auf Ergebnisse reagieren
+
+Behandeln Sie jedes Ergebnis als Kandidaten für eine Überprüfung. Bevor Sie Code ändern, öffnen Sie die Symbole, die der Bericht nennt, und prüfen Sie auf:
+
+- Externe Aufrufer außerhalb des gescannten Verzeichnisses.
+- Dynamische Dispatch.
+- Abhängigkeiten, die Sie nicht gescannt haben.
+
+Die Analyse ist syntaxbasiert, daher kann jeder dieser Punkte die Schlussfolgerung ändern. Informationen zu den Auflösungsregeln und -grenzen finden Sie unter [Beziehungsauflösung im Referenzhandbuch zur Sprachunterstützung](../../reference/language-support/#relationship-resolution).
+
+## Geschichtebewusste Hotspots finden
+
+`graph hotspots` ordnet Dateien, die sich oft ändern und strukturell wichtige Positionen einnehmen. Es berichtet auch über temporale Kopplung: Dateien, die sich wiederholt in denselben Commits ändern. Führen Sie es in einem Verzeichnis innerhalb eines Git-Repositorys aus.
 
 ```bash
-codeknit graph hotspots <input-path>
+codeknit graph hotspots ./myproject
 ```
 
-Der Score kombiniert Commit-Häufigkeit, Line Churn und Aktualität mit Datei-Level PageRank, transitivem Fan-in und Betweenness-Zentralität. Der Bericht identifiziert auch temporale Kopplung zwischen Dateien, die wiederholt in denselben Commits geändert werden.
+Der Bericht wird nach `./skeleton/hotspots.skt` geschrieben.
 
-Merge-Commits sind standardmäßig ausgeschlossen. Commits, die mehr als 50 Dateien ändern, werden ebenfalls ausgeschlossen, damit generierte, vendorte oder mechanische Massenänderungen die Ergebnisse nicht verzerren.
+Er kombiniert zwei Gruppen von Metriken:
 
-### Flags
+- **Geschichte:** Commit-Häufigkeit, hinzugefügte und gelöschte Zeilenänderungen (Churn) und Aktualität.
+- **Struktur:** Datei-Ebene PageRank, transitives Fan-in und Betweenness.
 
-| Flag                     | Standardwert               | Beschreibung                                     |
-| ------------------------ | ------------------------- | ----------------------------------------------- |
-| `-o`, `--output`         | `./skeleton/hotspots.skt` | Pfad zur Ausgabedatei                           |
-| `--format`               | `skt`                     | Ausgabeformat: `skt` oder `json`                |
-| `--since`                | `12mo`                    | Zeitfenster der Historie, z. B. `180d`, `12mo` oder `2y` |
-| `--max-commits`          | `2000`                    | Maximale Anzahl zu prüfender Commits            |
-| `--max-files-per-commit` | `50`                      | Commits ausschließen, die mehr Dateien ändern   |
-| `--min-cochanges`        | `3`                       | Mindestanzahl gemeinsamer Commits für temporale Kopplung |
-| `--top-n`                | `30`                      | Maximale Ergebnisse pro Berichtsabschnitt       |
-| `--include-merges`       | `false`                   | Merge-Commits einbeziehen                       |
-| `--collect-test`         | `false`                   | Testdateien einbeziehen                         |
-| `--workers`              | `NumCPU`                  | Maximale Anzahl paralleler Parsing-Goroutinen   |
-| `--verbose`              | `false`                   | Fortschrittsinformationen anzeigen              |
+Der Bericht enthält ein Konfidenzniveau basierend auf der Anzahl der analysierten relevanten Commits. Behandeln Sie Rankings aus einem Bericht mit geringer Konfidenz als vorläufig.
 
-### Beispiele
+### Das Geschichtsfenster und Filter ändern
 
 ```bash
-# Analyze the last 12 months
-codeknit graph hotspots ./myproject
-
-# Analyze two years and emit JSON
+# Zwei Jahre analysieren und JSON schreiben
 codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
 
-# Include larger commits and require stronger coupling
+# Größere Commits zulassen und stärkere temporale Kopplung erfordern
 codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```
+
+Merge-Commits werden ausgeschlossen, es sei denn, Sie übergeben `--include-merges`. Commits, die mehr Dateien ändern als `--max-files-per-commit`, werden als Massen-Commits übersprungen, sodass generierte oder mechanische Änderungen das Ranking nicht verzerren.
+
+| Flag | Standardwert | Zweck |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/hotspots.skt` | Pfad zur Ausgabedatei |
+| `--format` | `skt` | Ausgabeformat: `skt` oder `json` |
+| `--since` | `12mo` | Geschichtsfenster, z. B. `180d`, `12mo` oder `2y` |
+| `--max-commits` | `2000` | Maximale Anzahl zu inspizierender Commits |
+| `--max-files-per-commit` | `50` | Commits ausschließen, die mehr Dateien ändern als dieser Wert |
+| `--min-cochanges` | `3` | Mindestanzahl gemeinsamer Commits, um temporale Kopplung zu berichten |
+| `--top-n` | `30` | Maximale Ergebnisse pro Abschnitt |
+| `--include-merges` | `false` | Merge-Commits in Geschichtskennzahlen einschließen |
+| `--collect-test` | `false` | Testdateien einschließen |
+| `--workers` | `0` (`NumCPU`) | Maximale Anzahl gleichzeitiger Parsing-Goroutinen |
+| `--verbose` | `false` | Fortschrittsinformationen ausgeben |
+
+### Die JSON-Ausgabe lesen
+
+Mit `--format json` hat jeder Hotspot `score`, `history_score`, `structure_score`, `recency_score`, `pagerank`, `betweenness`, `commits`, `churn` und `transitive_fan_in`. Jeder Eintrag zur temporalen Kopplung hat `left`, `right`, `strength` und `co_changes`. Die oberste Ebene zeichnet auch `commits_visited`, `commits_analyzed`, `skipped_merges` und `skipped_bulk_commits` auf. Verwenden Sie diese Zählungen, um zu prüfen, auf wie viel Geschichte das Ranking basiert.
+
+## Steuern, welche Quellen gescannt werden
+
+Alle fünf quellverarbeitenden Befehle (`parse`, `fingerprint`, `graph show`, `graph analyze` und `graph hotspots`) akzeptieren dieselben Auswahl-Flags:
+
+| Flag | Standardwert | Zweck |
+| --- | --- | --- |
+| `--include GLOB` | Alle unterstützten Quellen | Pfade einschließen, die dem Muster entsprechen; wiederholbar |
+| `--exclude GLOB` | Keine | Pfade oder Verzeichnisse ausschließen, die dem Muster entsprechen; wiederholbar. Ausschlüsse haben Vorrang vor Einschlüssen |
+| `--max-file-size BYTES` | `10485760` (10 MiB) | Größere Dateien überspringen; `0` deaktiviert das Limit |
+| `--strict` | `false` | Fehlschlagen, bevor die Ausgabe geschrieben wird, wenn der Scan oder das Parsen unvollständig ist |
+
+Muster sind gitignore-artige Globs relativ zum Eingabeverzeichnis. Setzen Sie sie in Anführungszeichen, damit Ihre Shell sie nicht expandiert. Einschlüsse überschreiben nicht `.gitignore`-Regeln oder Testfilterung.
+
+```bash
+codeknit graph analyze ./src --include '**/*.go' --exclude '**/generated/' --strict
+```
+
+Symbolische Links und nicht reguläre Dateien werden übersprungen und gemeldet. Scan- und Parse-Probleme erscheinen auf stderr. Ohne `--strict` behält codeknit nutzbare Teilergebnisse bei, daher sollten Sie stderr prüfen, bevor Sie einem Bericht vertrauen. Mit `--strict` stoppt eine unvollständige Analyse, bevor eine Ausgabe geschrieben wird. Ein Durchlauf, bei dem jede Quelldatei fehlschlägt, schlägt immer fehl.
+
+Für die genauen Garantien siehe die [Referenz zur Analysezuverlässigkeit](../../reference/analysis-reliability/).
+
+## Verwandte Seiten
+
+- [Referenz zu CLI-Flags](../../reference/cli-flags/): Jedes Flag für jeden Befehl.
+- [Referenz zum Ausgabeformat](../../reference/output-format/): `.skt`- und JSON-Syntax.
+- [Referenz zur Sprachunterstützung](../../reference/language-support/): Extraktions- und Auflösungsgrenzen.
+- [Anleitung zum Parse-Befehl](../parse-command/): Symbole und Kanten für einzelne Dateien extrahieren.

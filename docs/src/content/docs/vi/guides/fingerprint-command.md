@@ -1,139 +1,190 @@
 ---
 title: Lệnh Fingerprint
-description: Phát hiện mã trùng lặp và gần trùng lặp trên các tệp và ngôn ngữ bằng cách sử dụng fuzzy hashing.
+description: Phát hiện mã trùng lặp và gần trùng lặp trên các tệp và ngôn ngữ bằng fuzzy hashing.
 ---
 
-Lệnh `codeknit fingerprint` phát hiện mã trùng lặp và **gần trùng lặp** trên codebase của bạn bằng cách sử dụng **Context-Triggered Piecewise Hashing (CTPH)**. Nó hoạt động trên nhiều tệp và thậm chí trên nhiều ngôn ngữ lập trình bằng cách chuẩn hóa tên biến, chuỗi ký tự và chú thích kiểu trước khi tính toán **fingerprint cấu trúc**.
+`codeknit fingerprint` tính toán một Context-Triggered Piecewise Hash (CTPH) trên các token phần thân đã được chuẩn hóa của mọi hàm, phương thức, biến và kiểu. Tên biến, chuỗi ký tự và chú thích kiểu được chuẩn hóa trước khi băm. Do đó, các bản sao-dán đã đổi tên và các bản chuyển đổi sang ngôn ngữ khác vẫn có thể khớp.
 
-## Chức năng
+Hướng dẫn này chỉ ra cách tìm các bản trùng lặp, điều chỉnh phạm vi độ tương đồng, giảm dương tính giả và quyết định những gì cần tái cấu trúc.
 
-`codeknit fingerprint` phân tích mọi hàm, phương thức, biến và kiểu trong codebase của bạn và tính toán **fingerprint cấu trúc đã chuẩn hóa** dựa trên:
+## Trước khi bắt đầu
 
-- Luồng điều khiển (`if`, `for`, `while`, `switch`)
-- Toán tử (`=`, `+`, `==`, `&&`, `||`)
-- Lời gọi, trả về, gán và tạo đối tượng
-- Cấu trúc ngôn ngữ như `try/catch`, `yield`, `await`, `defer`
+- `codeknit` đã được cài đặt. Xem [Cài đặt](../../installation/).
+- Bạn có một thư mục nguồn để quét, chẳng hạn như `./src`.
 
-Việc chuẩn hóa này có nghĩa là **sao chép đổi tên**, **tái cấu trúc đơn giản** và **logic tương đương trong các ngôn ngữ khác nhau** vẫn có thể được phát hiện là trùng lặp.
+## Tìm các bản trùng lặp trong dự án
 
-Thuật toán sử dụng **CTPH** (một biến thể của rolling hash) để tìm kiếm gần trùng lặp một cách hiệu quả. Mã tương tự tạo ra fingerprint tương tự, cho phép khớp mờ ngay cả khi mã đã được chỉnh sửa nhẹ.
-
-## Cách sử dụng cơ bản
+Chạy lệnh trên thư mục bạn muốn kiểm tra:
 
 ```bash
 codeknit fingerprint ./src
 ```
 
-Lệnh này:
+Lệnh ghi `./skeleton/fingerprints.skt` và báo cáo các cặp có độ tương đồng từ 65% đến 95%.
 
-- Phân tích tất cả các tệp nguồn trong `./src`
-- Tính toán fingerprint cấu trúc
-- Xuất kết quả ra `./skeleton/fingerprints.skt`
-- Báo cáo các kết quả trùng khớp với **độ tương đồng** từ **65% đến 95%** (khoảng mặc định)
-
-## Cờ lệnh
-
-| Cờ                  | Giá trị mặc định              | Mô tả                                                                                                                                                     |
-| ------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`    | `./skeleton/fingerprints.skt` | Đường dẫn tệp `.skt` đầu ra                                                                                                                              |
-| `--min-similarity`  | `65`                          | **Độ tương đồng** tối thiểu để báo cáo (0–100)                                                                                                            |
-| `--max-similarity`  | `95`                          | **Độ tương đồng** tối đa để báo cáo (0–100)                                                                                                              |
-| `--show-all`        | `false`                       | Bao gồm phần `[fingerprints]` với dữ liệu token thô                                                                                                      |
-| `--rerank`          | `false`                       | Tìm kiếm các lân cận ngữ nghĩa và sắp xếp lại các ứng viên bằng cách sử dụng embeddings Ollama (yêu cầu: `ollama serve` và `ollama pull qwen3-embedding:0.6b`) |
-| `--model`           | `qwen3-embedding:0.6b`        | Mô hình embedding Ollama để sử dụng với `--rerank`                                                                                                       |
-| `--collect-test`    | `false`                       | Bao gồm các tệp kiểm thử trong phân tích                                                                                                                 |
-| `--workers`         | `NumCPU`                      | Số lượng goroutine phân tích đồng thời tối đa (0 = sử dụng tất cả lõi CPU)                                                                              |
-| `--verbose`         | `false`                       | In thông tin tiến trình trong quá trình xử lý                                                                                                            |
-
-## Định dạng đầu ra
-
-Đầu ra là một tệp `.skt` với các phần sau:
-
-### `[duplicates]` (luôn có mặt)
-
-Liệt kê các cặp **ký hiệu** có **độ tương đồng** trên ngưỡng:
+Mở tệp. Phần `[duplicates]` luôn hiện diện, với các kết quả khớp mạnh nhất được liệt kê đầu tiên:
 
 ```skt
 [duplicates]
-similarity:96%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
-similarity:88%  utils/str.go::TrimSpaces <-> lib/text.go::CleanString
+# similarity range: 65%-95%
+similarity:93%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+similarity:88%  src/auth.ts::validateToken <-> src/session.ts::validateSession
+similarity:81%  lib/math.py::compute_tax <-> lib/math.py::compute_vat
 ```
 
-Mỗi dòng hiển thị:
+Mỗi dòng có dạng `similarity:<N>%  <file>::<symbol> <-> <file>::<symbol>`. Nếu không có gì nằm trong phạm vi, phần này chỉ chứa `# no duplicates found`.
 
-- Phần trăm **độ tương đồng**
-- **Ký hiệu** bên trái (đường dẫn tệp, phạm vi, tên)
-- **Ký hiệu** bên phải (đường dẫn tệp, phạm vi, tên)
+Để biết cú pháp đầu ra đầy đủ, xem [tài liệu tham khảo định dạng đầu ra](../../reference/output-format/).
 
-### `[fingerprints]` (chỉ có với `--show-all`)
+## Tìm các bản trùng lặp chính xác
 
-Chứa dữ liệu fingerprint thô cho mỗi **ký hiệu**:
-
-```skt
-[fingerprints]
-validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
-```
-
-Các trường:
-
-- Tên **ký hiệu**
-- `FP:<version>:<hash1>:<hash2>` — fingerprint CTPH
-- `tokens:<hex>` — luồng token nội dung đã chuẩn hóa
-
-Phần này hữu ích cho việc gỡ lỗi hoặc xây dựng các công cụ hạ nguồn.
-
-## Các mẫu lệnh phổ biến
+Phạm vi mặc định giới hạn ở 95%, vì vậy các kết quả khớp 100% bị loại trừ. Để liệt kê các kết quả khớp chính xác, đặt cả hai giới hạn là 100:
 
 ```bash
-# Quét mặc định
-codeknit fingerprint ./codeknit/de/src
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 ```
 
-```bash
-# Tìm các bản sao chính xác
-codeknit fingerprint ./src --min-similarity 100
-```
+"Chính xác" có nghĩa là các luồng token đã chuẩn hóa hoàn chỉnh giống nhau trong cùng một danh mục ký hiệu. Điều này không có nghĩa là văn bản nguồn giống nhau, hoặc hai ký hiệu được chứng minh là tương đương.
+
+## Mở rộng phạm vi để tìm các kết quả khớp lỏng lẻo hơn
+
+Giảm giới hạn dưới để bao gồm mã có cùng hình dạng thuật toán nhưng khác biệt về chi tiết:
 
 ```bash
-# Tìm mã có độ tương đồng trung bình (ví dụ: cùng thuật toán, tên khác nhau)
 codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
-```bash
-# Sử dụng khớp ngữ nghĩa để tìm thêm ứng viên và giảm dương tính giả
-# Yêu cầu: ollama serve && ollama pull qwen3-embedding:0.6b
-codeknit fingerprint ./src --rerank
-```
+Các kết quả dưới 50% thường là nhiễu.
+
+## Giảm dương tính giả bằng cách xếp hạng lại ngữ nghĩa
+
+Nếu kết quả cấu trúc có nhiều nhiễu, xếp hạng lại các ứng viên bằng cách sử dụng embeddings từ máy chủ Ollama cục bộ.
+
+1. Khởi động Ollama và tải mô hình embedding mặc định:
+
+   ```bash
+   ollama serve
+   ollama pull qwen3-embedding:0.6b
+   ```
+
+2. Chạy lệnh với `--rerank`:
+
+   ```bash
+   codeknit fingerprint ./src --rerank
+   ```
+
+Để sử dụng mô hình embedding khác, truyền `--model`:
 
 ```bash
-# Sử dụng mô hình embedding khác cho khớp ngữ nghĩa
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
+Việc xếp hạng lại bổ sung các ứng viên ngữ nghĩa và lọc dựa trên điểm số kết hợp. Nó giảm dương tính giả nhưng không loại bỏ tất cả. Nó cũng có thể loại bỏ một ứng viên có cấu trúc chính xác, và phạm vi độ tương đồng vẫn được áp dụng. Embeddings được tính toán từ cùng một ảnh chụp nguồn đã phân tích được sử dụng cho việc trích xuất.
+
+## Kiểm tra các fingerprint thô
+
+Để xem fingerprint của mọi ký hiệu, thêm `--show-all`:
+
 ```bash
-# Xuất danh sách fingerprint đầy đủ (cho công cụ phân tích)
 codeknit fingerprint ./src --show-all
 ```
 
+Thao tác này bổ sung phần `[fingerprints]`, được nhóm theo tệp nguồn, một dòng cho mỗi ký hiệu:
+
+```skt
+[fingerprints]
+## src/auth.ts
+validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+```
+
+Định dạng dòng là `<symbol-name>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`. `tokens` là luồng token đã chuẩn hóa được mã hóa hex.
+
+## Ghi báo cáo vào nơi khác
+
 ```bash
-# Tệp đầu ra tùy chỉnh
 codeknit fingerprint ./src -o duplicates.skt
 ```
 
-## Lựa chọn khoảng độ tương đồng
+## Kiểm soát các tệp được quét
 
-| Khoảng   | Hướng dẫn                                                                                 |
-| -------- | ----------------------------------------------------------------------------------------- |
-| 96–100%  | Các bản sao cấu trúc chính xác hoặc gần chính xác. Gần như chắc chắn là sao chép-dán.     |
-| 85–95%   | **Gần trùng lặp**. Thường là sao chép-dán với chỉnh sửa nhỏ (ví dụ: đổi tên biến, thêm log). |
-| 65–84%   | Khoảng mặc định. **Độ tương đồng** cấu trúc cao. Ứng viên tốt để tái cấu trúc.            |
-| 50–64%   | **Độ tương đồng** trung bình. Cùng hình dạng thuật toán nhưng chi tiết khác nhau. Xem xét thủ công. |
-| < 50%    | Thường là nhiễu. Không phải trùng lặp có ý nghĩa.                                         |
+Các tệp kiểm thử được bỏ qua theo mặc định. Bao gồm chúng với `--collect-test`:
 
-## Mẹo
+```bash
+codeknit fingerprint ./src --collect-test
+```
 
-- **Fingerprint đo cấu trúc, không đo ý nghĩa**: Điểm **độ tương đồng** cao có nghĩa là mã _trông_ giống nhau, không phải là nó _thực hiện_ cùng một việc. Luôn xem xét cả hai **ký hiệu**.
-- **Sử dụng `--rerank` cho khớp ngữ nghĩa**: Embeddings bổ sung các lân cận ngữ nghĩa mà việc truy xuất cấu trúc có thể bỏ sót và lọc các ứng viên không phù hợp về mặt ngữ nghĩa.
-- **Bỏ qua các nội dung ngắn**: Các **ký hiệu** có ít hơn 4 token đã chuẩn hóa (ví dụ: các getter đơn giản) sẽ bị bỏ qua để tránh nhiễu.
-- **Khớp đa ngôn ngữ hoạt động**: Các cấu trúc tương đương (ví dụ: một hàm Python và một hàm Go có cùng logic) có thể khớp, nhưng các mẫu đặc thù ngôn ngữ có thể tạo ra các kết quả trùng khớp có **độ tương đồng** thấp không mong muốn.
-- **Kết quả trùng khớp là tín hiệu, không phải là kết luận**: Xem mỗi kết quả trùng khớp như một gợi ý để điều tra — không phải là bằng chứng tự động về trùng lặp.
+Để thu hẹp phạm vi quét, sử dụng các cờ lựa chọn nguồn. Trích dẫn các mẫu để shell không mở rộng chúng:
+
+```bash
+codeknit fingerprint ./src --include '**/*.ts' --exclude '**/generated/'
+```
+
+Các điều khiển lựa chọn khác:
+
+- `--max-file-size BYTES` bỏ qua các tệp lớn hơn. Mặc định là `10485760` (10 MiB). `0` vô hiệu hóa giới hạn.
+- `--strict` thất bại trước khi ghi đầu ra nếu quá trình quét hoặc phân tích không hoàn chỉnh.
+- `--header-language c|cpp` chọn trình phân tích cú pháp cho các tệp `.h` mơ hồ. Xem [Hỗ trợ ngôn ngữ](../../reference/language-support/#header-language-selection).
+
+Các liên kết tượng trưng bị bỏ qua, các tệp quá kích thước và cảnh báo cú pháp xuất hiện trên stderr. Bao gồm không ghi đè `.gitignore` hoặc lọc kiểm thử, và loại trừ được ưu tiên hơn bao gồm. Xem [tài liệu tham khảo độ tin cậy phân tích](../../reference/analysis-reliability/) để biết các đảm bảo chính xác.
+
+## Chọn phạm vi độ tương đồng
+
+| Phạm vi     | Những gì thường xuất hiện                                      |
+| ----------- | -------------------------------------------------------------- |
+| `96-100%`   | Các bản trùng lặp cấu trúc chính xác hoặc gần chính xác; sao chép rõ ràng |
+| `85-95%`    | Các bản gần trùng lặp; thường là sao chép với chỉnh sửa nhỏ    |
+| `65-84%`    | Phạm vi mặc định; độ tương đồng cấu trúc mạnh, thường là ứng viên tái cấu trúc |
+| `50-64%`    | Cùng hình dạng thuật toán với chi tiết khác nhau               |
+| Dưới 50%    | Thường là nhiễu                                                |
+
+Để xem hai hàng đầu tiên, tăng `--max-similarity` lên `100`.
+
+## Quyết định những gì cần tái cấu trúc
+
+1. Bắt đầu với phạm vi mặc định và đọc các cặp đầu tiên.
+2. Mở cả hai ký hiệu của mỗi cặp và so sánh chúng.
+3. Xem một kết quả khớp là tín hiệu, không phải bằng chứng. Fingerprints đo lường hình dạng cấu trúc, không phải tên định danh hoặc ý định. Cùng một logic được viết theo cách lặp và đệ quy sẽ cho điểm thấp, và mã không liên quan có cùng hình dạng có thể cho điểm cao.
+4. Các cặp trong phạm vi 85–95% thường là ứng viên an toàn nhất để hợp nhất. Các cặp trong phạm vi 65–84% thường cần xem xét kỹ hơn.
+5. Nếu danh sách có nhiều nhiễu, thu hẹp phạm vi hoặc thêm `--rerank`.
+
+Các kết quả khớp đa ngôn ngữ hoạt động cho các cấu trúc tương đương. Các tính năng đặc thù ngôn ngữ có thể tạo ra các kết quả khớp độ tương đồng thấp giả mạo.
+
+Phần trăm độ tương đồng là một xếp hạng heuristic, không phải khoảng cách chỉnh sửa. Bộ hiệu chuẩn đã gắn nhãn của dự án báo cáo độ chính xác và khả năng thu hồi riêng biệt với điểm số độ tương đồng. Đây là một kiểm tra hồi quy, không phải ước lượng độ chính xác trên mã của bạn.
+
+## Dự án lớn
+
+- Dưới 500 ký hiệu đủ điều kiện, codeknit chấm điểm mọi cặp cùng danh mục.
+- Từ 500 trở lên, các nhóm token đã chuẩn hóa chính xác hoàn chỉnh luôn được giữ lại. Các cặp khác sử dụng khoảng 50 lân cận hàng đầu cho mỗi ký hiệu, vì vậy kết quả gần trùng lặp có thể không đầy đủ.
+- Đối với các bản trùng lặp chính xác, sử dụng lệnh 100/100 ở trên. Nó không bị ảnh hưởng bởi phép xấp xỉ.
+- Thứ tự là xác định cho các đầu vào và điểm số ổn định.
+
+## Khắc phục sự cố
+
+| Triệu chứng | Nguyên nhân và cách khắc phục |
+| ----------- | ----------------------------- |
+| `# no duplicates found` | Không có cặp nào nằm trong phạm vi. Giảm `--min-similarity` hoặc tăng `--max-similarity`. |
+| Một hàm ngắn đã biết bị thiếu | Các ký hiệu có ít hơn 4 token đã chuẩn hóa bị bỏ qua. |
+| Các bản sao chính xác bị thiếu | Giới hạn tối đa mặc định là 95%. Sử dụng `--min-similarity 100 --max-similarity 100`. Với `--rerank`, bộ lọc ngữ nghĩa cũng có thể loại bỏ chúng. |
+| `--rerank` thất bại | Kiểm tra rằng `ollama serve` đang chạy và mô hình đã được tải. |
+| Kết quả một phần với cảnh báo trên stderr | Sửa các tệp được báo cáo, hoặc thêm `--strict` để thất bại thay vì xuất bản đầu ra không hoàn chỉnh. |
+
+## Các cờ được sử dụng trong hướng dẫn này
+
+| Cờ                | Mặc định                       | Mô tả                                                                 |
+| ----------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `-o`, `--output`  | `./skeleton/fingerprints.skt`  | Đường dẫn tệp `.skt` đầu ra.                                         |
+| `--min-similarity` | `65`                          | Phần trăm độ tương đồng tối thiểu để báo cáo (0–100).                 |
+| `--max-similarity` | `95`                          | Phần trăm độ tương đồng tối đa để báo cáo (0–100).                    |
+| `--show-all`      | `false`                        | Cũng xuất phần `[fingerprints]` với dữ liệu token thô.                |
+| `--rerank`        | `false`                        | Xếp hạng lại các ứng viên với embeddings ngữ nghĩa qua Ollama. Yêu cầu `ollama serve` và `ollama pull qwen3-embedding:0.6b`. |
+| `--model`         | `qwen3-embedding:0.6b`         | Mô hình embedding Ollama để sử dụng với `--rerank`.                   |
+| `--collect-test`  | `false`                        | Bao gồm các tệp kiểm thử trong phân tích.                             |
+| `--workers`       | `NumCPU`                       | Số lượng goroutine phân tích cú pháp đồng thời tối đa.                |
+| `--verbose`       | `false`                        | In thông tin tiến trình.                                              |
+
+Để biết danh sách đầy đủ, bao gồm `--include`, `--exclude`, `--max-file-size`, `--strict`, và `--header-language`, xem [tài liệu tham khảo cờ CLI](../../reference/cli-flags/).
+
+## Liên quan
+
+- [Lệnh Parse](../parse-command/)
+- [Lệnh Đồ thị](../graph-commands/)

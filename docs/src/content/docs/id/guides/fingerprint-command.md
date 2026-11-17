@@ -1,139 +1,190 @@
 ---
 title: Perintah Fingerprint
-description: Deteksi kode duplikat dan hampir duplikat di seluruh file dan bahasa menggunakan fuzzy hashing.
+description: Deteksi kode duplikat dan hampir duplikat di berbagai file dan bahasa menggunakan fuzzy hashing.
 ---
 
-Perintah `codeknit fingerprint` mendeteksi kode duplikat dan **hampir duplikat** di seluruh basis kode Anda menggunakan **Context-Triggered Piecewise Hashing (CTPH)**. Perintah ini bekerja lintas file dan bahkan lintas bahasa pemrograman dengan menormalisasi nama variabel, literal string, dan anotasi tipe sebelum menghitung **fingerprint struktural**.
+`codeknit fingerprint` menghitung Context-Triggered Piecewise Hash (CTPH) dari token tubuh yang dinormalisasi untuk setiap fungsi, metode, variabel, dan tipe. Nama variabel, literal string, dan anotasi tipe dinormalisasi sebelum proses hashing. Salinan yang diubah namanya dan porting ke bahasa lain tetap dapat cocok.
 
-## Apa yang dilakukan
+Panduan ini menunjukkan cara menemukan duplikat, menyesuaikan rentang kemiripan, mengurangi positif palsu, dan menentukan apa yang perlu direfaktor.
 
-`codeknit fingerprint` menganalisis setiap fungsi, metode, variabel, dan tipe dalam basis kode Anda dan menghitung **fingerprint struktural yang dinormalisasi** berdasarkan:
+## Sebelum memulai
 
-- Alur kontrol (`if`, `for`, `while`, `switch`)
-- Operasi (`=`, `+`, `==`, `&&`, `||`)
-- Panggilan, pengembalian, penugasan, dan pembuatan objek
-- Konstruksi bahasa seperti `try/catch`, `yield`, `await`, `defer`
+- `codeknit` telah terpasang. Lihat [Instalasi](../../installation/).
+- Anda memiliki direktori sumber untuk dipindai, seperti `./src`.
 
-Normalisasi ini berarti bahwa **salin-tempel yang diubah namanya**, **refaktor trivial**, dan **logika yang setara dalam bahasa berbeda** masih dapat dideteksi sebagai duplikat.
+## Temukan duplikat dalam proyek
 
-Algoritma ini menggunakan **CTPH** (variasi rolling hash) untuk menemukan **hampir duplikat** secara efisien. Kode yang mirip menghasilkan fingerprint yang mirip, memungkinkan pencocokan fuzzy bahkan ketika kode telah sedikit dimodifikasi.
-
-## Penggunaan dasar
+Jalankan perintah pada direktori yang ingin diperiksa:
 
 ```bash
 codeknit fingerprint ./src
 ```
 
-Perintah ini:
+Perintah akan menulis `./skeleton/fingerprints.skt` dan melaporkan pasangan dengan kemiripan antara 65% hingga 95%.
 
-- Mengurai semua file sumber di `./src`
-- Menghitung fingerprint struktural
-- Mengeluarkan hasil ke `./skeleton/fingerprints.skt`
-- Melaporkan kecocokan dengan **kemiripan** antara **65% dan 95%** (rentang default)
-
-## Flag
-
-| Flag               | Default                       | Deskripsi                                                                                                                                                |
-| ------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Jalur file `.skt` keluaran                                                                                                                                |
-| `--min-similarity` | `65`                          | Persentase **kemiripan** minimum untuk dilaporkan (0–100)                                                                                                |
-| `--max-similarity` | `95`                          | Persentase **kemiripan** maksimum untuk dilaporkan (0–100)                                                                                               |
-| `--show-all`       | `false`                       | Sertakan bagian `[fingerprints]` dengan data token mentah                                                                                                |
-| `--rerank`         | `false`                       | Temukan tetangga semantik dan urutkan ulang kandidat menggunakan embedding Ollama (memerlukan: `ollama serve` dan `ollama pull qwen3-embedding:0.6b`) |
-| `--model`          | `qwen3-embedding:0.6b`        | Model embedding Ollama yang digunakan dengan `--rerank`                                                                                                  |
-| `--collect-test`   | `false`                       | Sertakan file pengujian dalam analisis                                                                                                                   |
-| `--workers`        | `NumCPU`                      | Jumlah maksimum goroutine penguraian konkuren (0 = gunakan semua inti CPU)                                                                              |
-| `--verbose`        | `false`                       | Cetak informasi progres selama pemrosesan                                                                                                                |
-
-## Format keluaran
-
-Keluaran berupa file `.skt` dengan bagian-bagian berikut:
-
-### `[duplicates]` (selalu ada)
-
-Mencantumkan pasangan simbol dengan **kemiripan** di atas ambang batas:
+Buka file tersebut. Bagian `[duplicates]` selalu ada, dengan kecocokan terkuat ditampilkan pertama:
 
 ```skt
 [duplicates]
-similarity:96%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
-similarity:88%  utils/str.go::TrimSpaces <-> lib/text.go::CleanString
+# similarity range: 65%-95%
+similarity:93%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+similarity:88%  src/auth.ts::validateToken <-> src/session.ts::validateSession
+similarity:81%  lib/math.py::compute_tax <-> lib/math.py::compute_vat
 ```
 
-Setiap baris menampilkan:
+Setiap baris memiliki format `similarity:<N>%  <file>::<symbol> <-> <file>::<symbol>`. Jika tidak ada yang masuk dalam rentang, bagian tersebut hanya berisi `# no duplicates found`.
 
-- Persentase **kemiripan**
-- Simbol kiri (jalur file, cakupan, nama)
-- Simbol kanan (jalur file, cakupan, nama)
+Untuk tata bahasa keluaran lengkap, lihat [referensi format keluaran](../../reference/output-format/).
 
-### `[fingerprints]` (hanya dengan `--show-all`)
+## Temukan duplikat eksak saja
 
-Berisi data fingerprint mentah untuk setiap simbol:
-
-```skt
-[fingerprints]
-validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
-```
-
-Field:
-
-- Nama simbol
-- `FP:<version>:<hash1>:<hash2>` — fingerprint CTPH
-- `tokens:<hex>` — aliran token tubuh yang dinormalisasi
-
-Bagian ini berguna untuk debugging atau membangun alat downstream.
-
-## Pola umum
+Rentang default memiliki batas atas 95%, sehingga kecocokan 100% dikecualikan. Untuk menampilkan kecocokan eksak, atur kedua batas menjadi 100:
 
 ```bash
-# Default scan
-codeknit fingerprint ./src
+codeknit fingerprint ./src --min-similarity 100 --max-similarity 100
 ```
 
-```bash
-# Find only exact duplicates
-codeknit fingerprint ./src --min-similarity 100
-```
+"Eksak" berarti aliran token yang dinormalisasi sepenuhnya identik dalam kategori simbol yang sama. Ini tidak berarti teks sumber identik, atau bahwa kedua simbol terbukti setara.
+
+## Perluas rentang untuk menemukan kecocokan yang lebih longgar
+
+Turunkan batas minimum untuk mencakup kode yang memiliki bentuk algoritmik serupa tetapi berbeda dalam detail:
 
 ```bash
-# Find moderately similar code (e.g. same algorithm, different names)
 codeknit fingerprint ./src --min-similarity 50 --max-similarity 80
 ```
 
-```bash
-# Use semantic matching to find additional candidates and reduce false positives
-# Requires: ollama serve && ollama pull qwen3-embedding:0.6b
-codeknit fingerprint ./src --rerank
-```
+Hasil di bawah 50% biasanya hanya noise.
+
+## Kurangi positif palsu dengan reranking semantik
+
+Jika hasil struktural terlalu bising, urutkan ulang kandidat dengan embedding dari server Ollama lokal.
+
+1. Jalankan Ollama dan unduh model embedding default:
+
+   ```bash
+   ollama serve
+   ollama pull qwen3-embedding:0.6b
+   ```
+
+2. Jalankan perintah dengan `--rerank`:
+
+   ```bash
+   codeknit fingerprint ./src --rerank
+   ```
+
+Untuk menggunakan model embedding lain, berikan `--model`:
 
 ```bash
-# Use a different embedding model for semantic matching
 codeknit fingerprint ./src --rerank --model qwen3-embedding:4b
 ```
 
+Reranking menambahkan kandidat semantik dan memfilter berdasarkan skor gabungan. Ini mengurangi positif palsu tetapi tidak menghilangkan semuanya. Reranking juga dapat menghapus kandidat yang secara struktural eksak, dan rentang kemiripan tetap berlaku. Embedding dihitung dari snapshot sumber yang sama yang digunakan untuk ekstraksi.
+
+## Periksa fingerprint mentah
+
+Untuk melihat fingerprint setiap simbol, tambahkan `--show-all`:
+
 ```bash
-# Output full fingerprint listing (for analysis tools)
 codeknit fingerprint ./src --show-all
 ```
 
+Ini menambahkan bagian `[fingerprints]`, dikelompokkan berdasarkan file sumber, satu baris per simbol:
+
+```skt
+[fingerprints]
+## src/auth.ts
+validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+```
+
+Format baris adalah `<symbol-name>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`. `tokens` adalah aliran token yang dinormalisasi dalam bentuk hex.
+
+## Tulis laporan di lokasi lain
+
 ```bash
-# Custom output file
 codeknit fingerprint ./src -o duplicates.skt
 ```
 
-## Memilih rentang kemiripan
+## Kendalikan file yang dipindai
 
-| Rentang  | Panduan                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------- |
-| 96–100%  | Duplikat struktural eksak atau hampir eksak. Hampir pasti salin-tempel.                     |
-| 85–95%   | **Hampir duplikat**. Biasanya salin-tempel dengan perubahan kecil (misal variabel diganti nama, log ditambahkan). |
-| 65–84%   | Rentang default. **Kemiripan** struktural yang kuat. Kandidat bagus untuk refaktor.         |
-| 50–64%   | **Kemiripan** sedang. Bentuk algoritmik sama tetapi detail berbeda. Tinjau secara manual.   |
-| < 50%    | Biasanya noise. Bukan duplikasi yang bermakna.                                              |
+File pengujian dilewati secara default. Sertakan dengan `--collect-test`:
 
-## Tips
+```bash
+codeknit fingerprint ./src --collect-test
+```
 
-- **Fingerprint mengukur struktur, bukan makna**: Skor **kemiripan** tinggi berarti kode _terlihat_ mirip, bukan berarti _melakukan_ hal yang sama. Selalu tinjau kedua simbol.
-- **Gunakan `--rerank` untuk pencocokan semantik**: Embedding menambahkan tetangga semantik yang mungkin terlewatkan oleh pengambilan struktural dan memfilter kandidat yang tidak setuju secara semantik.
-- **Tubuh pendek dilewati**: Simbol dengan kurang dari 4 token yang dinormalisasi (misal getter sederhana) diabaikan untuk menghindari noise.
-- **Pencocokan lintas bahasa berfungsi**: Konstruksi yang setara (misal, fungsi Python dan fungsi Go dengan logika yang sama) dapat cocok, tetapi pola spesifik bahasa dapat menghasilkan kecocokan **kemiripan** rendah yang palsu.
-- **Kecocokan adalah sinyal, bukan keputusan**: Anggap setiap kecocokan sebagai dorongan untuk menyelidiki — bukan bukti otomatis duplikasi.
+Untuk mempersempit pemindaian, gunakan flag pemilihan sumber. Gunakan tanda kutip agar shell tidak mengembangkan pola:
+
+```bash
+codeknit fingerprint ./src --include '**/*.ts' --exclude '**/generated/'
+```
+
+Kontrol pemilihan lainnya:
+
+- `--max-file-size BYTES` melewati file yang lebih besar. Default adalah `10485760` (10 MiB). `0` menonaktifkan batas.
+- `--strict` gagal sebelum menulis keluaran jika pemindaian atau parsing tidak lengkap.
+- `--header-language c|cpp` memilih parser untuk file `.h` yang ambigu. Lihat [Dukungan Bahasa](../../reference/language-support/#header-language-selection).
+
+Symlink yang dilewati, file yang terlalu besar, dan peringatan sintaks muncul di stderr. Include tidak mengesampingkan `.gitignore` atau penyaringan pengujian, dan exclude lebih diutamakan daripada include. Lihat [referensi keandalan analisis](../../reference/analysis-reliability/) untuk jaminan yang tepat.
+
+## Pilih rentang kemiripan
+
+| Rentang     | Apa yang biasanya ditemukan                                      |
+| ----------- | ---------------------------------------------------------------- |
+| `96-100%`   | Duplikat struktural eksak atau hampir eksak; salinan jelas       |
+| `85-95%`    | Hampir duplikat; biasanya salinan dengan perubahan sepele        |
+| `65-84%`    | Rentang default; kemiripan struktural kuat, sering kandidat refaktor |
+| `50-64%`    | Bentuk algoritmik yang sama dengan detail berbeda               |
+| Di bawah 50%| Biasanya noise                                                   |
+
+Untuk melihat dua baris teratas, naikkan `--max-similarity` menjadi `100`.
+
+## Tentukan apa yang perlu direfaktor
+
+1. Mulailah dengan rentang default dan baca pasangan teratas.
+2. Buka kedua simbol dari setiap pasangan dan bandingkan.
+3. Anggap kecocokan sebagai sinyal, bukan bukti. Fingerprint mengukur bentuk struktural, bukan nama pengenal atau maksud. Logika yang sama yang ditulis secara iteratif dan rekursif mendapat skor rendah, dan kode yang tidak terkait dengan bentuk yang sama dapat mendapat skor tinggi.
+4. Pasangan dalam rentang 85–95% biasanya merupakan kandidat teraman untuk digabungkan. Pasangan dalam rentang 65–84% sering memerlukan pemeriksaan lebih lanjut.
+5. Jika daftar terlalu bising, persempit rentang atau tambahkan `--rerank`.
+
+Kecocokan lintas bahasa berlaku untuk konstruksi yang setara. Fitur khusus bahasa dapat menghasilkan kecocokan kemiripan rendah yang palsu.
+
+Persentase kemiripan adalah heuristik peringkat, bukan jarak edit. Fixture kalibrasi berlabel proyek melaporkan presisi dan recall secara terpisah dari skor kemiripan. Ini adalah pemeriksaan regresi, bukan estimasi akurasi pada kode Anda.
+
+## Proyek besar
+
+- Di bawah 500 simbol yang memenuhi syarat, `codeknit` memberi skor setiap pasangan dalam kategori yang sama.
+- Pada 500 atau lebih, grup token yang dinormalisasi secara eksak selalu dipertahankan. Pasangan lain menggunakan tetangga top-50 per simbol, sehingga hasil hampir duplikat dapat tidak lengkap.
+- Untuk duplikat eksak, gunakan perintah 100/100 di atas. Ini tidak terpengaruh oleh aproksimasi.
+- Pengurutan bersifat deterministik untuk input dan skor yang stabil.
+
+## Pemecahan masalah
+
+| Gejala | Penyebab dan solusi |
+| ------ | ------------------- |
+| `# no duplicates found` | Tidak ada pasangan yang masuk dalam rentang. Turunkan `--min-similarity` atau naikkan `--max-similarity`. |
+| Fungsi pendek yang diketahui hilang | Simbol dengan kurang dari 4 token yang dinormalisasi dilewati. |
+| Salinan eksak hilang | Maksimum default adalah 95%. Gunakan `--min-similarity 100 --max-similarity 100`. Dengan `--rerank`, filter semantik juga dapat menghapusnya. |
+| `--rerank` gagal | Pastikan `ollama serve` berjalan dan model telah diunduh. |
+| Hasil parsial dengan peringatan di stderr | Perbaiki file yang dilaporkan, atau tambahkan `--strict` untuk gagal daripada menerbitkan keluaran yang tidak lengkap. |
+
+## Flag yang digunakan dalam panduan ini
+
+| Flag               | Default                       | Deskripsi                                                                 |
+| ------------------ | ----------------------------- | ------------------------------------------------------------------------- |
+| `-o`, `--output`   | `./skeleton/fingerprints.skt` | Jalur file `.skt` keluaran.                                               |
+| `--min-similarity` | `65`                          | Persentase kemiripan minimum untuk dilaporkan (0–100).                    |
+| `--max-similarity` | `95`                          | Persentase kemiripan maksimum untuk dilaporkan (0–100).                   |
+| `--show-all`       | `false`                       | Juga keluarkan bagian `[fingerprints]` dengan data token mentah.          |
+| `--rerank`         | `false`                       | Urutkan ulang kandidat dengan embedding semantik melalui Ollama. Memerlukan `ollama serve` dan `ollama pull qwen3-embedding:0.6b`. |
+| `--model`          | `qwen3-embedding:0.6b`        | Model embedding Ollama yang digunakan dengan `--rerank`.                  |
+| `--collect-test`   | `false`                       | Sertakan file pengujian dalam analisis.                                   |
+| `--workers`        | `NumCPU`                      | Jumlah maksimum goroutine parsing konkuren.                               |
+| `--verbose`        | `false`                       | Cetak informasi progres.                                                  |
+
+Untuk daftar lengkap, termasuk `--include`, `--exclude`, `--max-file-size`, `--strict`, dan `--header-language`, lihat [referensi flag CLI](../../reference/cli-flags/).
+
+## Terkait
+
+- [Perintah Parse](../parse-command/)
+- [Perintah Graf](../graph-commands/)

@@ -3,173 +3,205 @@ title: Graph Commands
 description: Visualize and analyze your codebase structure with graph algorithms.
 ---
 
-codeknit provides graph commands to visualize structure, run automated
-analysis, and combine the current dependency graph with Git change history.
+Use the `graph` subcommands to see how your code connects, find structural problems, and decide which files to refactor first. This guide assumes you have [installed codeknit](../../installation/) and can run [`codeknit parse`](../parse-command/).
 
-## graph show
+| Task | Command |
+| --- | --- |
+| Explore the graph visually | `codeknit graph show` |
+| Find structural problems | `codeknit graph analyze` |
+| Find volatile, important files | `codeknit graph hotspots` |
 
-Generates an interactive HTML graph visualization of your codebase.
+## Visualize the code graph
 
-```bash
-codeknit graph show <input-path>
-```
-
-This command parses your codebase and produces a self-contained HTML file with an interactive graph visualization. Symbols (functions, classes, types) appear as nodes, and their relationships (calls, contains, implements) as edges. The visualization opens automatically in your default browser.
-
-The viewer draws resolved relationships. It displays an uncertainty count but does not draw individual unresolved or ambiguous relationships or their candidate links. Inspect those relationships with parse output:
+`graph show` parses the input and writes a self-contained HTML file. Symbols (functions, classes, types) are nodes. Relationships (calls, contains, implements) are edges.
 
 ```bash
-codeknit parse ./src --output-mode inline --edges
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-### Flags
-
-| Flag             | Default                          | Description                                  |
-| ---------------- | -------------------------------- | -------------------------------------------- |
-| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Output HTML file path                        |
-| `--collect-test` | `false`                          | Include test files in analysis               |
-| `--workers`      | `NumCPU`                         | Max concurrent parsing goroutines            |
-| `--verbose`      | `false`                          | Print progress information during processing |
-
-### Examples
-
-```bash
-# Generate default visualization
 codeknit graph show ./myproject
+```
 
-# Custom output file
+The file is written to `./skeleton/codeknit-graph.html` and opens in your default browser.
+
+To choose the output path or include test files:
+
+```bash
 codeknit graph show ./myproject -o graph.html
-
-# Include test files
 codeknit graph show ./src --collect-test
 ```
 
-## graph analyze
+| Flag | Default | Purpose |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/codeknit-graph.html` | Output HTML file path |
+| `--collect-test` | `false` | Include test files |
+| `--workers` | `0` (`NumCPU`) | Maximum concurrent parsing goroutines |
+| `--verbose` | `false` | Print progress information |
 
-Runs structural graph algorithms on your codebase and emits an LLM-readable `.skt` report containing code quality insights.
+### Inspect unresolved relationships
+
+The viewer draws resolved relationships only. It shows a count of uncertain (`unresolved` or `ambiguous`) relationships but does not draw them or their candidate links.
+
+To see individual uncertain edges, run `parse` with `--edges`:
 
 ```bash
-codeknit graph analyze <input-path>
+codeknit parse ./src --output-mode inline --edges
 ```
 
-This command reports candidates for review, including cyclic dependencies, hub symbols, dead code, god classes, and architectural bottlenecks.
+Add `--format json` for JSON output. See the [output format reference](../../reference/output-format/) for how edges and candidates are written.
 
-### Algorithms
+## Analyze structure and find problems
 
-The analysis includes 22 structural graph algorithms:
-
-- Cyclic dependencies (Tarjan's SCC)
-- Hub detection (high fan-in/fan-out coupling)
-- Orphan detection (dead code candidates)
-- God class/function detection (excessive children)
-- Instability metric (Robert C. Martin's Ce/(Ca+Ce))
-- Deep inheritance chains
-- Betweenness centrality (bottleneck detection)
-- Articulation points (single points of failure)
-- PageRank (recursive importance)
-- Transitive fan-in (blast radius)
-- Change propagation simulation
-- Circular package dependencies
-- Layer violation detection
-- Reachability from entry points
-- Weakly connected components
-- Dependency weight (package coupling strength)
-- Distance from Main Sequence (A+I balance)
-- Shotgun surgery detection
-- Feature envy detection
-- Stable dependency violations
-- Interface segregation violations
-- Containment depth
-
-### Interpreting the report
-
-Dependency metrics use resolved relationships. The report counts excluded unresolved and ambiguous relationships. File/include metadata is excluded from dependency rankings and dead-code findings.
-
-- Fan-in and fan-out count distinct neighbors. Repeated relationships do not inflate these counts, and containment is not a dependency.
-- Inheritance depth considers all bases and interfaces. Cyclic hierarchies are not assigned a depth.
-- Reachability starts from callables named `main`, `Main`, or `init` and follows dependency edges. Reaching a member makes its container relevant without marking every sibling reachable. Without a recognized entry point, reachability findings are omitted.
-- Callback arguments and returned callables are references, not proof that the callback executes.
-- Change propagation uses the strongest dependency path. Its scores and directory-based layer rules are heuristics, not measured probabilities.
-
-External callers, dynamic dispatch, and dependencies outside the scan can change the conclusions. See [Language Support and API Fidelity](../../reference/language-support/) for resolution rules and limits.
-
-### Flags
-
-| Flag                      | Default                         | Description                                              |
-| ------------------------- | ------------------------------- | -------------------------------------------------------- |
-| `-o`, `--output`          | `./skeleton/graph_analysis.skt` | Output `.skt` file path                                  |
-| `--collect-test`          | `false`                         | Include test files in analysis                           |
-| `--workers`               | `NumCPU`                        | Max concurrent parsing goroutines                        |
-| `--verbose`               | `false`                         | Print progress information during processing             |
-| `--fan-threshold`         | `10`                            | Minimum fan-in or fan-out to flag a hub symbol           |
-| `--god-threshold`         | `15`                            | Minimum contains-edge count to flag a god class/function |
-| `--max-inheritance-depth` | `5`                             | Flag inheritance chains deeper than this                 |
-| `--top-n`                 | `30`                            | Cap ranked output sections; 0 = no limit                 |
-| `--betweenness-threshold` | `0.001`                         | Minimum betweenness centrality value to report           |
-| `--propagation-cutoff`    | `0.05`                          | Minimum heuristic score to continue change propagation   |
-
-### Examples
+`graph analyze` runs 22 graph algorithms and writes an LLM-readable `.skt` report.
 
 ```bash
-# Run structural analysis with defaults
 codeknit graph analyze ./myproject
+```
 
-# Custom output and thresholds
+The report is written to `./skeleton/graph_analysis.skt`. Read it directly, or give it to an LLM along with the relevant source.
+
+### Tune the report
+
+Raise a threshold to see fewer findings, or lower it to see more:
+
+```bash
 codeknit graph analyze ./myproject -o analysis.skt --fan-threshold 15
-
-# Show more results per section
 codeknit graph analyze ./myproject --top-n 50
-
-# Remove the cap on ranked sections
-codeknit graph analyze ./myproject --top-n 0
-
-# Include test files
 codeknit graph analyze ./src --collect-test
 ```
 
-## graph hotspots
+`--top-n 0` removes the cap on ranked sections.
 
-Ranks files that are both frequently changed and structurally important:
+| Flag | Default | Purpose |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/graph_analysis.skt` | Output `.skt` file path |
+| `--collect-test` | `false` | Include test files |
+| `--workers` | `0` (`NumCPU`) | Maximum concurrent parsing goroutines |
+| `--verbose` | `false` | Print progress information |
+| `--fan-threshold` | `10` | Minimum fan-in or fan-out to flag a hub symbol |
+| `--god-threshold` | `15` | Minimum contains-edge count to flag a god class or function |
+| `--max-inheritance-depth` | `5` | Flag inheritance chains deeper than this |
+| `--top-n` | `30` | Cap ranked sections; `0` means no limit |
+| `--betweenness-threshold` | `0.001` | Minimum betweenness centrality to report |
+| `--propagation-cutoff` | `0.05` | Minimum heuristic score for continuing change propagation |
+
+### Know which finding answers which question
+
+| Algorithm | Use it to find |
+| --- | --- |
+| Cyclic dependencies (Tarjan's SCC) | Groups of symbols that depend on each other in a loop |
+| Hub detection | Symbols with high fan-in or fan-out coupling |
+| Orphan detection | Dead-code candidates |
+| God class/function detection | Symbols that contain an excessive number of children |
+| Instability metric | Symbols and packages that are fragile or stable, using Ce/(Ca+Ce) |
+| Deep inheritance chains | Hierarchies deeper than `--max-inheritance-depth` |
+| Betweenness centrality | Bottleneck symbols that many dependency paths pass through |
+| Articulation points | Single points of failure whose removal splits the graph |
+| PageRank | Symbols that are recursively important |
+| Transitive fan-in | Blast radius: everything that depends on a symbol, directly or indirectly |
+| Change propagation simulation | How far a change to a symbol is likely to spread |
+| Circular package dependencies | Package-level dependency loops |
+| Layer violation detection | Dependencies that cross layers in the wrong direction |
+| Reachability from entry points | Code that no entry point reaches |
+| Weakly connected components | Isolated clusters of code |
+| Dependency weight | How strongly packages are coupled |
+| Distance from Main Sequence | Packages whose abstractness and instability are out of balance |
+| Shotgun surgery detection | Changes that would touch many places in a package |
+| Feature envy detection | Symbols that use another package more than their own |
+| Stable dependency violations | Stable packages that depend on less stable ones |
+| Interface segregation violations | Interfaces whose members are mostly unused by their users |
+| Containment depth | Deeply nested symbols |
+
+### Read the results correctly
+
+These rules affect how far you can trust a finding:
+
+- **Uncertain relationships are excluded.** Dependency metrics use resolved edges only. The report counts the `unresolved` and `ambiguous` relationships it left out.
+- **File and include metadata is ignored.** `meta/file` and `meta/include` symbols do not affect dependency rankings or dead-code findings.
+- **Fan-in and fan-out count distinct neighbors.** Containment does not count as a dependency.
+- **Inheritance depth covers all bases and interfaces.** Cyclic hierarchies are not assigned a depth.
+- **Reachability starts at `main`, `Main`, or `init` callables** and follows dependency edges. A reachable member makes its container relevant, but not its sibling members. If the scan finds no recognized entry point, reachability findings are omitted.
+- **Callbacks are references, not calls.** A callback argument or returned callable does not prove the callback runs.
+- **Scores are heuristics.** Change propagation uses the strongest dependency path. Its scores and the layer rules are not measured probabilities or compiler guarantees.
+
+### Act on findings safely
+
+Treat every finding as a candidate for review. Before changing code, open the symbols the report names and check for:
+
+- External callers outside the scanned directory.
+- Dynamic dispatch.
+- Dependencies you did not scan.
+
+Analysis is syntax-based, so any of these can change the conclusion. See [relationship resolution in the language support reference](../../reference/language-support/#relationship-resolution) for the resolution rules and limits.
+
+## Find history-aware hotspots
+
+`graph hotspots` ranks files that change often and sit in structurally important positions. It also reports temporal coupling: files that repeatedly change in the same commits. Run it on a directory inside a Git repository.
 
 ```bash
-codeknit graph hotspots <input-path>
+codeknit graph hotspots ./myproject
 ```
 
-The score combines commit frequency, line churn, and recency with file-level
-PageRank, transitive fan-in, and betweenness centrality. The report also
-identifies temporal coupling between files that repeatedly change in the same
-commits.
+The report is written to `./skeleton/hotspots.skt`.
 
-Merge commits are excluded by default. Commits changing more than 50 files are
-also excluded so generated, vendored, or mechanical bulk changes do not
-distort the results.
+It combines two groups of metrics:
 
-### Flags
+- **History:** commit frequency, added and deleted line churn, and recency.
+- **Structure:** file-level PageRank, transitive fan-in, and betweenness.
 
-| Flag                     | Default                   | Description                                     |
-| ------------------------ | ------------------------- | ----------------------------------------------- |
-| `-o`, `--output`         | `./skeleton/hotspots.skt` | Output file path                                |
-| `--format`               | `skt`                     | Output format: `skt` or `json`                  |
-| `--since`                | `12mo`                    | History window, such as `180d`, `12mo`, or `2y` |
-| `--max-commits`          | `2000`                    | Maximum commits to inspect                      |
-| `--max-files-per-commit` | `50`                      | Exclude commits changing more files             |
-| `--min-cochanges`        | `3`                       | Minimum shared commits for temporal coupling    |
-| `--top-n`                | `30`                      | Maximum results per report section              |
-| `--include-merges`       | `false`                   | Include merge commits                           |
-| `--collect-test`         | `false`                   | Include test files                              |
-| `--workers`              | `NumCPU`                  | Maximum concurrent parsing goroutines           |
-| `--verbose`              | `false`                   | Print progress information                      |
+The report includes a confidence level based on the number of relevant commits analyzed. Treat rankings from a low-confidence report as tentative.
 
-### Examples
+### Change the history window and filters
 
 ```bash
-# Analyze the last 12 months
-codeknit graph hotspots ./myproject
-
-# Analyze two years and emit JSON
+# Analyze two years and write JSON
 codeknit graph hotspots ./myproject --since 2y --format json -o hotspots.json
 
-# Include larger commits and require stronger coupling
+# Allow larger commits and require stronger temporal coupling
 codeknit graph hotspots . --max-files-per-commit 100 --min-cochanges 5
 ```
+
+Merge commits are excluded unless you pass `--include-merges`. Commits that touch more files than `--max-files-per-commit` are skipped as bulk commits, so generated or mechanical changes do not distort the ranking.
+
+| Flag | Default | Purpose |
+| --- | --- | --- |
+| `-o`, `--output` | `./skeleton/hotspots.skt` | Output file path |
+| `--format` | `skt` | Output format: `skt` or `json` |
+| `--since` | `12mo` | History window, such as `180d`, `12mo`, or `2y` |
+| `--max-commits` | `2000` | Maximum commits to inspect |
+| `--max-files-per-commit` | `50` | Exclude commits that change more files than this |
+| `--min-cochanges` | `3` | Minimum shared commits to report temporal coupling |
+| `--top-n` | `30` | Maximum results per section |
+| `--include-merges` | `false` | Include merge commits in history metrics |
+| `--collect-test` | `false` | Include test files |
+| `--workers` | `0` (`NumCPU`) | Maximum concurrent parsing goroutines |
+| `--verbose` | `false` | Print progress information |
+
+### Read the JSON output
+
+With `--format json`, each hotspot has `score`, `history_score`, `structure_score`, `recency_score`, `pagerank`, `betweenness`, `commits`, `churn`, and `transitive_fan_in`. Each temporal coupling entry has `left`, `right`, `strength`, and `co_changes`. The top level also records `commits_visited`, `commits_analyzed`, `skipped_merges`, and `skipped_bulk_commits`. Use these counts to check how much history the ranking is based on.
+
+## Control which sources are scanned
+
+All five source-processing commands (`parse`, `fingerprint`, `graph show`, `graph analyze`, and `graph hotspots`) accept the same selection flags:
+
+| Flag | Default | Purpose |
+| --- | --- | --- |
+| `--include GLOB` | All supported sources | Include matching paths; repeatable |
+| `--exclude GLOB` | None | Exclude matching paths or directories; repeatable. Excludes win over includes |
+| `--max-file-size BYTES` | `10485760` (10 MiB) | Skip larger files; `0` disables the limit |
+| `--strict` | `false` | Fail before writing output if the scan or parse is incomplete |
+
+Patterns are gitignore-style globs relative to the input directory. Quote them so your shell does not expand them. Includes do not override `.gitignore` rules or test filtering.
+
+```bash
+codeknit graph analyze ./src --include '**/*.go' --exclude '**/generated/' --strict
+```
+
+Symlinks and non-regular files are skipped and reported. Scan and parse problems appear on stderr. Without `--strict`, codeknit keeps usable partial results, so check stderr before trusting a report. With `--strict`, an incomplete analysis stops before any output is written. A run where every source read fails always fails.
+
+For the exact guarantees, see the [analysis reliability reference](../../reference/analysis-reliability/).
+
+## Related pages
+
+- [CLI flags reference](../../reference/cli-flags/): every flag for every command.
+- [Output format reference](../../reference/output-format/): `.skt` and JSON syntax.
+- [Language support reference](../../reference/language-support/): extraction and resolution limits.
+- [Parse command guide](../parse-command/): extract symbols and edges for individual files.

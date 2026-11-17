@@ -3,99 +3,123 @@ title: Bắt đầu nhanh
 description: Bắt đầu sử dụng codeknit trong vòng chưa đầy 5 phút.
 ---
 
-# Bắt đầu nhanh
+Trong hướng dẫn này, bạn sẽ xây dựng codeknit từ mã nguồn, chạy phân tích đầu tiên và đọc tệp `.skt` mà nó xuất ra. Bạn sẽ phân tích một gói nhỏ từ kho lưu trữ codeknit, vì vậy bạn không cần dự án riêng của mình.
 
-Bắt đầu sử dụng codeknit trong vòng chưa đầy 5 phút.
+## Điều kiện tiên quyết
 
-## 1. Điều kiện tiên quyết
+- **Go 1.26 hoặc mới hơn.** Chạy `go version` để kiểm tra.
+- **Trình biên dịch C.** codeknit sử dụng tree-sitter, cần CGo.
+- **Git** và **Make**.
 
-Bạn sẽ cần:
+## 1. Xây dựng codeknit
 
-- Go 1.26+
-- Trình biên dịch C (CGo là bắt buộc cho tree-sitter)
-
-## 2. Cài đặt từ mã nguồn
+Sao chép kho lưu trữ và xây dựng:
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
 cd codeknit
 make build
-# Binary nằm tại ./bin/codeknit
 ```
 
-## 3. Thêm vào PATH
+Bạn sẽ thấy quá trình xây dựng hoàn tất mà không có lỗi, và một tệp nhị phân tại `./bin/codeknit`.
 
-Thêm binary vào PATH của shell:
+## 2. Thêm codeknit vào PATH
+
+Từ thư mục `codeknit`, thêm `bin` vào `PATH` bằng dòng lệnh cho shell của bạn.
+
+Đối với bash hoặc zsh:
 
 ```bash
-# bash (~/.bashrc)
 export PATH="$PATH:$(pwd)/bin"
-
-# zsh (~/.zshrc)
-export PATH="$PATH:$(pwd)/bin"
-
-# fish (~/.config/fish/config.fish)
-fish_add_path $(pwd)/bin
 ```
 
-Tải lại shell hoặc chạy `source ~/.bashrc` (hoặc `~/.zshrc`) để thay đổi có hiệu lực.
+Đối với fish:
 
-## 4. Xác minh cài đặt
+```fish
+fish_add_path (pwd)/bin
+```
 
-Kiểm tra xem codeknit có hoạt động không:
+Thao tác này áp dụng cho phiên bash hoặc zsh hiện tại. Để giữ lại cho các phiên sau, hãy thêm cùng dòng lệnh đó vào `~/.bashrc` hoặc `~/.zshrc`, với đường dẫn tuyệt đối đến `bin` thay vì `$(pwd)/bin`.
+
+## 3. Xác minh cài đặt
 
 ```bash
 codeknit --version
 ```
 
-## 5. Phân tích đầu tiên
+Bạn sẽ thấy phiên bản codeknit được in ra.
 
-Chạy phân tích đầu tiên trên một codebase:
+## 4. Chạy phân tích đầu tiên
 
-```bash
-codeknit parse ./myproject
-```
-
-Lệnh này:
-
-- Phân tích tất cả các tệp nguồn trong `./myproject`
-- Trích xuất thông tin cấu trúc (hàm, lớp, mối quan hệ)
-- Ghi các tệp `.skt` đã được chia nhỏ vào `./skeleton/` (thư mục đầu ra mặc định)
-
-Nếu bạn chạy lại lệnh này, hãy sử dụng `--clean` để xóa đầu ra trước đó:
+Ở lại trong thư mục `codeknit` và phân tích gói `internal/console`:
 
 ```bash
-codeknit parse ./myproject --clean
+codeknit parse ./internal/console --edges
 ```
 
-## 6. Đọc đầu ra
+codeknit quét thư mục, phân tích từng tệp nguồn được hỗ trợ và ghi tệp `.skt`. *Tệp `.skt`* là tệp văn bản nhỏ gọn liệt kê các **ký hiệu** trong mã của bạn và các mối quan hệ giữa chúng. Cờ `--edges` thêm các mối quan hệ. Chúng được bỏ qua theo mặc định để tiết kiệm không gian.
 
-Các tệp `.skt` chứa thông tin mã có cấu trúc. Dưới đây là một ví dụ nhỏ:
+Bạn sẽ thấy một bản tóm tắt ngắn khi lệnh hoàn tất và một thư mục `./skeleton` mới trong thư mục hiện tại.
+
+Liệt kê đầu ra:
+
+```bash
+ls ./skeleton
+```
+
+Bạn sẽ thấy một tệp như `map_001.skt`.
+
+## 5. Đọc đầu ra
+
+Mở tệp:
+
+```bash
+cat ./skeleton/map_001.skt
+```
+
+Bạn sẽ thấy phần `[symbols]` đầu tiên. *Ký hiệu* là một mục có tên trong mã của bạn, chẳng hạn như hàm, kiểu hoặc trường. Các ký hiệu được nhóm dưới tiêu đề `## <đường dẫn đến>/<tệp nguồn>`. Đầu ra của bạn bao gồm các dòng như sau:
 
 ```skt
 [symbols]
-## src/main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {exported}
-S3 callable/function L10-L12 NewServer(addr: string) -> *S2 {exported}
-S4 callable/method L14-L19 Start() {receiver=*Server}
-
-[edges]
-S2 --contains--> S4
-S3 --returns--> S2
+## <path to>/console.go
+S1 module/package L5-L5 console
+S2 type/struct L17-L25 Console {exported}
+...
+S10 callable/function L28-L41 New() -> *S2 {exported}
+...
+S12 callable/method L49-L49 Error(msg: string) {exported, receiver=*Console}
 ```
 
-Các phần chính:
+Mỗi dòng có các phần giống nhau:
 
-- `[symbols]`: Các định nghĩa được nhóm theo tệp, hiển thị tên, phạm vi dòng và siêu dữ liệu
-- `[edges]`: Các mối quan hệ như `contains`, `calls`, `inherits`, hoặc `returns`
+| Phần | Ví dụ | Ý nghĩa |
+| --- | --- | --- |
+| Short ID | `S10` | Nhãn ngắn cho ký hiệu, được sử dụng ở nơi khác trong đầu ra |
+| Danh mục và loại | `callable/function` | Loại ký hiệu đó là gì |
+| Phạm vi dòng | `L28-L41` | Các dòng mà ký hiệu bao phủ trong tệp nguồn |
+| Chữ ký | `New() -> *S2` | Tên, tham số và kiểu trả về |
+| Thuộc tính | `{exported}` | Chi tiết bổ sung trong dấu ngoặc nhọn |
 
-## 7. Các bước tiếp theo
+Trong `New() -> *S2`, `S2` là Short ID của kiểu `Console`. codeknit thay thế tên kiểu bằng Short ID khi biết ký hiệu. Số dòng có thể khác một chút nếu bản sao của bạn mới hơn.
 
-Bây giờ bạn đã chạy phân tích đầu tiên:
+Cuộn xuống phần `[edges]`. *Cạnh* là mối quan hệ giữa hai ký hiệu. Mỗi dòng cạnh ghi tên ký hiệu nguồn, loại mối quan hệ và ký hiệu hoặc các ký hiệu đích:
 
-- Tìm hiểu thêm về lệnh parse: [Hướng dẫn lệnh parse](/codeknit/vi/guides/parse-command/)
-- Khám phá phân tích cấu trúc: [Hướng dẫn lệnh đồ thị](/codeknit/vi/guides/graph-commands/)
-- Hiểu về phát hiện trùng lặp: [Hướng dẫn lệnh fingerprint](/codeknit/vi/guides/fingerprint-command/)
-- Đọc định dạng đầu ra đầy đủ: [Tài liệu tham khảo định dạng đầu ra](/codeknit/vi/reference/output-format/)
-- Xem tất cả các cờ có sẵn: [Tài liệu tham khảo cờ CLI](/codeknit/vi/reference/cli-flags/)
+```skt
+[edges]
+S2 --contains--> S4
+S4 --calls--> S5
+```
+
+Ví dụ này cho thấy hình dạng của một dòng cạnh. Nó có nghĩa là "`S2` chứa `S4`" và "`S4` gọi `S5`". Bạn có thể tra cứu từng Short ID trong `[symbols]` để xem nó đề cập đến gì.
+
+## Những gì bạn đã đạt được
+
+Bạn đã xây dựng codeknit, đưa nó vào `PATH`, chạy `codeknit parse` và đọc các phần `[symbols]` và `[edges]` của đầu ra `.skt`.
+
+## Các bước tiếp theo
+
+- Phân tích dự án của riêng bạn, chọn bố cục đầu ra khác và chạy lại một cách an toàn: xem [hướng dẫn lệnh parse](../guides/parse-command/).
+- Trực quan hóa và phân tích **cấu trúc mã** của bạn: xem [hướng dẫn lệnh đồ thị](../guides/graph-commands/).
+- Tìm mã **trùng lặp** và **gần trùng lặp**: xem [hướng dẫn lệnh fingerprint](../guides/fingerprint-command/).
+- Tra cứu mọi phần của định dạng `.skt`: xem [tài liệu tham khảo định dạng đầu ra](../reference/output-format/).
+- Tra cứu mọi cờ dòng lệnh: xem [tài liệu tham khảo cờ CLI](../reference/cli-flags/).

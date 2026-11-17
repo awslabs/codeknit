@@ -3,92 +3,75 @@ title: Comando Parse
 description: Estrai informazioni strutturali dal codice sorgente in file .skt o JSON.
 ---
 
-Il comando `codeknit parse` estrae informazioni strutturali dalla tua codebase — come funzioni, classi, metodi, variabili e le loro relazioni — e le restituisce in formato compatto `.skt` per impostazione predefinita. Usa JSON quando hai bisogno di output leggibile dalla macchina per script, integrazioni o strumenti downstream.
+`codeknit parse` legge i file sorgente e scrive i loro simboli (e, opzionalmente, le relazioni tra essi) come file `.skt` o JSON. Questa guida copre le situazioni che è più probabile incontrare. Per l'elenco completo dei flag condivisi da tutti i comandi, consulta la [riferimento dei flag CLI](../../reference/cli-flags/). Per la grammatica dell'output, consulta il [riferimento del formato di output](../../reference/output-format/).
 
-## Utilizzo di base
+## Analizza un progetto per la prima volta
 
 ```bash
-codeknit parse <input-path> [output-dir]
+codeknit parse ./src
 ```
 
-- **`<input-path>`**: Percorso della directory o del file che si desidera analizzare.
-- **`[output-dir]`**: Directory di output opzionale. Se non specificata, il valore predefinito è `./skeleton`.
+codeknit scrive file `.skt` suddivisi in `./skeleton/`: `map_001.skt`, `map_002.skt`, e così via. Apri i chunk selettivamente invece di caricare tutto in una volta.
 
-### Esempi
+Per scrivere altrove, passa la directory di output come secondo argomento:
 
 ```bash
-# Parse a project, output to default directory ./skeleton
-codeknit parse ./src
-
-# Parse and write to a custom output directory
 codeknit parse ./src ./output
-
-# Parse a single file and output to stdout
-codeknit parse ./src/main.go --output-mode inline
-
-# Emit machine-readable JSON to stdout
-codeknit parse ./src --output-mode inline --format json
 ```
 
-## Modalità di output
+Non utilizzare la directory sorgente, o una delle sue directory antenate, come directory di output.
 
-Usa `--output-mode` per controllare come viene strutturato l'output. Sono disponibili tre modalità:
+## Scegli una modalità di output
 
-| Modalità         | Descrizione                                                                                      | Ideale per                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `directory-flat` | Scrive file `.skt` suddivisi (es. `map_001.skt`, `map_002.skt`) nella directory di output.       | ✅ **La maggior parte dei progetti** — modalità predefinita e consigliata |
-| `directory-tree` | Rispecchia la struttura della directory sorgente, creando un file `.skt` per ogni file sorgente. | Navigare l'output insieme al codice sorgente                              |
-| `inline`         | Invia tutto l'output a stdout.                                                                   | File singoli o piping verso altri strumenti                               |
+Seleziona una modalità con `--output-mode`.
 
-> **Suggerimento**: Usa `directory-flat` come predefinito a meno che tu non stia lavorando con un singolo file. Evita `inline` per input di grandi dimensioni poiché può sovraccaricare le finestre di contesto.
+| Modalità          | Usala quando                                    | Risultato                                                                         |
+| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `directory-flat`  | Analisi della maggior parte dei progetti (predefinita) | `map_001.skt`, `map_002.skt`, ...                                              |
+| `directory-tree`  | Vuoi cercare la struttura di un singolo file   | Un file `.skt` per ogni file sorgente, rispecchiando l'albero delle sorgenti    |
+| `inline`          | Analisi di un singolo file, o piping verso un altro strumento | Output su stdout; nessuna directory di output viene utilizzata                  |
 
-## Flag
-
-| Flag             | Predefinito      | Descrizione                                                                        |
-| ---------------- | ---------------- | ---------------------------------------------------------------------------------- |
-| `--output-mode`  | `directory-flat` | Modalità di output: `inline`, `directory-flat` o `directory-tree`                  |
-| `--format`       | `skt`            | Formato di output: `skt` o `json`                                                  |
-| `--max-lines`    | `500`            | Numero massimo di righe per file di output in modalità flat/tree                   |
-| `--collect-test` | `false`          | Includi i file di test nell'analisi                                                |
-| `--minify`       | `false`          | Abilita la compressione basata su dizionario per ridurre l'uso di token            |
-| `--edges`        | `false`          | Includi la sezione `[edges]` con i dati delle relazioni (chiamate, contiene, ecc.) |
-| `--clean`        | `false`          | Rimuovi i file `.skt` esistenti nella directory di output prima della scrittura    |
-| `--workers`      | `NumCPU`         | Numero massimo di goroutine di parsing concorrenti (0 = usa tutti i core CPU)      |
-| `--verbose`      | `false`          | Stampa informazioni di avanzamento e temporizzazione durante l'elaborazione        |
-
-## Pattern comuni
+In modalità tree i nomi dei file mantengono l'estensione sorgente: `src/foo.c` diventa `src/foo.c.skt`, e `src/foo.h` diventa `src/foo.h.skt`. I file di grandi dimensioni sono suddivisi in `foo.c_part1.skt`, `foo.c_part2.skt`, e così via.
 
 ```bash
-# First run on a project
-codeknit parse ./src
+codeknit parse ./src --output-mode directory-tree
 ```
 
+Evita `inline` su un intero progetto. Scrive tutto su stdout e può inondare il terminale o la finestra di contesto di un LLM.
+
+Per ulteriori informazioni sulla scelta di una modalità, consulta [Modalità di output](../output-modes/).
+
+## Esegui nuovamente sullo stesso progetto
+
+codeknit rifiuta di scrivere in una directory che contiene già output generato per il formato selezionato. Questo impedisce la miscelazione di chunk obsoleti e nuovi. Aggiungi `--clean` per sostituire l'output precedente:
+
 ```bash
-# Re-run and clean previous output
 codeknit parse ./src --clean
 ```
 
+`--clean` non elimina nulla in anticipo. codeknit genera il nuovo output in una directory di staging e sostituisce i vecchi file generati solo dopo che la generazione ha successo. Se la generazione fallisce, o il processo viene interrotto, l'output precedente viene mantenuto o ripristinato al successivo avvio. I file nella directory di output che codeknit non ha generato vengono preservati. Se uno di essi entra in conflitto con un percorso generato, l'esecuzione fallisce.
+
+In modalità JSON, le stesse regole si applicano a `codeknit.json`.
+
+**Insidia: chunk misti.** Gli ID dei simboli (`S1`, `S2`, ...) e i risultati delle relazioni possono cambiare tra un'esecuzione e l'altra e tra versioni diverse. Dopo l'aggiornamento alla 0.5.0, rigenera l'intero set di output con `--clean`. Non combinare mai chunk provenienti da esecuzioni diverse.
+
+## Analizza un singolo file
+
+Punta `parse` al file e usa la modalità `inline`:
+
 ```bash
-# Parse a single file to stdout
 codeknit parse ./src/main.go --output-mode inline
 ```
 
-```bash
-# Minify output for large codebases
-codeknit parse ./src --minify
-```
+Quando selezioni esplicitamente un file sorgente regolare, codeknit salta il filtraggio dei file di ignore e dei file di test per esso. I pattern di inclusione/esclusione e il limite di dimensione si applicano ancora.
+
+## Ottieni JSON per gli script
 
 ```bash
-# Include relationship edges (e.g., for dependency analysis)
-codeknit parse ./src --edges
-```
-
-```bash
-# Emit JSON for another tool
 codeknit parse ./src --output-mode inline --format json --edges
 ```
 
-Esempio di output JSON:
+Il documento JSON ha i campi di primo livello `files`, `symbols`, `edges` (omessi quando non ci sono), e `errors` (omessi quando non ci sono). Un piccolo esempio:
 
 ```json
 {
@@ -127,46 +110,114 @@ Esempio di output JSON:
 }
 ```
 
+Per scrivere il JSON su disco invece che su stdout, ometti `--output-mode inline`. Nelle modalità directory, il JSON viene scritto in `codeknit.json`. JSON è un singolo documento e non è suddiviso per conteggio delle righe.
+
+## Includi le relazioni
+
+Per impostazione predefinita, l'output contiene solo la sezione `[symbols]`, il che fa risparmiare token. Aggiungi `--edges` quando hai bisogno di sapere cosa chiama, contiene, eredita o fa riferimento a cosa:
+
 ```bash
-# Mirror source tree structure in output
-codeknit parse ./src --output-mode directory-tree
+codeknit parse ./src --edges
 ```
 
-## Incertezza nelle relazioni
+### Leggi relazioni incerte
 
-Con `--edges`, Codeknit preserva le relazioni anche quando la sintassi e lo scope non stabiliscono un target univoco:
+Codeknit analizza la sintassi senza un compilatore, quindi alcune relazioni non possono essere stabilite. Ogni arco indica quanto è certo:
 
 ```skt
-S1 --calls--> S2
-S1 --references[unresolved]--> string, bool
-S1 --calls[ambiguous]--> Helper [candidates=S3, S4]
+S8 --references--> S5
+S10 --references[unresolved]--> string, bool
+S11 --calls[ambiguous]--> Helper [candidates=S12, S15]
 ```
 
-L'assenza di uno stato significa risolto dall'analizzatore. `unresolved` indica che la dipendenza non può essere stabilita; `ambiguous` indica che rimangono interpretazioni concorrenti possibili. I candidati sono possibili target, non connessioni confermate. Gli endpoint noti usano ShortID; i target non risolti senza simboli possono apparire come nomi.
+- `--kind-->` è una relazione risolta.
+- `--kind[unresolved]-->` significa che codeknit non è riuscito a stabilire il target.
+- `--kind[ambiguous]-->` significa che più di un target rimane possibile. Gli ID dei candidati sono elencati quando disponibili.
 
-JSON trasporta le stesse informazioni in `resolution` e `candidates`, e omette `to_short` per i target incerti. C/C++ include hanno simboli `meta/file` e `meta/include` quindi gli archi usano ShortID; questo registra le direttive scritte senza affermare la risoluzione a livello di compilatore dei header.
+I candidati sono possibili target, non dipendenze confermate. Gli endpoint noti utilizzano ShortID. Un target non risolto senza un simbolo corrispondente può apparire come un nome, relativo al file sorgente.
 
-Le metriche di dipendenza escludono le relazioni incerte. Il grafo HTML mostra il loro conteggio senza disegnare singoli collegamenti incerti. Consulta il [riferimento del formato di output](../../reference/output-format/) per la grammatica e il [riferimento del supporto linguistico](../../reference/language-support/) per i limiti di risoluzione.
+In JSON, gli archi incerti portano `resolution` (`"unresolved"` o `"ambiguous"`) e, quando disponibili, `candidates` come ID completi dei simboli. Omettono `to_short`.
 
-## Protezione dall'output obsoleto
+Per C e C++, le direttive `#include` diventano simboli `meta/file` e `meta/include`, quindi i loro archi hanno ShortID. Questo registra la direttiva come scritta. Non significa che codeknit abbia trovato l'header.
 
-Se la directory di output contiene già file `.skt` da una precedente esecuzione, `codeknit` rifiuterà di scrivere nuovo output per evitare di mescolare dati obsoleti e freschi.
+Le metriche del grafo escludono gli archi incerti e riportano quanti sono stati esclusi. Il visualizzatore HTML del grafo mostra un conteggio delle relazioni incerte e non le disegna. Per ispezionare singoli archi incerti, usa `--edges` su `parse`. Consulta [Comandi del grafo](../graph-commands/) per questi report.
 
-Per sovrascrivere questo comportamento e pulire la directory di output prima della scrittura, usa il flag `--clean`:
+La grammatica degli archi è nel [riferimento del formato di output](../../reference/output-format/). Le regole e i limiti di risoluzione sono nel [riferimento del supporto linguistico](../../reference/language-support/#relationship-resolution).
+
+## Ridurre la dimensione dell'output
+
+Per comprimere i token ripetuti, aggiungi `--minify`:
 
 ```bash
-codeknit parse ./src --clean
+codeknit parse ./src --minify
 ```
 
-Questo garantisce un set di output fresco e coerente.
+Questo scrive un dizionario in `dict.skt` (o una sezione `[dict]` inline). Sostituisci i codici come `d0` e `d1` con i loro valori del dizionario durante la lettura. Anche i tipi di relazione sono codificati, ma le etichette di risoluzione come `[unresolved]` rimangono leggibili.
 
-Quando si esegue l'aggiornamento alla versione `0.5.0`, rigenera l'intero set di output. Gli ID dei simboli e i risultati delle relazioni possono cambiare; non mescolare chunk da esecuzioni diverse.
+Per controllare la dimensione dei chunk, usa `--max-lines` (predefinito `500`):
+
+- In modalità `directory-flat`, è un obiettivo. Un blocco sorgente non viene mai suddiviso, quindi un chunk può superarlo di un blocco.
+- In modalità `directory-tree`, è un limite rigido per ogni chunk sorgente. Il minimo è `3`. Ogni chunk ripete le sue intestazioni `[symbols]` e `## source-path`.
+
+## Analizza header C++ denominati `.h`
+
+Codeknit analizza i file `.h` come C per impostazione predefinita. Per gli header C++ con questa estensione, imposta `--header-language cpp`:
+
+```bash
+codeknit parse ./src --header-language cpp
+```
+
+Il flag influisce solo sui file `.h`. I file denominati `.hpp` e `.hxx` sono già analizzati come C++, e le altre estensioni mantengono i loro parser usuali.
+
+## Controlla quali file vengono scansionati
+
+Tutti e cinque i comandi di elaborazione del codice sorgente accettano questi flag. Sono elencati per intero nel [riferimento dei flag CLI](../../reference/cli-flags/).
+
+```bash
+codeknit parse ./src --include '**/*.go' --exclude '**/generated/' --strict
+```
+
+- `--include GLOB` e `--exclude GLOB` sono pattern ripetibili in stile gitignore relativi alla directory di input. Racchiusili tra virgolette in modo che la shell non li espanda. Le esclusioni hanno la precedenza. Le inclusioni non sovrascrivono `.gitignore`, il filtraggio dei file di test o le esclusioni integrate.
+- `--max-file-size BYTES` salta i file più grandi. Il valore predefinito è `10485760` (10 MiB). `0` disabilita il limite.
+- `--strict` fallisce prima di scrivere qualsiasi output se la scansione o l'analisi è incompleta. Il valore predefinito è `false`.
+
+Codeknit salta e segnala i symlink e i file non regolari. Le regole `.gitignore` degli antenati si applicano indipendentemente dalla directory di lavoro corrente.
+
+**Insidia: risultati parziali.** Percorsi illeggibili, file di dimensioni eccessive, symlink saltati e avvisi di sintassi rendono un'analisi incompleta. Senza `--strict`, codeknit mantiene i risultati utilizzabili e segnala i problemi:
+
+- su stderr,
+- nel campo `errors` del JSON, o
+- nella sezione SKT `[errors]` (inline, o in `warnings.skt` nelle modalità directory).
+
+Un input senza sorgenti supportate selezionate, o un'esecuzione in cui ogni sorgente letta fallisce, esce sempre senza successo. Per garanzie esatte, consulta [Affidabilità dell'analisi](../../reference/analysis-reliability/).
+
+## Flag di parse
+
+Questi flag sono specifici di `parse`. I flag condivisi sono nel [riferimento dei flag CLI](../../reference/cli-flags/).
+
+| Flag               | Predefinito      | Descrizione                                                                                       |
+| ------------------ | ---------------- | ------------------------------------------------------------------------------------------------- |
+| `--output-mode`    | `directory-flat` | Modalità di output: `inline`, `directory-flat`, o `directory-tree`.                               |
+| `--format`         | `skt`            | Formato di output: `skt` o `json`.                                                                |
+| `--header-language`| `c`              | Parser per i file `.h`: `c` o `cpp`. Le altre estensioni rimangono invariate.                     |
+| `--max-lines`      | `500`            | Obiettivo di righe per l'output flat; limite rigido (minimo 3) per ogni chunk sorgente tree.      |
+| `--collect-test`   | `false`          | Includi i file di test.                                                                           |
+| `--minify`         | `false`          | Usa la compressione basata su dizionario.                                                         |
+| `--edges`          | `false`          | Includi la sezione `[edges]` (disattivata per impostazione predefinita per risparmiare token).    |
+| `--clean`          | `false`          | Sostituisci l'output generato precedentemente, solo dopo che la generazione ha successo.          |
+| `--workers`        | `NumCPU`         | Massimo numero di goroutine di parsing concorrenti.                                               |
+| `--verbose`        | `false`          | Stampa informazioni di avanzamento.                                                               |
 
 ## Suggerimenti
 
-- ✅ **Usa `directory-flat` come predefinito** per la maggior parte dei progetti. Bilancia leggibilità e gestibilità.
-- 🔍 Usa `--minify` su codebase di grandi dimensioni per ridurre l'uso di token tramite un dizionario condiviso (`dict.skt`).
-- 🔗 La sezione `[edges]` è **esclusa per impostazione predefinita** per risparmiare token. Usa `--edges` quando hai bisogno dei dati delle relazioni come `calls`, `contains` o `inherits`.
-- 🧾 Usa `--format json` quando uno script o un'integrazione necessita di dati strutturati invece di `.skt`.
-- 🧹 Usa sempre `--clean` quando riesegui l'analisi sulla stessa directory di output.
-- 📁 Usa `directory-tree` se desideri correlare i file `.skt` direttamente con i file sorgente nel tuo editor.
+- Usa `directory-flat` per la maggior parte dei progetti e leggi solo i chunk di cui hai bisogno.
+- Usa `--minify` su codebase di grandi dimensioni per risparmiare token.
+- Passa `--edges` solo quando hai bisogno dei dati sulle relazioni.
+- Controlla la [matrice delle capacità testate e i limiti noti](../../reference/language-support/) prima di affidarti all'estrazione per uno specifico linguaggio.
+
+## Vedi anche
+
+- [Modalità di output](../output-modes/)
+- [Riferimento del formato di output](../../reference/output-format/)
+- [Affidabilità dell'analisi](../../reference/analysis-reliability/)
+- [Comandi del grafo](../graph-commands/)

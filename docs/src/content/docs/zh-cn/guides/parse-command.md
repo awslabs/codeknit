@@ -1,94 +1,77 @@
 ---
-title: parse 命令
-description: 从源代码中提取结构化信息到 .skt 文件或 JSON。
+title: Parse 命令
+description: 从源代码中提取结构信息到 .skt 文件或 JSON。
 ---
 
-`codeknit parse` 命令从代码库中提取结构化信息——如函数、类、方法、变量及其关系——并默认以紧凑的 `.skt` 格式输出。当需要脚本、集成或下游工具使用的机器可读输出时，请使用 JSON。
+`codeknit parse` 读取源文件并将其符号（以及可选的符号之间的关系）写入 `.skt` 文件或 JSON。本指南涵盖了您最可能遇到的情况。有关所有命令共享的完整标志列表，请参阅 [CLI 标志参考](../../reference/cli-flags/)。有关输出语法，请参阅 [输出格式参考](../../reference/output-format/)。
 
-## 基本用法
+## 首次解析项目
 
 ```bash
-codeknit parse <input-path> [output-dir]
+codeknit parse ./src
 ```
 
-- **`<input-path>`**：要解析的目录或文件路径。
-- **`[output-dir]`**：可选的输出目录。如果未提供，默认为 `./skeleton`。
+codeknit 将分块的 `.skt` 文件写入 `./skeleton/`：`map_001.skt`、`map_002.skt` 等。选择性地打开这些块，而不是一次性加载所有内容。
 
-### 示例
+要写入其他位置，请将输出目录作为第二个参数传递：
 
 ```bash
-# Parse a project, output to default directory ./skeleton
-codeknit parse ./src
-
-# Parse and write to a custom output directory
 codeknit parse ./src ./output
-
-# Parse a single file and output to stdout
-codeknit parse ./src/main.go --output-mode inline
-
-# Emit machine-readable JSON to stdout
-codeknit parse ./src --output-mode inline --format json
 ```
 
-## 输出模式
+不要将源目录或其祖先目录用作输出目录。
 
-使用 `--output-mode` 控制输出结构。有三种模式可用：
+## 选择输出模式
 
-| 模式               | 描述                                                                                     | 最适用场景                                      |
-| ------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `directory-flat`   | 将分块的 `.skt` 文件（如 `map_001.skt`、`map_002.skt`）写入输出目录。                     | ✅ **大多数项目** —— 默认且推荐模式             |
-| `directory-tree`   | 镜像源目录结构，为每个源文件创建一个 `.skt` 文件。                                        | 与源代码一起导航输出                            |
-| `inline`           | 将所有输出转储到 stdout。                                                                | 单个文件或传输到其他工具                        |
+使用 `--output-mode` 选择模式。
 
-> **提示**：除非处理单个文件，否则默认使用 `directory-flat`。避免在大型输入时使用 `inline`，因为可能会超出上下文窗口限制。
+| 模式               | 使用时机                                      | 结果                                                                           |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `directory-flat`   | 解析大多数项目（默认）                        | `map_001.skt`、`map_002.skt`、...                                              |
+| `directory-tree`   | 您希望查找单个文件的代码结构                  | 每个源文件生成一个 `.skt` 文件，镜像源树                                       |
+| `inline`           | 解析单个文件，或通过管道传输到其他工具        | 输出到 stdout；不使用输出目录                                                 |
 
-## 参数
-
-| 参数               | 默认值           | 描述                                                                                     |
-| ------------------ | ---------------- | ---------------------------------------------------------------------------------------- |
-| `--output-mode`    | `directory-flat` | 输出模式：`inline`、`directory-flat` 或 `directory-tree`                                 |
-| `--format`         | `skt`            | 输出格式：`skt` 或 `json`                                                                |
-| `--max-lines`      | `500`            | 在 flat/tree 模式下每个输出文件的最大行数                                                |
-| `--collect-test`   | `false`          | 在分析中包含测试文件                                                                     |
-| `--minify`         | `false`          | 启用基于字典的压缩以减少 token 使用量                                                    |
-| `--edges`          | `false`          | 包含带有关系数据的 `[edges]` 部分（调用、包含等）                                        |
-| `--clean`          | `false`          | 在写入前删除输出目录中现有的 `.skt` 文件                                                 |
-| `--workers`        | `NumCPU`         | 并发解析 goroutine 的最大数量（0 = 使用所有 CPU 核心）                                   |
-| `--verbose`        | `false`          | 在处理过程中打印进度和计时信息                                                           |
-
-## 常见模式
+在树模式下，文件名保留源扩展名：`src/foo.c` 变为 `src/foo.c.skt`，`src/foo.h` 变为 `src/foo.h.skt`。大文件会被拆分为 `foo.c_part1.skt`、`foo.c_part2.skt` 等。
 
 ```bash
-# First run on a project
-codeknit parse ./src
+codeknit parse ./src --output-mode directory-tree
 ```
 
+避免在整个项目上使用 `inline`。它会将所有内容写入 stdout，可能会淹没您的终端或 LLM 上下文窗口。
+
+有关选择模式的更多信息，请参阅 [输出模式](../output-modes/)。
+
+## 在同一项目上重新运行
+
+codeknit 拒绝写入已包含所选格式生成输出的目录。这可以防止陈旧和新鲜的块混合。添加 `--clean` 以替换之前的输出：
+
 ```bash
-# Re-run and clean previous output
 codeknit parse ./src --clean
 ```
 
+`--clean` 不会预先删除任何内容。codeknit 在临时目录中生成新输出，仅在生成成功后才替换旧的生成文件。如果生成失败或进程被中断，之前的输出将被保留或在下次运行时恢复。codeknit 未生成的输出目录中的文件将被保留。如果其中一个文件与生成路径冲突，运行将失败。
+
+在 JSON 模式下，相同的规则适用于 `codeknit.json`。
+
+**陷阱：混合块。** 符号 ID（`S1`、`S2` 等）和关系结果可能在不同运行和版本之间变化。升级到 0.5.0 后，使用 `--clean` 重新生成整个输出集。切勿将不同运行的块混合使用。
+
+## 解析单个文件
+
+将 `parse` 指向文件并使用 `inline` 模式：
+
 ```bash
-# Parse a single file to stdout
 codeknit parse ./src/main.go --output-mode inline
 ```
 
-```bash
-# Minify output for large codebases
-codeknit parse ./src --minify
-```
+当明确选择常规源文件时，codeknit 会跳过忽略文件和测试文件过滤。包含/排除模式和大小限制仍然适用。
+
+## 获取用于脚本的 JSON
 
 ```bash
-# Include relationship edges (e.g., for dependency analysis)
-codeknit parse ./src --edges
-```
-
-```bash
-# Emit JSON for another tool
 codeknit parse ./src --output-mode inline --format json --edges
 ```
 
-示例 JSON 输出：
+JSON 文档具有顶级字段 `files`、`symbols`、`edges`（无边时省略）和 `errors`（无错误时省略）。一个小例子：
 
 ```json
 {
@@ -127,46 +110,114 @@ codeknit parse ./src --output-mode inline --format json --edges
 }
 ```
 
+要将 JSON 写入磁盘，请去掉 `--output-mode inline`。在目录模式下，JSON 写入 `codeknit.json`。JSON 是单个文档，不会按行数拆分。
+
+## 包含关系
+
+默认情况下，输出仅包含 `[symbols]` 部分，以节省令牌。当您需要知道什么调用、包含、继承或引用什么时，添加 `--edges`：
+
 ```bash
-# Mirror source tree structure in output
-codeknit parse ./src --output-mode directory-tree
+codeknit parse ./src --edges
 ```
 
-## 关系不确定性
+### 读取不确定的关系
 
-使用 `--edges` 时，Codeknit 会保留关系，即使语法和作用域无法确定唯一目标：
+Codeknit 分析语法时不使用编译器，因此无法建立某些关系。每条边都说明其确定性：
 
 ```skt
-S1 --calls--> S2
-S1 --references[unresolved]--> string, bool
-S1 --calls[ambiguous]--> Helper [candidates=S3, S4]
+S8 --references--> S5
+S10 --references[unresolved]--> string, bool
+S11 --calls[ambiguous]--> Helper [candidates=S12, S15]
 ```
 
-省略状态表示已被分析器解析。`unresolved` 表示无法建立依赖关系；`ambiguous` 表示存在竞争解释。候选项是可能的目标，而非确认的连接。已知端点使用 ShortID；未解析的目标可能以名称形式出现，而无符号。
+- `--kind-->` 是已解析的关系。
+- `--kind[unresolved]-->` 表示 codeknit 无法确定目标。
+- `--kind[ambiguous]-->` 表示存在多个可能的目标。候选 ID 会在可用时列出。
 
-JSON 以 `resolution` 和 `candidates` 携带相同信息，并省略不确定目标的 `to_short`。C/C++ 包含具有 `meta/file` 和 `meta/include` 符号，因此边使用 ShortID；这记录了书写的指令，而不声称编译器级别的头文件解析。
+候选是可能的目标，而不是确认的依赖项。已知端点使用短 ID。未解析的目标在没有匹配符号时可能显示为相对于源文件的名称。
 
-依赖度量排除不确定的关系。HTML 图显示其计数，而不绘制单个不确定链接。有关语法的详细信息，请参阅[输出格式参考](../../reference/output-format/)，有关解析限制，请参阅[语言支持参考](../../reference/language-support/)。
+在 JSON 中，不确定的边带有 `resolution`（`"unresolved"` 或 `"ambiguous"`），并在可用时带有 `candidates` 作为完整符号 ID。它们省略 `to_short`。
 
-## 过时输出保护
+对于 C 和 C++，`#include` 指令变为 `meta/file` 和 `meta/include` 符号，因此它们的边具有短 ID。这记录了指令的书写形式。这并不意味着 codeknit 找到了头文件。
 
-如果输出目录已包含上次运行生成的 `.skt` 文件，`codeknit` 将拒绝写入新输出，以防止混合过时和新鲜数据。
+图分析排除不确定的边，并报告排除了多少。HTML 图查看器显示不确定关系的计数，但不绘制它们。要检查单个不确定边，请在 `parse` 上使用 `--edges`。有关这些报告的信息，请参阅 [图命令](../graph-commands/)。
 
-要覆盖此行为并清理输出目录后再写入，请使用 `--clean` 参数：
+边的语法在 [输出格式参考](../../reference/output-format/) 中。解析规则和限制在 [语言支持参考](../../reference/language-support/#relationship-resolution) 中。
+
+## 减少输出大小
+
+要压缩重复的令牌，请添加 `--minify`：
 
 ```bash
-codeknit parse ./src --clean
+codeknit parse ./src --minify
 ```
 
-这确保了输出集的新鲜和一致性。
+这会将字典写入 `dict.skt`（或内联的 `[dict]` 部分）。在阅读时，将代码如 `d0` 和 `d1` 替换为其字典值。关系类型也会被编码，但解析标签如 `[unresolved]` 保持可读。
 
-升级到 `0.5.0` 时，请重新生成整个输出集。符号 ID 和关系结果可能会变化；请勿混合不同运行的块。
+要控制块大小，请使用 `--max-lines`（默认 `500`）：
+
+- 在 `directory-flat` 模式下，它是一个目标。源块永远不会被拆分，因此块可能超过该值一个块。
+- 在 `directory-tree` 模式下，它是每个源块的硬限制。最小值为 `3`。每个块重复其 `[symbols]` 和 `## source-path` 头。
+
+## 解析命名为 `.h` 的 C++ 头文件
+
+Codeknit 默认将 `.h` 文件解析为 C。对于使用该扩展名的 C++ 头文件，请设置 `--header-language cpp`：
+
+```bash
+codeknit parse ./src --header-language cpp
+```
+
+该标志仅影响 `.h` 文件。命名为 `.hpp` 和 `.hxx` 的文件已被解析为 C++，其他扩展名保持其通常的解析器。
+
+## 控制扫描哪些文件
+
+所有五个源处理命令都接受这些标志。它们在 [CLI 标志参考](../../reference/cli-flags/) 中有完整列表。
+
+```bash
+codeknit parse ./src --include '**/*.go' --exclude '**/generated/' --strict
+```
+
+- `--include GLOB` 和 `--exclude GLOB` 是可重复的、相对于输入目录的 gitignore 风格模式。请用引号括起来，以免 shell 展开它们。排除优先。包含不会覆盖 `.gitignore`、测试文件过滤或内置排除。
+- `--max-file-size BYTES` 跳过更大的文件。默认值为 `10485760`（10 MiB）。`0` 禁用该限制。
+- `--strict` 如果扫描或解析不完整，则在写入任何输出之前失败。默认值为 `false`。
+
+Codeknit 会跳过并报告符号链接和非常规文件。祖先 `.gitignore` 规则独立于您的工作目录应用。
+
+**陷阱：部分结果。** 无法读取的路径、过大的文件、跳过的符号链接和语法警告会导致分析不完整。没有 `--strict` 时，codeknit 会保留可用的结果并报告问题：
+
+- 在 stderr 上，
+- 在 JSON 的 `errors` 字段中，或
+- 在 SKT 的 `[errors]` 部分（内联，或在目录模式下的 `warnings.skt` 中）。
+
+没有选定受支持的源的输入，或每个读取的源都失败的运行，总是以失败退出。有关精确保证，请参阅 [分析可靠性](../../reference/analysis-reliability/)。
+
+## 解析标志
+
+以下标志特定于 `parse`。共享标志在 [CLI 标志参考](../../reference/cli-flags/) 中。
+
+| 标志               | 默认值          | 描述                                                                                       |
+| ------------------ | ---------------- | ------------------------------------------------------------------------------------------ |
+| `--output-mode`    | `directory-flat` | 输出模式：`inline`、`directory-flat` 或 `directory-tree`。                                 |
+| `--format`         | `skt`            | 输出格式：`skt` 或 `json`。                                                                |
+| `--header-language`| `c`              | `.h` 文件的解析器：`c` 或 `cpp`。其他扩展名保持不变。                                      |
+| `--max-lines`      | `500`            | 平面输出的行目标；每个树源块的硬限制（最小值为 3）。                                       |
+| `--collect-test`   | `false`          | 包含测试文件。                                                                             |
+| `--minify`         | `false`          | 使用基于字典的压缩。                                                                       |
+| `--edges`          | `false`          | 包含 `[edges]` 部分（默认关闭以节省令牌）。                                                |
+| `--clean`          | `false`          | 仅在生成成功后替换之前生成的输出。                                                         |
+| `--workers`        | `NumCPU`         | 最大并发解析 goroutine 数量。                                                              |
+| `--verbose`        | `false`          | 打印进度信息。                                                                             |
 
 ## 提示
 
-- ✅ **大多数项目默认使用 `directory-flat`**。它在可读性和可管理性之间取得平衡。
-- 🔍 在大型代码库上使用 `--minify` 通过共享字典（`dict.skt`）减少 token 使用量。
-- 🔗 `[edges]` 部分**默认被排除**以节省 token。当需要关系数据（如 `calls`、`contains` 或 `inherits`）时，请使用 `--edges`。
-- 🧾 当脚本或集成需要结构化数据而非 `.skt` 时，请使用 `--format json`。
-- 🧹 在同一输出目录上重新运行时，始终使用 `--clean`。
-- 📁 如果希望在编辑器中直接将 `.skt` 文件与源文件关联，请使用 `directory-tree`。
+- 对于大多数项目，请使用 `directory-flat`，并仅读取所需的块。
+- 在大型代码库上使用 `--minify` 以节省令牌。
+- 仅在需要关系数据时传递 `--edges`。
+- 在依赖特定语言的提取之前，请检查 [测试能力矩阵和已知限制](../../reference/language-support/)。
+
+## 另请参阅
+
+- [输出模式](../output-modes/)
+- [输出格式参考](../../reference/output-format/)
+- [分析可靠性](../../reference/analysis-reliability/)
+- [图命令](../graph-commands/)

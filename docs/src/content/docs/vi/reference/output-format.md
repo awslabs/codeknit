@@ -1,60 +1,89 @@
 ---
-title: Tài liệu tham khảo định dạng đầu ra
-description: Tài liệu tham khảo đầy đủ về định dạng đầu ra .skt được sử dụng bởi codeknit.
+title: Tài liệu tham chiếu về định dạng đầu ra
+description: Tài liệu tham chiếu đầy đủ về định dạng đầu ra .skt được sử dụng bởi codeknit.
 ---
 
-Định dạng `.skt` (skeleton) là một định dạng văn bản nhỏ gọn, dễ đọc được sử dụng bởi `codeknit` để biểu diễn cấu trúc mã đã trích xuất. Nó chứa các ký hiệu, mối quan hệ và siêu dữ liệu ở dạng tối giản phù hợp cho việc tiêu thụ bởi LLM và phân tích cấu trúc.
+Trang này mô tả ngữ pháp của đầu ra `.skt` và đầu ra JSON tương đương. Để biết các quy tắc quyết định cách thức giải quyết mối quan hệ, hãy xem [Hỗ trợ ngôn ngữ và độ trung thực của API](../language-support/).
 
-Tệp `.skt` được chia thành các phần. Mỗi phần bắt đầu bằng một tiêu đề trong dấu ngoặc vuông. Các phần có thể xuất hiện theo bất kỳ thứ tự nào, mặc dù `[symbols]` thường xuất hiện đầu tiên.
+## Tổng quan
+
+Tệp `.skt` là một tệp văn bản nhỏ gọn bao gồm các phần. Mỗi phần bắt đầu bằng một dòng tiêu đề trong dấu ngoặc vuông.
+
+| Phần          | Xuất hiện khi                                      | Nội dung                                          |
+| ------------- | -------------------------------------------------- | ------------------------------------------------- |
+| `[symbols]`   | Luôn luôn                                          | Định nghĩa ký hiệu được nhóm theo tệp nguồn       |
+| `[edges]`     | `--edges` được thiết lập                           | Mối quan hệ giữa các ký hiệu                      |
+| `[errors]`    | Có lỗi quét hoặc phân tích cú pháp xảy ra          | Các tệp không thể xử lý hoàn toàn                 |
+| `[dict]`      | `--minify` được thiết lập                          | Từ điển ánh xạ mã ngắn tới các token lặp lại      |
+
+Trong các **chế độ đầu ra** thư mục, `[errors]` và `[dict]` có thể được ghi vào các tệp phụ trợ `warnings.skt` và `dict.skt`. Trong chế độ `inline`, chúng xuất hiện trong cùng một đầu ra với các phần khác.
+
+`--format json` tạo ra một tài liệu JSON với cùng thông tin. Xem [đầu ra JSON](#đầu-ra-json).
 
 ## [symbols]
 
-Phần `[symbols]` liệt kê tất cả các ký hiệu đã trích xuất được nhóm theo tệp nguồn của chúng. Mỗi tệp được giới thiệu bằng tiêu đề `##` theo sau là đường dẫn tệp.
+Các ký hiệu được nhóm theo tệp nguồn. Mỗi nhóm bắt đầu bằng dòng tiêu đề `## <đường-dẫn>`, theo sau là một dòng cho mỗi ký hiệu.
 
-### Định dạng dòng
-
-Mỗi ký hiệu được biểu diễn trên một dòng với cấu trúc sau:
-
+```skt
+[symbols]
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
 ```
+
+### Dòng ký hiệu
+
+```text
 ShortID category/kind Lstart-Lend signature {properties}
 ```
 
-### Trường
+| Trường          | Mô tả                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------- |
+| `ShortID`       | Định danh tuần tự: `S1`, `S2`, `S3`, v.v. Các cạnh tham chiếu đến các ký hiệu bằng giá trị này.     |
+| `category/kind` | Phân loại của ký hiệu. Xem [Danh mục và loại](#danh-mục-và-loại).                                   |
+| `Lstart-Lend`   | Dòng đầu tiên và dòng cuối cùng của ký hiệu trong tệp nguồn.                                        |
+| `signature`     | Tên ký hiệu, với tham số và kiểu trả về cho các callable. Xem [Định dạng chữ ký](#định-dạng-chữ-ký). |
+| `{properties}`  | Siêu dữ liệu trong dấu ngoặc nhọn. Xem [Thuộc tính](#thuộc-tính).                                   |
 
-- **ShortID**: Một định danh tuần tự được gán cho mỗi ký hiệu (ví dụ: `S1`, `S2`, `S3`). Được sử dụng làm tham chiếu trong các cạnh và các phần khác.
-- **category/kind**: Một cặp phân cách bằng dấu gạch chéo cho biết danh mục và loại cụ thể của ký hiệu.
-- **Lstart-Lend**: Phạm vi dòng trong tệp nguồn nơi ký hiệu được định nghĩa (ví dụ: `L10-L15`).
-- **signature**: Tên và thông tin kiểu của ký hiệu. Định dạng phụ thuộc vào ký hiệu:
-  - `name` — cho các kiểu, giá trị, mô-đun
-  - `name(params)` — cho các callable không có kiểu trả về
-  - `name(params) -> returnType` — cho các callable có kiểu trả về
-- **{properties}**: Siêu dữ liệu tùy chọn được đặt trong dấu ngoặc nhọn. Nhiều thuộc tính được phân cách bằng dấu phẩy.
+Một dòng ký hiệu nằm trên một dòng vật lý. Ngắt dòng bên trong chữ ký được thoát dưới dạng `\n` và `\r`.
 
-### Tham số
+ID ký hiệu có thể thay đổi khi trích xuất thay đổi. Hãy tái tạo tất cả các phần đầu ra cùng nhau thay vì trộn các phần từ các lần chạy khác nhau. Điều này đặc biệt áp dụng khi nâng cấp lên 0.5.0, vì ID ký hiệu và kết quả giải quyết mối quan hệ có thể thay đổi.
 
-- Trong các ngôn ngữ không có kiểu: `paramName`
-- Trong các ngôn ngữ có kiểu: `paramName: type`
-- Các tham chiếu kiểu khớp với các ký hiệu đã biết được thay thế bằng ShortID của chúng (ví dụ: `config: S5` thay vì `config: Config`).
-
-### Thuộc tính
-
-Các thuộc tính phổ biến bao gồm:
-
-- `async`: `true` hoặc `false`
-- `exported`: `true` hoặc `false`
-- `static`: có mặt nếu ký hiệu là static
-- `visibility=public|private|protected`
-- `receiver=*TypeName`: cho các phương thức, chỉ ra kiểu nhận
-
-### Danh mục và loại ký hiệu
+### Danh mục và loại
 
 | Danh mục    | Loại                                      | Ví dụ                                           |
 | ----------- | ----------------------------------------- | ----------------------------------------------- |
-| `callable`  | function, method, constructor             | `callable/function`, `callable/method`         |
+| `callable`  | function, method, constructor             | `callable/function`, `callable/method`          |
 | `type`      | class, interface, struct, enum            | `type/class`, `type/interface`                  |
 | `value`     | variable, constant, field                 | `value/variable`, `value/constant`              |
 | `module`    | package, namespace                        | `module/package`                                |
 | `meta`      | type parameters, files, includes, metadata | `meta/type_parameter`, `meta/file`, `meta/include` |
+
+### Định dạng chữ ký
+
+| Định dạng                     | Được sử dụng cho                              |
+| ----------------------------- | --------------------------------------------- |
+| `name`                        | Các loại, giá trị và mô-đun                   |
+| `name(params)`                | Callable không có kiểu trả về                 |
+| `name(params) -> returnType`  | Callable có kiểu trả về                       |
+
+Các tham số được viết dưới dạng:
+
+| Định dạng       | Được sử dụng cho              |
+| --------------- | ----------------------------- |
+| `name`          | Ngôn ngữ không có kiểu        |
+| `name: type`    | Ngôn ngữ có kiểu              |
+
+Khi một tham chiếu kiểu khớp với một ký hiệu đã biết, tên kiểu được thay thế bằng ID ngắn của ký hiệu đó. Ví dụ, `-> *S2` tham chiếu đến một con trỏ tới ký hiệu `S2`.
+
+### Thuộc tính
+
+Các thuộc tính xuất hiện trong dấu ngoặc nhọn sau chữ ký, phân tách bằng dấu phẩy. Dấu ngoặc nhọn rỗng (`{}`) có nghĩa là ký hiệu không có thuộc tính.
+
+| Định dạng thuộc tính | Ví dụ                 |
+| -------------------- | --------------------- |
+| Cờ                   | `exported`, `async`, `static` |
+| `key=value`          | `visibility=public`, `receiver=*AuthService`, `exported=false`, `resolution=unresolved` |
 
 ### Ví dụ
 
@@ -70,19 +99,45 @@ S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
 
 ## [edges]
 
-Phần `[edges]` ghi lại các mối quan hệ khi `--edges` được bật. Các điểm cuối đã biết sử dụng ShortID của chúng; các mục tiêu không thể giải quyết thành ký hiệu có thể xuất hiện dưới dạng tên.
+Phần `[edges]` liệt kê các mối quan hệ giữa các ký hiệu. Nó chỉ được viết khi các cạnh được yêu cầu với `--edges`.
 
-### Định dạng dòng
+### Dòng cạnh
 
-```
+```text
 FromID --kind--> ToID1, ToID2
 FromID --kind[unresolved]--> Target1, Target2
 FromID --kind[ambiguous]--> Target [candidates=CandidateID1, CandidateID2]
 ```
 
-Việc bỏ qua trạng thái có nghĩa là trình phân tích đã giải quyết được mối quan hệ. `unresolved` có nghĩa là nó không thể thiết lập được phụ thuộc; `ambiguous` có nghĩa là vẫn còn các cách giải thích cạnh tranh. ID ứng viên xác định các mục tiêu có thể, không phải là các kết nối đã xác nhận. Việc giải quyết dựa trên cú pháp và phạm vi, không phải là đảm bảo của trình biên dịch.
+| Phần                     | Mô tả                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `FromID`                 | Điểm cuối nguồn.                                                                |
+| `kind`                   | Loại mối quan hệ. Xem [Loại cạnh](#loại-cạnh).                                 |
+| `[unresolved]`, `[ambiguous]` | Đánh dấu giải quyết tùy chọn. Xem [Đánh dấu giải quyết](#đánh-dấu-giải-quyết). |
+| `ToID1, ToID2`           | Một hoặc nhiều mục tiêu, phân tách bằng dấu phẩy.                               |
+| `[candidates=...]`       | Các mục tiêu có thể cho một cạnh mơ hồ, dưới dạng danh sách phân tách bằng dấu phẩy trong dấu ngoặc. |
 
-Các mục tiêu chỉ được nhóm khi nguồn, loại, độ phân giải và tập ứng viên của chúng khớp nhau. Tên không có ký hiệu là tương đối với tệp nguồn. Các định danh phức tạp sử dụng ID đầy đủ được trích dẫn với các dấu ngoặc kép, dấu gạch chéo ngược và ngắt dòng được thoát. Một tên theo nghĩa đen giống như ShortID phải được trích dẫn như một ID đầy đủ, chẳng hạn như `"app.go::S2"`. Định nghĩa ký hiệu có thể xuất hiện trong các tệp hoặc khối đầu ra sau này.
+Các mục tiêu chia sẻ một dòng chỉ khi nguồn, loại, đánh dấu giải quyết và tập ứng viên giống nhau. Một định nghĩa được tham chiếu bởi một cạnh có thể xuất hiện trong một tệp hoặc phần đầu ra sau đó. Hãy tải tất cả các phần trước khi diễn giải các cạnh.
+
+### Đánh dấu giải quyết
+
+| Đánh dấu         | Ý nghĩa                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Không có         | Trình phân tích đã giải quyết được mối quan hệ.                                      |
+| `[unresolved]`   | Trình phân tích không thể thiết lập được phụ thuộc.                                   |
+| `[ambiguous]`    | Có nhiều hơn một cách giải thích khả dĩ. Các ID ứng viên liệt kê các mục tiêu có thể. |
+
+Việc thiếu đánh dấu không phải là một đảm bảo từ trình biên dịch. Các ID ứng viên xác định các mục tiêu có thể, không phải là các kết nối đã xác nhận. Sự không chắc chắn luôn được viết trong ngữ pháp SKT này, không bao giờ dưới dạng JSON nhúng.
+
+### Định dạng điểm cuối
+
+| Định dạng                      | Khi được sử dụng                                                                                         | Ví dụ                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Short ID                       | Điểm cuối hoặc ứng viên là một ký hiệu đã biết. Điều này bao gồm các điểm cuối của các cạnh chưa giải quyết và các ký hiệu include. | `S4`, `S8`       |
+| Tên đơn                        | Mục tiêu không có ký hiệu. Tên này là tương đối với tệp nguồn.                                          | `Refresh`, `string`       |
+| ID đầy đủ có dấu ngoặc kép     | Định danh phức tạp, hoặc một tên theo nghĩa đen giống như một short ID.                                 | `"app.go::S2"`            |
+
+Các ID đầy đủ có dấu ngoặc kép thoát các dấu ngoặc kép, dấu gạch chéo ngược và ngắt dòng. Một tên theo nghĩa đen như `S2` phải được viết dưới dạng ID đầy đủ có dấu ngoặc kép để không bị đọc nhầm là short ID.
 
 ```skt
 S4 --references[unresolved]--> string, bool
@@ -90,39 +145,43 @@ S5 --calls[ambiguous]--> Helper [candidates=S8, S9]
 S6 --references[unresolved]--> "app.go::S2"
 ```
 
-### Điểm cuối tệp và include
-
-Các include của C/C++ có các ký hiệu siêu dữ liệu rõ ràng. Các cách viết tiêu đề xuất hiện một lần trong danh sách ký hiệu, và các cạnh sử dụng ShortID mặc dù việc giải quyết tiêu đề vẫn chưa được giải quyết:
-
-```skt
-[symbols]
-## src/main.c
-S1 meta/file L1-L3 main.c
-S2 meta/include L1-L1 "config.h" {resolution=unresolved}
-S3 meta/include L2-L2 <stdio.h> {resolution=unresolved}
-
-[edges]
-S1 --references[unresolved]--> S2, S3
-```
-
-Một ký hiệu include ghi lại chỉ thị đã viết, không phải là khai báo tiêu đề đã giải quyết. Các include lặp lại trong một tệp chia sẻ một điểm cuối. Siêu dữ liệu tệp/include bị loại khỏi xếp hạng phụ thuộc và phát hiện mã chết.
-
-Các mối quan hệ không chắc chắn được bảo toàn trong đầu ra phân tích cú pháp nhưng bị loại khỏi các số liệu phụ thuộc. Các báo cáo đồ thị hiển thị số lượng mối quan hệ bị loại trừ; trình xem HTML hiển thị số lượng của chúng mà không vẽ các cạnh không chắc chắn riêng lẻ.
-
-Khi nâng cấp lên `0.5.0`, hãy tái tạo tất cả các khối đầu ra cùng nhau. ID ký hiệu và kết quả mối quan hệ có thể thay đổi, vì vậy các khối từ các lần chạy khác nhau không được trộn lẫn.
-
 ### Loại cạnh
 
 | Loại         | Ý nghĩa                                         |
 | ------------ | ----------------------------------------------- |
-| `calls`      | lời gọi hàm/phương thức                         |
-| `contains`   | lớp chứa phương thức, mô-đun chứa hàm          |
-| `inherits`   | lớp kế thừa lớp khác                            |
-| `implements` | lớp triển khai giao diện                        |
-| `overrides`  | phương thức ghi đè phương thức cha             |
-| `references` | ký hiệu tham chiếu đến ký hiệu khác             |
-| `imports`    | mô-đun nhập mô-đun khác                         |
-| `decorates`  | decorator được áp dụng cho một ký hiệu          |
+| `calls`      | Lời gọi hàm/phương thức                         |
+| `contains`   | Lớp chứa phương thức, mô-đun chứa hàm           |
+| `inherits`   | Lớp kế thừa từ lớp khác                         |
+| `implements` | Lớp triển khai giao diện                        |
+| `overrides`  | Phương thức ghi đè phương thức cha              |
+| `references` | Ký hiệu tham chiếu đến ký hiệu khác             |
+| `imports`    | Mô-đun nhập mô-đun khác                         |
+| `decorates`  | Bộ trang trí được áp dụng cho ký hiệu           |
+
+Các callable được trả về và đối số callback được ghi lại là `references`, không phải là một loại riêng biệt.
+
+### Ký hiệu tệp và include của C và C++
+
+Các nguồn C và C++ tạo ra các ký hiệu `meta/file` và `meta/include`, vì vậy các mối quan hệ include có short ID. Mỗi cách viết tiêu đề xuất hiện một lần trong danh sách ký hiệu, và các cạnh sử dụng short ID. Các include lặp lại trong một tệp chia sẻ một điểm cuối.
+
+```skt
+[symbols]
+## src/main.c
+S1 meta/file L1-L4 main.c
+S2 meta/include L1-L1 "config.h" {resolution=unresolved}
+S3 meta/include L2-L2 "utils.h" {resolution=unresolved}
+S4 meta/include L3-L3 <stdio.h> {resolution=unresolved}
+
+[edges]
+S1 --references[unresolved]--> S2, S3, S4
+```
+
+Một ký hiệu include ghi lại chỉ thị như đã viết. Nó không đại diện cho một khai báo tiêu đề đã giải quyết.
+
+### Ảnh hưởng đến phân tích và trực quan hóa
+
+- Các cạnh không chắc chắn và siêu dữ liệu tệp/include không đóng góp vào các chỉ số phụ thuộc. Các báo cáo hiển thị số lượng các mối quan hệ bị loại trừ.
+- Đồ thị HTML vẽ các liên kết đã giải quyết và hiển thị số lượng các mối quan hệ không chắc chắn. Nó không vẽ các cạnh không chắc chắn riêng lẻ.
 
 ### Ví dụ
 
@@ -136,43 +195,29 @@ S24 --implements--> S19
 
 ## [errors]
 
-Phần `[errors]` liệt kê các tệp không thể phân tích cú pháp hoàn toàn.
+Phần `[errors]` liệt kê các tệp không được xử lý hoàn toàn. Nó chỉ xuất hiện khi có chẩn đoán.
 
-### Định dạng
-
-Mỗi dòng bắt đầu bằng `-` theo sau là đường dẫn tệp và thông báo lỗi:
-
+```text
+- <path>: <message>
 ```
-- path/to/file.go: syntax error at line 42
-```
-
-### Ví dụ
 
 ```skt
 [errors]
-- src/broken.go: unexpected token at line 10
-- tests/corner_case.py: unterminated string literal
+- path/to/broken.go: syntax error at line 42
 ```
 
 ## [dict]
 
-Phần `[dict]` chỉ xuất hiện khi cờ `--minify` được sử dụng. Nó ánh xạ các mã từ điển ngắn tới các chuỗi được lặp lại để giảm kích thước đầu ra.
+Phần `[dict]` chỉ xuất hiện trong đầu ra đã được rút gọn (`--minify`). Nó ánh xạ các mã ngắn tới các token lặp lại.
 
-### Định dạng
+| Phần       | Mô tả                                                                 |
+| ---------- | --------------------------------------------------------------------- |
+| `d0`, `d1`, … | Mã từ điển.                                                        |
+| Dòng mục   | `- <code>: <token>`                                                   |
 
-Mỗi dòng ánh xạ một mã từ điển (`d0`, `d1`, v.v.) tới giá trị mở rộng của nó:
+Để đọc đầu ra đã được rút gọn, hãy thay thế mỗi mã bằng giá trị từ điển của nó. Các mã có thể thay thế các cặp danh mục/loại và thuộc tính trong `[symbols]`. Chúng cũng có thể thay thế các loại mối quan hệ trong `[edges]`. Các đánh dấu không chắc chắn vẫn có thể đọc được. Ví dụ, `S1 --d2[unresolved]--> S3` là một cạnh chưa giải quyết có loại là giá trị của `d2`.
 
-```
-- d0: async=false
-- d1: callable/method
-- d2: exported
-```
-
-Trong phần còn lại của tệp, các mã này thay thế các giá trị đầy đủ của chúng.
-
-Các loại mối quan hệ cũng có thể sử dụng mã từ điển trong khi các nhãn trạng thái vẫn dễ đọc: `S1 --d2[unresolved]--> S3`. Mở rộng `d2` bằng từ điển và giữ nguyên trạng thái unresolved.
-
-### Ví dụ
+### Ví dụ đã rút gọn
 
 ```skt
 [dict]
@@ -190,51 +235,37 @@ S3 d1 L5-L6 handle(request) {d0}
 S1 --contains--> S2, S3
 ```
 
+Ở đây `S2` là một `callable/method` với thuộc tính `async=false`.
+
 ## Ví dụ đầy đủ
 
-```skt
-[dict]
-- d0: exported
-- d1: callable/function
+Đầu ra sau đây chứa `[symbols]`, `[edges]`, và `[errors]`. Nó không được rút gọn, vì vậy không có phần `[dict]`; xem [ví dụ đã rút gọn](#ví-dụ-đã-rút-gọn).
 
+```skt
 [symbols]
-## main.go
-S1 module/package L1-L1 main {}
-S2 type/struct L5-L8 Server {d0}
-S3 d1 L10-L12 NewServer(addr: string) -> *S2 {d0}
-S4 callable/method L14-L20 Serve() {d0, receiver=*Server}
-S5 callable/function L22-L25 handleError(err: error) -> bool {}
+## pkg/services/auth.go
+S1 module/package L1-L1 services {}
+S2 type/struct L5-L8 AuthService {exported}
+S3 callable/function L10-L12 NewAuthService(secret: string, ttl: int) -> *S2 {exported}
+S4 callable/method L14-L19 Authenticate(token: string) {exported, receiver=*AuthService}
+S5 callable/function L29-L31 verifyToken(token: string) -> bool {exported=false}
+## pkg/util/hash.go
+S6 callable/function L3-L5 Hash(data: string) -> string {exported}
+## pkg/util/hash_alt.go
+S7 callable/function L3-L5 Hash(data: string) -> string {exported}
 
 [edges]
+S1 --contains--> S2, S3, S4, S5
 S2 --contains--> S4
-S4 --calls--> S5
 S3 --references--> S2
+S4 --calls--> S5
+S4 --calls[unresolved]--> Refresh
+S5 --calls[ambiguous]--> Hash [candidates=S6, S7]
 
 [errors]
-- utils/broken.go: syntax error at line 5
+- pkg/legacy/broken.go: syntax error at line 42
 ```
 
-## Mối quan hệ JSON
+## Đầu ra JSON
 
-Sử dụng JSON khi một tập lệnh hoặc tích hợp cần đầu ra có cấu trúc:
-
-```bash
-codeknit parse ./src --output-mode inline --format json --edges
-```
-
-Mỗi cạnh bao gồm `from`, `to`, và `kind`. ID nguồn đã biết xuất hiện trong `from_short`; ID mục tiêu đã giải quyết xuất hiện trong `to_short`. Các cạnh không chắc chắn thêm `resolution` và, khi có sẵn, `candidates` chứa ID ký hiệu đầy đủ. Chúng bỏ qua `to_short`, ngay cả khi mục tiêu có ký hiệu siêu dữ liệu include.
-
-Ví dụ, một lời gọi mơ hồ có thể được biểu diễn như sau:
-
-```json
-{
-  "from": "app.py::run",
-  "from_short": "S1",
-  "to": "app.py::Helper",
-  "kind": "calls",
-  "resolution": "ambiguous",
-  "candidates": ["helpers/a.py::Helper", "helpers/b.py::Helper"]
-}
-```
-
-JSON và SKT bảo toàn cùng một mức độ không chắc chắn với các mã hóa khác nhau. Xem [Hỗ trợ ngôn ngữ và độ trung thực API](../language-support/) để biết các quy tắc giải quyết và giới hạn đã biết.
+`--format json`

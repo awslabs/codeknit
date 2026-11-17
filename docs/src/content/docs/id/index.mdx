@@ -14,27 +14,48 @@ hero:
       icon: github
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+codeknit membaca kode sumber Anda dan menulis peta ringkas dari strukturnya: fungsi, kelas, metode, variabel, dan bagaimana mereka saling berhubungan. LLM dapat membaca peta tersebut secara langsung, sehingga mereka dapat merencanakan refaktor di ratusan file tanpa perlu memuat setiap file ke dalam konteks.
+
+## Fitur
 
 <CardGrid>
   <Card title="12 Bahasa" icon="translate">
-    Mendukung C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala,
-    dan TypeScript.
+    C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, dan TypeScript. Lihat [referensi dukungan bahasa](reference/language-support/).
   </Card>
   <Card title="Keluaran Ringkas" icon="document">
-    Menghasilkan file `.skt` dengan minifikasi dan beberapa mode keluaran (inline,
-    flat, tree) untuk penggunaan konteks LLM yang optimal.
+    Mengekstrak fungsi, kelas, metode, variabel, dan hubungan mereka ke dalam file `.skt` yang dirancang untuk jendela konteks LLM. Minifikasi berbasis kamus menghemat lebih banyak token. Pilih dari [mode keluaran](guides/output-modes/) inline, directory-flat, atau directory-tree.
   </Card>
   <Card title="Analisis Graf" icon="random">
-    Mendeteksi siklus, hub, dead code, god class, hambatan, dan lainnya menggunakan
-    22 algoritma struktural.
+    22 algoritma menemukan dependensi siklik, pusat, kode mati, god class, dan hambatan. Graf HTML interaktif menampilkan bagaimana simbol saling terhubung. Lihat [panduan perintah graf](guides/graph-commands/).
   </Card>
   <Card title="Deteksi Duplikat" icon="magnifier">
-    Menemukan kode duplikat dan hampir duplikat di seluruh file dan bahasa menggunakan
-    fingerprinting CTPH.
+    Fingerprinting CTPH menemukan kode duplikat dan hampir duplikat di seluruh file dan bahasa. Lihat [panduan fingerprint](guides/fingerprint-command/).
   </Card>
   <Card title="Siap AI" icon="rocket">
-    Menyertakan keterampilan bawaan untuk Kiro dan Claude Code agar asisten AI dapat
-    mengurai dan menganalisis struktur kode secara mandiri.
+    Plugin untuk Claude Code, Codex, dan Kiro menambahkan satu keterampilan `codeknit` yang menginstal biner untuk Anda. Lihat [Gunakan codeknit dengan asisten AI](guides/ai-assistants/).
   </Card>
 </CardGrid>
+
+## Selanjutnya ke mana
+
+### Tutorial
+
+- [Memulai](getting-started/): parse proyek pertama Anda dan baca hasilnya.
+
+### Panduan cara
+
+- [Instal codeknit](installation/)
+- [Parse basis kode](guides/parse-command/)
+- [Analisis dan visualisasikan graf kode](guides/graph-commands/)
+- [Temukan kode duplikat](guides/fingerprint-command/)
+- [Pilih mode keluaran](guides/output-modes/)
+- [Gunakan codeknit dengan asisten AI](guides/ai-assistants/)
+
+### Referensi
+
+- [Format keluaran](reference/output-format/)
+- [Flag CLI](reference/cli-flags/)
+- [Dukungan bahasa](reference/language-support/)
+- [Keandalan analisis](reference/analysis-reliability/)

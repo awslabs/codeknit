@@ -1,18 +1,22 @@
 ---
 title: Instalasi
-description: Cara menginstal codeknit pada sistem Anda.
+description: Cara menginstal codeknit di sistem Anda.
 ---
 
-codeknit dapat diinstal dari sumber. Langkah-langkah berikut akan memandu Anda dalam menyiapkan codeknit pada sistem Anda.
+Panduan ini menginstal codeknit dari sumber, menambahkannya ke `PATH`, mengaktifkan penyelesaian shell, dan memeriksa apakah aplikasi berjalan.
 
-## Dari sumber
+:::tip[Menggunakan asisten pengkodean AI?]
+Pengguna Claude Code, Codex, dan Kiro dapat menginstal plugin codeknit sebagai gantinya. Plugin akan mengunduh biner saat pertama kali dijalankan. Lihat [Gunakan codeknit dengan asisten AI](../guides/ai-assistants/).
+:::
 
-Metode instalasi utama adalah dengan membangun dari sumber. Anda akan memerlukan:
+## Instal dari sumber
 
-- Go 1.26+
-- Compiler C (diperlukan untuk tree-sitter via CGo)
+**Prasyarat**
 
-Klon repositori dan bangun biner:
+- Go 1.26 atau lebih baru
+- Kompiler C. codeknit menggunakan CGo untuk membangun parser tree-sitter.
+
+**Langkah-langkah**
 
 ```bash
 git clone https://github.com/awslabs/codeknit.git
@@ -20,86 +24,83 @@ cd codeknit
 make build
 ```
 
-Biner yang telah dikompilasi akan tersedia di `./bin/codeknit`.
+Biner akan disimpan di `./bin/codeknit`.
 
-## Tambahkan ke PATH
+### Gunakan biner pra-bangun sebagai gantinya
 
-Untuk menjalankan `codeknit` dari direktori mana pun, tambahkan lokasi biner ke PATH sistem Anda.
+Biner pra-bangun untuk Linux, macOS, dan Windows (amd64 dan arm64) tersedia di [halaman rilis](https://github.com/awslabs/codeknit/releases). Unduh arsip untuk platform Anda, ekstrak, dan pindahkan biner ke `PATH`. Setiap rilis menyertakan file `checksums.txt` yang dapat Anda gunakan untuk memverifikasi unduhan.
 
-Untuk **bash** (`~/.bashrc`):
+## Tambahkan codeknit ke PATH
+
+Lewati bagian ini jika Anda telah memindahkan biner ke direktori yang sudah ada di `PATH`, seperti `/usr/local/bin`.
+
+Ganti `/path/to/codeknit` dengan direktori yang berisi biner. Jika Anda membangun dari sumber, direktori tersebut adalah `bin` di dalam repositori yang telah dikloning.
+
+Tambahkan baris berikut untuk shell Anda ke file konfigurasi:
 
 ```bash
+# bash (~/.bashrc)
 export PATH="$PATH:/path/to/codeknit"
-```
 
-Untuk **zsh** (`~/.zshrc`):
-
-```bash
+# zsh (~/.zshrc)
 export PATH="$PATH:/path/to/codeknit"
-```
 
-Untuk **fish** (`~/.config/fish/config.fish`):
-
-```fish
+# fish (~/.config/fish/config.fish)
 fish_add_path /path/to/codeknit
 ```
 
-Setelah memperbarui konfigurasi shell Anda, muat ulang dengan menjalankan `source ~/.bashrc` (atau `~/.zshrc`) atau mulai ulang terminal Anda.
-
-## Penyelesaian shell
-
-codeknit mendukung penyelesaian otomatis untuk shell populer. Instal penyelesaian menggunakan perintah berikut:
-
-Untuk **bash**:
+Muat ulang shell, atau muat ulang file yang telah diedit:
 
 ```bash
+source ~/.bashrc   # bash
+source ~/.zshrc    # zsh
+```
+
+Untuk fish, buka terminal baru.
+
+## Aktifkan penyelesaian shell
+
+codeknit menghasilkan skrip penyelesaian untuk bash, zsh, fish, dan PowerShell. Jalankan perintah untuk shell Anda sekali:
+
+```bash
+# bash
 codeknit completion bash >> ~/.bashrc
-```
 
-Untuk **zsh**:
-
-```bash
+# zsh
 codeknit completion zsh >> ~/.zshrc
-```
 
-Untuk **fish**:
-
-```bash
+# fish
 codeknit completion fish > ~/.config/fish/completions/codeknit.fish
-```
 
-Untuk **PowerShell**:
-
-```powershell
+# PowerShell
 codeknit completion powershell >> $PROFILE
 ```
 
-## Verifikasi instalasi
+Perintah untuk bash, zsh, dan PowerShell menambahkan skrip ke profil Anda. Menjalankannya lagi akan menambahkan skrip untuk kedua kalinya, jadi jalankan masing-masing hanya sekali.
 
-Setelah instalasi, verifikasi bahwa codeknit telah diatur dengan benar:
+Buka shell baru, atau muat ulang profil Anda, untuk mengaktifkan penyelesaian.
+
+## Verifikasi instalasi
 
 ```bash
 codeknit --version
 ```
 
-## Pengaturan pengembangan
+Jika perintah menampilkan versi, codeknit telah terinstal. Jika shell melaporkan `command not found`, periksa apakah direktori dalam baris `PATH` Anda berisi biner `codeknit`, lalu muat ulang shell.
 
-Jika Anda berkontribusi pada codeknit, jalankan perintah tambahan berikut:
+## Siapkan lingkungan pengembangan
 
-Instal dependensi pengembangan:
-
-```bash
-make deps
-```
-
-Siapkan git hooks:
+Lakukan ini hanya jika Anda berencana untuk berkontribusi pada codeknit. Jalankan perintah berikut dari root repositori yang telah dikloning:
 
 ```bash
-make setup
+make deps    # instal dependensi
+make setup   # konfigurasi git hooks
+make test    # jalankan rangkaian pengujian
 ```
 
-Jalankan rangkaian pengujian:
+`make lint` menjalankan linter dan formatter.
 
-```bash
-make test
-```
+## Langkah selanjutnya
+
+- Jalankan perintah pertama Anda di [Memulai](../getting-started/).
+- Jelajahi setiap flag di [referensi flag CLI](../reference/cli-flags/).

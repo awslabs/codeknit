@@ -145,8 +145,11 @@ setup: deps
 
 # --- Documentation (Astro Starlight + Amazon Bedrock) ---------------------------
 
-# Bedrock model (override via env: make docs MODEL_ID=deepseek.v3.2)
-MODEL_ID       ?= qwen.qwen3-235b-a22b-2507-v1:0
+# Bedrock models (override via env: make docs MODEL_ID=... TRANSLATE_MODEL_ID=...)
+MODEL_ID           ?= global.anthropic.claude-sonnet-5-5
+TRANSLATE_MODEL_ID ?= mistral.mistral-large-3-675b-instruct
+# Claude effort for English generation (low|medium|high|xhigh|max); empty = model default (high). Clear it for non-Claude models.
+DOCS_EFFORT        ?= medium
 DOCS_FORCE     ?=
 DOCS_BT        ?=
 
@@ -156,13 +159,14 @@ docs-generate: build
 	go run ./docs/gen/... \
 		--model $(MODEL_ID) \
 		--skip-translate \
+		$(if $(DOCS_EFFORT),--effort $(DOCS_EFFORT)) \
 		$(if $(DOCS_FORCE),--force)
 
 # Translate existing English docs into target languages
 docs-translate:
-	@echo "==> Translating documentation with $(MODEL_ID)..."
+	@echo "==> Translating documentation with $(TRANSLATE_MODEL_ID)..."
 	go run ./docs/gen/... \
-		--model $(MODEL_ID) \
+		--translate-model $(TRANSLATE_MODEL_ID) \
 		--skip-generate \
 		$(if $(DOCS_FORCE),--force) \
 		$(if $(DOCS_BT),--backtranslate)
