@@ -1,49 +1,39 @@
 Write a guide on using codeknit with AI coding assistants. Frontmatter:
 ---
 title: Using with AI Assistants
-description: Set up codeknit as a skill for Kiro, Claude Code, and other AI coding assistants.
+description: Install the codeknit plugin for Claude Code, Codex, and Kiro.
 ---
 
 Cover:
 
-1. Overview: codeknit ships with two ready-made skills that teach AI assistants how to use it:
-   - codeknit-parse: code structure extraction and graph analysis
-   - codeknit-fingerprint: fuzzy duplicate and near-duplicate detection
+1. Overview: codeknit ships as a plugin for Claude Code, Codex, and Kiro containing one skill, `codeknit`, that teaches the assistant to choose between codeknit parse (structure), codeknit graph analyze (structural issues), and codeknit fingerprint (duplicate detection), and to read the .skt output. Users do not install the binary themselves: on first use the skill runs its bundled scripts/install-codeknit.sh, which downloads the latest GitHub release for the platform, verifies it against the release checksums.txt, installs it to ~/.local/bin, and prints the binary path. CODEKNIT_VERSION pins a release; CODEKNIT_INSTALL_DIR changes the location.
 
-2. Installation:
-   Each skill is a directory. Use the installer helper; it downloads only the skill files, so users do not need to clone the repository:
+2. Installation (one subsection per assistant, commands verbatim):
 
-   Install for Codex, Kiro, and Claude Code:
-   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
+   Claude Code (shell, or /plugin ... inside a session):
+   claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+   claude plugin install codeknit@codeknit
 
-   Install for one assistant:
-   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+   Codex:
+   codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+   codex plugin add codeknit@codeknit
 
-   From a local checkout:
-   make skills-install-dry-run
-   make skills-install
+   Kiro IDE: Powers panel → Add Custom Power → Import power from GitHub → https://github.com/awslabs/codeknit
 
-   The installer skips existing skill directories by default. To replace them, add --force:
-   curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+   Kiro CLI (installs from a local path):
+   git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+   git -C ~/.codeknit-power sparse-checkout set skills
+   kiro-cli powers install ~/.codeknit-power
 
-   Each skill directory contains a SKILL.md that the assistant reads on demand.
+   Explain that --sparse is optional and limits the clone to the plugin manifests and skills/. Updating: claude plugin marketplace update codeknit; codex plugin marketplace upgrade; Kiro "Check for updates"; or git pull and re-run kiro-cli powers install.
 
-3. What each skill teaches the assistant:
+   Manual fallback: copy skills/codeknit/ into ~/.claude/skills/, ~/.codex/skills/, or ~/.kiro/skills/.
 
-   codeknit-parse:
-   - How to invoke codeknit parse with the right flags
-   - How to pick the right output mode (inline, directory-flat, directory-tree)
-   - How to read .skt files and understand the format
-   - How to use structural data for refactoring and code review tasks
-   - How to run codeknit graph analyze for deeper code quality analysis
-
-   codeknit-fingerprint:
-   - When to use fingerprinting (duplicate detection, DRY audits, refactor candidates)
-   - How to choose the right similarity range
-   - How to read the [duplicates] and [fingerprints] sections
-   - Caveats: fingerprints measure structural shape, not semantic intent
+3. What the skill teaches the assistant:
+   - Pick the command by question: parse for "what exists / what calls what", graph analyze for cycles, hubs, dead code, god classes, fingerprint for copy-paste and refactor candidates
+   - Default to directory-flat output and read chunks selectively; use inline only for single files
+   - Read .skt output instead of raw source for structural questions; references/output-format.md holds the full format
+   - Choose fingerprint similarity ranges and treat matches as signals (structural shape, not semantic intent)
 
 4. Workflow examples:
 

@@ -422,8 +422,8 @@ var sourceContextFiles = []string{
 	"README.md",
 	"docs/reference/language-support.md",
 	"docs/reference/analysis-reliability.md",
-	"skills/codeknit-parse/SKILL.md",
-	"skills/codeknit-parse/OUTPUT-FORMAT.md",
+	"skills/codeknit/SKILL.md",
+	"skills/codeknit/references/output-format.md",
 }
 
 // loadSourceContext runs "codeknit parse" on the project root to get a compact

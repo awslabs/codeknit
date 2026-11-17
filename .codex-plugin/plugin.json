@@ -1,0 +1,24 @@
+{
+  "name": "codeknit",
+  "version": "0.6.0",
+  "description": "Extract code structure, analyze dependency graphs, and find duplicate code with codeknit. Installs the codeknit binary on first use.",
+  "author": { "name": "Amazon Web Services", "url": "https://github.com/awslabs" },
+  "homepage": "https://awslabs.github.io/codeknit",
+  "repository": "https://github.com/awslabs/codeknit",
+  "license": "Apache-2.0",
+  "keywords": ["code-analysis", "static-analysis", "dependency-graph", "duplicate-code", "tree-sitter"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "codeknit",
+    "shortDescription": "Code structure maps, graph analysis, and duplicate detection",
+    "developerName": "Amazon Web Services",
+    "category": "Coding",
+    "capabilities": ["Instructions"],
+    "websiteURL": "https://awslabs.github.io/codeknit",
+    "defaultPrompt": [
+      "Map the structure of this codebase with codeknit.",
+      "Find cyclic dependencies and dead code.",
+      "Find duplicate code worth refactoring."
+    ]
+  }
+}

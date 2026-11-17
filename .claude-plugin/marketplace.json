@@ -1,0 +1,12 @@
+{
+  "name": "codeknit",
+  "description": "codeknit plugins for Claude Code",
+  "owner": { "name": "Amazon Web Services" },
+  "plugins": [
+    {
+      "name": "codeknit",
+      "source": "./",
+      "description": "Extract code structure, analyze dependency graphs, and find duplicate code with codeknit."
+    }
+  ]
+}

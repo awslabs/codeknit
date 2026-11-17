@@ -1,0 +1,9 @@
+{
+  "name": "codeknit",
+  "description": "Skills for codeknit: extract code structure, analyze dependency graphs, and find duplicate code. Installs the codeknit binary on first use.",
+  "author": { "name": "Amazon Web Services" },
+  "homepage": "https://awslabs.github.io/codeknit",
+  "repository": "https://github.com/awslabs/codeknit",
+  "license": "Apache-2.0",
+  "keywords": ["code-analysis", "static-analysis", "dependency-graph", "duplicate-code", "tree-sitter"]
+}

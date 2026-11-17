@@ -2,8 +2,7 @@
        release release-dry-run deps deps-check license license-check \
        third-party-licenses third-party-check third-party-list changelog \
        docs docs-generate docs-translate docs-build docs-preview \
-       skills-install skills-install-codex skills-install-kiro skills-install-claude \
-       skills-install-dry-run
+       plugin-check plugin-version
 
 # Binary name and entry point
 BINARY    := codeknit
@@ -183,22 +182,19 @@ docs:
 docs-preview:
 	cd docs && npm run dev
 
-# --- Assistant skills ----------------------------------------------------------
+# --- Assistant plugins ---------------------------------------------------------
 
-# Install bundled assistant skills. Override ASSISTANT=codex|kiro|claude|all.
-ASSISTANT ?= all
+PLUGIN_MANIFESTS := plugin.json .codex-plugin/plugin.json
 
-skills-install:
-	scripts/install-skills.sh --assistant $(ASSISTANT)
+# Validate plugin manifests and the bundled binary installer
+plugin-check:
+	bash -n skills/codeknit/scripts/install-codeknit.sh
+	@for f in $(PLUGIN_MANIFESTS) .claude-plugin/plugin.json .claude-plugin/marketplace.json .agents/plugins/marketplace.json; do \
+		python3 -m json.tool $$f >/dev/null || exit 1; done
+	@if command -v claude >/dev/null 2>&1; then claude plugin validate .; else echo "skip: claude CLI not found"; fi
 
-skills-install-codex:
-	scripts/install-skills.sh --assistant codex
-
-skills-install-kiro:
-	scripts/install-skills.sh --assistant kiro
-
-skills-install-claude:
-	scripts/install-skills.sh --assistant claude
-
-skills-install-dry-run:
-	scripts/install-skills.sh --assistant $(ASSISTANT) --dry-run
+# Set the Kiro/Codex plugin version; Codex caches installs by version, so bump it on each release (usage: make plugin-version V=0.7.0)
+plugin-version:
+	@if [ -z "$(V)" ]; then echo "Usage: make plugin-version V=0.7.0"; exit 1; fi
+	@for f in $(PLUGIN_MANIFESTS); do sed -i '' 's/"version": "[^"]*"/"version": "$(V)"/' $$f; done
+	@grep -H '"version"' $(PLUGIN_MANIFESTS)

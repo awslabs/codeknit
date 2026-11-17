@@ -8,6 +8,7 @@ The default `codeknit parse` format is `.skt`, a compact text format optimized f
 - [edges] — relationships between symbols
 - [errors] — files with parse errors
 - [dict] — minification dictionary (optional)
+- [duplicates] / [fingerprints] — `codeknit fingerprint` output
 
 ## [symbols]
 
@@ -218,3 +219,34 @@ Edges include `from`, `to`, and `kind`. Resolved endpoints have short IDs in `fr
   ]
 }
 ```
+
+## Fingerprint output
+
+`codeknit fingerprint` writes a `.skt` file (default `./skeleton/fingerprints.skt`) that always contains `[duplicates]` and, with `--show-all`, `[fingerprints]`.
+
+### [duplicates]
+
+One line per pair, sorted by similarity descending:
+
+```
+[duplicates]
+# similarity range: 65%-95%
+similarity:93%  pkg/user.go::GetUser <-> pkg/admin.go::GetAdmin
+similarity:88%  src/auth.ts::validateToken <-> src/session.ts::validateSession
+similarity:81%  lib/math.py::compute_tax <-> lib/math.py::compute_vat
+```
+
+Format: `similarity:<N>%  <file>::<symbol> <-> <file>::<symbol>`. When nothing matches the range, the section holds the single comment `# no duplicates found`.
+
+### [fingerprints] (with `--show-all`)
+
+Grouped by source file, one line per symbol:
+
+```
+[fingerprints]
+## src/auth.ts
+validateToken  FP:3:a1b2c3...:d4e5f6...  tokens:8e0f1a2b...
+refreshToken   FP:3:b2c3d4...:e5f6a7...  tokens:8e0f1a3c...
+```
+
+Format: `<symbol-name>  FP:<blocksize>:<hash1>:<hash2>  tokens:<hex>`. `FP` is the CTPH fingerprint (two hashes at two block sizes); `tokens` is the hex-encoded normalized token stream.

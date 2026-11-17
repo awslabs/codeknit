@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-14
+
 ### Added
 
 - Shared `--include`, `--exclude`, `--max-file-size` (10 MiB default), and `--strict` controls for source-processing commands.

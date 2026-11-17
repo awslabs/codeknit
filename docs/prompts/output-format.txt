@@ -63,4 +63,4 @@ This is a detailed reference. Cover all sections:
    - Edges carry from, to, kind, and known endpoint short IDs.
    - Uncertain edges add resolution ("unresolved" or "ambiguous") and candidates when available, using full symbol IDs for candidates.
    - Uncertain edges omit to_short, even when their target has an include metadata symbol.
-   - Refer to skills/codeknit-parse/OUTPUT-FORMAT.md and docs/reference/language-support.md in the source context for the authoritative grammar and limitations.
+   - Refer to skills/codeknit/references/output-format.md and docs/reference/language-support.md in the source context for the authoritative grammar and limitations.

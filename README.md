@@ -8,6 +8,38 @@ LLMs are great at generating code, but struggle with large-scale refactoring. Th
 
 `codeknit` solves this by converting your codebase into a compact structural graph that focuses just on the code skeleton: function signatures, class hierarchies, call relationships, and module boundaries. No implementation details, no noise. LLMs can parse this representation directly and produce concrete, well-informed refactoring plans across hundreds of files.
 
+## Use with AI coding assistants
+
+codeknit ships as a plugin for Claude Code, Codex, and Kiro. It contains a single `codeknit` skill that teaches the assistant when and how to run `parse`, `graph analyze`, and `fingerprint`, and how to read the `.skt` output. **You don't need to install the binary yourself.** The first time the skill runs, it checks for `codeknit`. If the binary is missing, the skill downloads the latest release for your platform, verifies it against the release `checksums.txt`, and installs it to `~/.local/bin`.
+
+**Claude Code** (run in your shell, or inside a session as `/plugin ...`):
+
+```bash
+claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+claude plugin install codeknit@codeknit
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+codex plugin add codeknit@codeknit
+```
+
+**Kiro IDE:** open the Powers panel, choose **Add Custom Power → Import power from GitHub**, and enter `https://github.com/awslabs/codeknit`.
+
+**Kiro CLI** (installs from a local path):
+
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+git -C ~/.codeknit-power sparse-checkout set skills
+kiro-cli powers install ~/.codeknit-power
+```
+
+`--sparse` is optional. It keeps the clone down to the plugin manifests and `skills/` instead of the whole source tree. To update, run `claude plugin marketplace update codeknit`, `codex plugin marketplace upgrade`, **Check for updates** in the Kiro Powers panel, or `git -C ~/.codeknit-power pull` followed by the install command again.
+
+The skill can also be copied by hand into any assistant that reads Agent Skills: copy `skills/codeknit/` into `~/.claude/skills/`, `~/.codex/skills/`, or `~/.kiro/skills/`. To pin the binary version, set `CODEKNIT_VERSION`. To change the install location, set `CODEKNIT_INSTALL_DIR`.
+
 ## Supported languages
 
 C, C++, C#, Go, Java, JavaScript, PHP, Python, Ruby, Rust, Scala, TypeScript
@@ -156,7 +188,7 @@ The output directory defaults to `./skeleton` when not specified. You can overri
 
 If the output directory already contains `.skt` files from a previous run, codeknit will refuse to write to avoid mixing stale and fresh output. Pass `--clean` to replace them after successful generation. Tree output preserves source extensions (`foo.c.skt`, `foo.h.skt`); split names include the extension (`foo.c_part1.skt`). Failed generation preserves previous results, and interrupted directory publication is recovered on the next run. JSON mode protects `codeknit.json` in the same way.
 
-With `--edges`, relationships that cannot be established remain visible as `--kind[unresolved]-->` or `--kind[ambiguous]-->` in SKT, with candidate IDs when available. JSON carries the same information in `resolution` and `candidates`. C/C++ includes use `meta/file` and `meta/include` symbols so their edges have short IDs; this does not imply compiler-level header resolution. See the [output format reference](skills/codeknit-parse/OUTPUT-FORMAT.md) for examples. When upgrading to `0.5.0`, regenerate all output chunks together because symbol IDs and relationship results can change.
+With `--edges`, relationships that cannot be established remain visible as `--kind[unresolved]-->` or `--kind[ambiguous]-->` in SKT, with candidate IDs when available. JSON carries the same information in `resolution` and `candidates`. C/C++ includes use `meta/file` and `meta/include` symbols so their edges have short IDs; this does not imply compiler-level header resolution. See the [output format reference](skills/codeknit/references/output-format.md) for examples. When upgrading to `0.5.0`, regenerate all output chunks together because symbol IDs and relationship results can change.
 
 ### Parse examples
 
@@ -316,42 +348,6 @@ Flags:
       --workers int                max concurrent parsing goroutines (0 = NumCPU)
       --verbose                    print progress information during processing
 ```
-
-## Using with AI coding assistants
-
-`codeknit` ships with ready-made skills in `skills/` that teach AI coding assistants how to use codeknit effectively. Install them to your home directory so they're available across all projects:
-
-```bash
-# Install for Codex, Kiro, and Claude Code without cloning this repository
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
-
-# Install for one assistant
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
-```
-
-From a local checkout, you can use Makefile helpers:
-
-```bash
-make skills-install-dry-run
-make skills-install
-```
-
-The installer skips existing skill directories by default. To replace them, add `--force`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
-```
-
-Once installed, the assistant knows how to invoke codeknit, pick the right output mode, read `.skt` files, use the structural graph for refactoring tasks, and detect duplicate code. No extra prompting needed.
-
-The `codeknit-parse` skill includes:
-
-- `SKILL.md` — usage guide, flags, output mode selection, and workflow
-- `OUTPUT-FORMAT.md` — complete reference for the `.skt` output format
-
-The `codeknit-fingerprint` skill teaches the assistant how to use the `fingerprint` command to find duplicate and near-duplicate code.
 
 ## Development
 

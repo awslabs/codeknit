@@ -1,76 +1,65 @@
 ---
 title: Using with AI Assistants
-description: Set up codeknit as a skill for Kiro, Claude Code, and other AI coding assistants.
+description: Install the codeknit plugin for Claude Code, Codex, and Kiro.
 ---
 
-codeknit ships with ready-made skills that teach AI coding assistants how to use it effectively. These skills enable assistants to extract code structure, detect duplicates, and perform structural analysis without manual prompting.
+codeknit ships as a plugin for Claude Code, Codex, and Kiro. The plugin contains one skill, `codeknit`, that teaches the assistant when to run `parse`, `graph analyze`, or `fingerprint`, and how to read the `.skt` output.
 
-## Skills overview
-
-codeknit provides two skills:
-
-- **`codeknit-parse`**: Teaches assistants to extract code structure (functions, classes, methods, variables) and relationships (calls, inheritance, containment) into `.skt` files.
-- **`codeknit-fingerprint`**: Teaches assistants to detect duplicate and near-duplicate code using fuzzy hashing.
-
-Each skill includes documentation that the assistant reads on demand to understand usage, flags, output formats, and workflows.
+You do not need to install the codeknit binary yourself. On first use, the skill runs its bundled `scripts/install-codeknit.sh`. If `codeknit` is not on `PATH`, the script downloads the latest release for your platform, verifies it against the release `checksums.txt`, and installs it to `~/.local/bin`. Set `CODEKNIT_VERSION` to pin a release, or `CODEKNIT_INSTALL_DIR` to change the location.
 
 ## Installation
 
-Use the installer helper to copy the skill directories to your assistant's skills folder. The installer downloads only the bundled skill files, so you do not need to clone the repository.
+### Claude Code
 
-Install for **Codex**, **Kiro**, and **Claude Code**:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash
-```
-
-Install for one assistant:
+Run in your shell, or inside a session as `/plugin ...`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant codex
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant kiro
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant claude
+claude plugin marketplace add awslabs/codeknit --sparse .claude-plugin skills
+claude plugin install codeknit@codeknit
 ```
 
-From a local checkout, you can use Makefile helpers:
+### Codex
 
 ```bash
-make skills-install-dry-run
-make skills-install
+codex plugin marketplace add awslabs/codeknit --sparse .agents --sparse .codex-plugin --sparse skills
+codex plugin add codeknit@codeknit
 ```
 
-The installer skips existing skill directories by default. To replace them, add `--force`:
+### Kiro IDE
+
+Open the Powers panel, choose **Add Custom Power → Import power from GitHub**, and enter `https://github.com/awslabs/codeknit`.
+
+### Kiro CLI
+
+Kiro CLI installs powers from a catalog or a local path:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/awslabs/codeknit/main/scripts/install-skills.sh | bash -s -- --assistant all --force
+git clone --depth 1 --filter=blob:none --sparse https://github.com/awslabs/codeknit ~/.codeknit-power
+git -C ~/.codeknit-power sparse-checkout set skills
+kiro-cli powers install ~/.codeknit-power
 ```
 
-After installation, the assistant automatically knows how to invoke codeknit commands, select appropriate flags, and interpret `.skt` output.
+`--sparse` is optional. It limits the clone to the plugin manifests and `skills/` instead of the whole source tree.
 
-## What each skill teaches
+### Updating
 
-### codeknit-parse
+- Claude Code: `claude plugin marketplace update codeknit`, or enable auto-update under **Marketplaces** in `/plugin`
+- Codex: `codex plugin marketplace upgrade`
+- Kiro IDE: **Check for updates** on the power
+- Kiro CLI: `git -C ~/.codeknit-power pull`, then run `kiro-cli powers install ~/.codeknit-power` again
 
-The `codeknit-parse` skill teaches assistants to:
+### Manual install
 
-- Run `codeknit parse` with appropriate flags for different scenarios
-- Choose the right output mode:
-  - `directory-flat` (default) for most projects
-  - `inline` for single files or small inputs
-  - `directory-tree` to mirror source structure
-- Read and interpret `.skt` output files, including `[symbols]`, `[edges]`, and optional `[dict]` sections
-- Use structural data for refactoring, dependency mapping, and code review
-- Run `codeknit graph analyze` for deeper code quality insights (cyclic dependencies, hub symbols, god classes, etc.)
+For any assistant that reads Agent Skills, copy `skills/codeknit/` into its skills directory, such as `~/.claude/skills/`, `~/.codex/skills/`, or `~/.kiro/skills/`.
 
-### codeknit-fingerprint
+## What the skill teaches
 
-The `codeknit-fingerprint` skill teaches assistants to:
+The `codeknit` skill teaches assistants to:
 
-- Use `codeknit fingerprint` for duplicate detection, DRY audits, and refactor identification
-- Select appropriate similarity ranges (`--min-similarity`, `--max-similarity`)
-- Read the `[duplicates]` section to identify near-duplicate code
-- Understand that fingerprints measure structural shape, not semantic intent
-- Use `--rerank` with Ollama embeddings to reduce false positives when needed
+- Pick the command by question: `parse` for what exists and what calls what, `graph analyze` for cycles, hubs, dead code, and god classes, and `fingerprint` for copy-paste and refactor candidates
+- Default to `directory-flat` output and read chunks selectively, using `inline` only for single files
+- Read `.skt` output instead of raw source for structural questions. `references/output-format.md` holds the full format.
+- Choose fingerprint similarity ranges (`--min-similarity`, `--max-similarity`), use `--rerank` to cut false positives, and treat matches as signals of structural shape, not semantic intent
 
 ## Workflow examples
 
