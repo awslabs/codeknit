@@ -10,9 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- `graph show`: nodes are colored by top-level folder, and any folder or file can be recolored from the sidebar tree (inherited by its children, saved per graph file).
+
 ### Changed
 
+- `graph show`: edges are neutral gray with a line pattern per edge kind and turn white when highlighted; symbol categories no longer have their own colors and stay filterable.
+
 ### Fixed
+
+- `graph show`: the file tree is shown relative to the project root, so folder checkboxes work for absolute input paths.
 
 
 ## [0.6.0] - 2026-09-14
