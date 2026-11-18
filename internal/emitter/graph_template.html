@@ -220,6 +220,40 @@
       transform: rotate(-90deg);
     }
 
+    .tree-node .tree-color {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      flex-shrink: 0;
+    }
+
+    .tree-node .tree-color input[type="color"] {
+      width: 14px;
+      height: 14px;
+      padding: 0;
+      border: 1px solid #475569;
+      border-radius: 3px;
+      background: none;
+      cursor: pointer;
+    }
+
+    .tree-node .tree-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .tree-node .tree-color input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+    .tree-node .tree-color input[type="color"]::-moz-color-swatch { border: none; border-radius: 2px; }
+
+    .tree-node .tree-color button {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0 0.1rem;
+      cursor: pointer;
+    }
+
+    .tree-node .tree-color button:hover { color: #e2e8f0; }
+
     .tree-node .file-spacer {
       width: 0.7rem;
       flex-shrink: 0;
@@ -743,6 +777,8 @@
     .legend-row.hidden-item .legend-shape {
       opacity: 0.3;
     }
+
+    .legend-line { flex-shrink: 0; }
 
     .legend-swatch {
       width: 24px;
@@ -1452,7 +1488,7 @@
                 <div id="treemap-color-toggle">
                   <label style="font-size:0.7rem;color:#94a3b8;margin-right:0.3rem;">Color by</label>
                   <select id="treemap-color-select">
-                    <option value="category">Category mix</option>
+                    <option value="module">Module</option>
                     <option value="coupling">Coupling (fan-in+out)</option>
                     <option value="depth">Depth</option>
                   </select>
@@ -1559,6 +1595,8 @@
             <div class="legend-body">
               <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.25rem;font-weight:600;">Edge types</div>
               <div id="legend-edges"></div>
+              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.5rem;margin-bottom:0.25rem;font-weight:600;">Modules</div>
+              <div id="legend-modules"></div>
               <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.5rem;margin-bottom:0.25rem;font-weight:600;">
                 Symbol categories</div>
               <div id="legend-categories"></div>
@@ -1616,13 +1654,72 @@
     const ALL_EDGE_KINDS = [...new Set(GRAPH_DATA.edges.map(e => e.kind))].sort();
     const ALL_CATEGORIES = [...new Set(GRAPH_DATA.symbols.map(s => s.category))].sort();
 
-    const CATEGORY_COLORS = assignColors(ALL_CATEGORIES, {
-      callable: "#38bdf8", type: "#a78bfa", value: "#fbbf24", module: "#34d399", meta: "#94a3b8"
-    });
+    // Node colors come from the module (top-level folder) of each symbol's file. Any folder or
+    // file can be recolored from the sidebar tree; the nearest override wins. Categories share
+    // one color and are filtered, not colored.
+    const NEUTRAL_COLOR = "#94a3b8";
+    const MODULE_PALETTE = ["#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#fb923c", "#2dd4bf", "#f87171"];
+    // Paths are shown and colored relative to the deepest folder shared by every file, so
+    // absolute inputs (/Users/me/repo/...) still yield modules like "cmd" and "internal".
+    const normPath = p => (p || "").replace(/^\/+/, "");
+    const COMMON_ROOT = (() => {
+      const dirs = [...new Set(GRAPH_DATA.symbols.map(s => normPath(s.file)))].map(f => f.split("/").slice(0, -1));
+      if (dirs.length === 0) return "";
+      let prefix = dirs[0];
+      dirs.forEach(d => { let i = 0; while (i < prefix.length && i < d.length && prefix[i] === d[i]) i++; prefix = prefix.slice(0, i); });
+      return prefix.length ? prefix.join("/") + "/" : "";
+    })();
+    function relPath(p) {
+      const n = normPath(p);
+      if (n + "/" === COMMON_ROOT) return "";
+      return n.startsWith(COMMON_ROOT) ? n.slice(COMMON_ROOT.length) : n;
+    }
+    function moduleOf(path, isDir) {
+      const i = path.indexOf("/");
+      if (i >= 0) return path.slice(0, i);
+      return isDir && path && path !== "." ? path : ".";
+    }
+    const MODULE_COLORS = {};
+    [...new Set(GRAPH_DATA.symbols.map(s => moduleOf(relPath(s.file), false)))].sort()
+      .forEach((m, i) => { MODULE_COLORS[m] = MODULE_PALETTE[i % MODULE_PALETTE.length]; });
+    const COLOR_STORAGE_KEY = "codeknit-colors:" + location.pathname;
+    let colorOverrides = {};
+    try { colorOverrides = JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY) || "{}") || {}; } catch (_) { colorOverrides = {}; }
+    // Overrides are keyed by root-relative path; the nearest overridden ancestor wins.
+    function pathColor(path, isDir) {
+      const rel = relPath(path);
+      for (let q = rel; q && q !== "."; q = q.includes("/") ? q.slice(0, q.lastIndexOf("/")) : "") {
+        if (colorOverrides[q]) return colorOverrides[q];
+      }
+      return MODULE_COLORS[moduleOf(rel || ".", isDir)] || NEUTRAL_COLOR;
+    }
+    // Works for graph symbols and grouped-view nodes (directory super nodes carry `dir`).
+    function nodeColor(n) { return n.superType === "dir" ? pathColor(n.dir, true) : pathColor(n.file || "", false); }
+    function groupColor(g) { return pathColor(g.id, !!g.isDir); }
+    function setPathColor(path, color, persist) {
+      if (color) colorOverrides[path] = color; else delete colorOverrides[path];
+      if (!persist) return refreshColors();
+      try { localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(colorOverrides)); } catch (_) { /* storage unavailable: keep in memory */ }
+      renderFileTree();
+      refreshColors();
+    }
     const EDGE_COLORS = assignColors(ALL_EDGE_KINDS, {
       calls: "#38bdf8", contains: "#a78bfa", inherits: "#f472b6", implements: "#34d399",
       references: "#fbbf24", overrides: "#fb923c", imports: "#94a3b8", decorates: "#e879f9"
     });
+    // Edges are neutral gray with a line pattern per kind, so hue always means module.
+    // Highlighted edges (hover, selection, focus, trace, search) turn near-white instead of colored.
+    const EDGE_NEUTRAL = "#94a3b8";
+    const EDGE_HIGHLIGHT = "#f1f5f9";
+    const EDGE_DASH_PATTERNS = [[], [6, 4], [2, 3], [10, 4], [10, 4, 2, 4], [4, 4], [1, 4], [8, 3, 2, 3]];
+    const EDGE_DASHES = {};
+    {
+      const preferred = { calls: 0, contains: 1, references: 2, inherits: 3, implements: 4, overrides: 5, imports: 6, decorates: 7 };
+      let next = 0;
+      ALL_EDGE_KINDS.forEach(k => { EDGE_DASHES[k] = EDGE_DASH_PATTERNS[k in preferred ? preferred[k] : next++ % EDGE_DASH_PATTERNS.length]; });
+    }
+    const edgeDash = kind => EDGE_DASHES[kind] || [];
+    const svgDash = kind => edgeDash(kind).length ? ` stroke-dasharray="${edgeDash(kind).join(" ")}"` : "";
 
     let selectedFiles = new Set(GRAPH_DATA.symbols.map(s => s.file));
     let hiddenSymbols = new Set(), hiddenEdgeKinds = new Set(), hiddenCategories = new Set();
@@ -1764,11 +1861,36 @@
       }
       return paths;
     }
-    const collapsedFolders = new Set(collectFolderPaths(buildFileTree([...new Set(GRAPH_DATA.symbols.map(s => s.file))]), ""));
+    const collapsedFolders = new Set(collectFolderPaths(buildFileTree([...new Set(GRAPH_DATA.symbols.map(s => relPath(s.file)))]), ""));
+
+    // Color picker for a tree row; the color applies to everything under that folder or file.
+    function colorSwatch(path, isDir) {
+      const wrap = document.createElement("span");
+      wrap.className = "tree-color";
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = pathColor(path, isDir);
+      input.title = colorOverrides[path] ? "Custom color" : "Set a color for " + path;
+      input.addEventListener("click", e => e.stopPropagation());
+      input.addEventListener("input", () => setPathColor(path, input.value, false)); // live preview while picking
+      input.addEventListener("change", () => setPathColor(path, input.value, true));
+      wrap.appendChild(input);
+      if (colorOverrides[path]) {
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.textContent = "↺";
+        reset.title = "Reset to the inherited color";
+        reset.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); setPathColor(path, null, true); });
+        wrap.appendChild(reset);
+      }
+      return wrap;
+    }
 
     function renderFileTree() {
+      // The tree shows root-relative paths; selectedFiles keeps full paths.
       const allFiles = [...new Set(GRAPH_DATA.symbols.map(s => s.file))].sort();
-      const tree = buildFileTree(allFiles);
+      const fullOf = {}; allFiles.forEach(f => { fullOf[relPath(f)] = f; });
+      const tree = buildFileTree(Object.keys(fullOf));
       const container = document.getElementById("file-tree-container");
       container.replaceChildren();
 
@@ -1780,7 +1902,7 @@
 
         folders.forEach(k => {
           const fp = prefix ? prefix + "/" + k : k;
-          const childFiles = allFiles.filter(f => f.startsWith(fp + "/") || f === fp);
+          const childFiles = allFiles.filter(f => relPath(f).startsWith(fp + "/"));
           const someChecked = childFiles.some(f => selectedFiles.has(f));
           const allChecked = childFiles.every(f => selectedFiles.has(f));
           const isCollapsed = collapsedFolders.has(fp);
@@ -1819,6 +1941,7 @@
           div.appendChild(cb);
           div.appendChild(icon);
           div.appendChild(document.createTextNode(k));
+          div.appendChild(colorSwatch(fp, true));
           container.appendChild(div);
 
           if (!isCollapsed) {
@@ -1838,9 +1961,10 @@
 
           const cb = document.createElement("input");
           cb.type = "checkbox";
-          cb.checked = selectedFiles.has(fp);
+          const full = fullOf[fp];
+          cb.checked = selectedFiles.has(full);
           cb.addEventListener("change", () => {
-            cb.checked ? selectedFiles.add(fp) : selectedFiles.delete(fp);
+            cb.checked ? selectedFiles.add(full) : selectedFiles.delete(full);
             renderFileTree();
             applyFilters();
           });
@@ -1853,6 +1977,7 @@
           div.appendChild(cb);
           div.appendChild(icon);
           div.appendChild(document.createTextNode(k));
+          div.appendChild(colorSwatch(fp, false));
           container.appendChild(div);
         });
       }
@@ -2063,8 +2188,6 @@
       });
     });
 
-    const FILE_HULL_COLORS = ["#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#fb923c", "#e879f9", "#94a3b8"];
-    const fileColorMap = {}; fileKeys.forEach((f, i) => { fileColorMap[f] = FILE_HULL_COLORS[i % FILE_HULL_COLORS.length]; });
 
     // Containment tree: parent → children
     const containsChildren = {};
@@ -2365,11 +2488,13 @@
         // Cull edges where both endpoints are off-screen
         if (!inViewport((s.x + t.x) / 2, (s.y + t.y) / 2, Math.abs(t.x - s.x) / 2 + pad, Math.abs(t.y - s.y) / 2 + pad)) return;
 
-        const color = EDGE_COLORS[link.kind] || "#94a3b8";
         const isHighlighted = hoveredNode && (s.shortId === hoveredNode || t.shortId === hoveredNode);
         const isTraced = hasTrace && tracedEdges.has(link);
         const isSelectedEdge = hasSelection && selectedNodes.has(s.shortId) && selectedNodes.has(t.shortId);
         const isSearchEdge = hasSearch && searchMatchIds.has(s.shortId) && searchMatchIds.has(t.shortId);
+        const touchesFocus = (hasSelection && (selectedNodes.has(s.shortId) || selectedNodes.has(t.shortId))) ||
+          (focusMode && (s.shortId === focusNodeId || t.shortId === focusNodeId));
+        const color = (isHighlighted || isTraced || isSelectedEdge || isSearchEdge || touchesFocus) ? EDGE_HIGHLIGHT : EDGE_NEUTRAL;
         const isDimmed = (hoveredNode && !isHighlighted) ||
           (hasSelection && !hoveredNode && !isSelectedEdge) ||
           (hasTrace && !hoveredNode && !isTraced) ||
@@ -2383,6 +2508,8 @@
         if (showFlow && !isDimmed) {
           ctx.setLineDash([8, 12]);
           ctx.lineDashOffset = -flowOffset;
+        } else {
+          ctx.setLineDash(edgeDash(link.kind));
         }
 
         if (lod === "dot") {
@@ -2477,7 +2604,7 @@
         // Viewport culling
         if (!inViewport(n.x, n.y, dims.w / 2, dims.h / 2)) return;
 
-        const color = CATEGORY_COLORS[n.category] || "#94a3b8";
+        const color = nodeColor(n);
         const rgb = hexToRgb(color);
         const isHovered = hoveredNode === n.shortId;
         const isNeighbor = neighbors && neighbors.has(n.shortId);
@@ -2522,7 +2649,7 @@
 
         // File color accent — left stripe (focus mode only)
         if (focusMode) {
-          const fileColor = fileColorMap[n.file];
+          const fileColor = pathColor(n.file, false);
           if (fileColor) {
             ctx.save();
             ctx.beginPath();
@@ -2652,8 +2779,8 @@
         const s = typeof link.source === "object" ? link.source : nodeById[link.source];
         const t = typeof link.target === "object" ? link.target : nodeById[link.target];
         if (!s || !t || !currentVisibleIds.has(s.shortId) || !currentVisibleIds.has(t.shortId) || hiddenEdgeKinds.has(link.kind)) return;
-        const color = EDGE_COLORS[link.kind] || "#94a3b8";
-        ec.save(); ec.globalAlpha = 0.45; ec.strokeStyle = color; ec.lineWidth = 1.5;
+        const color = EDGE_NEUTRAL;
+        ec.save(); ec.globalAlpha = 0.45; ec.strokeStyle = color; ec.lineWidth = 1.5; ec.setLineDash(edgeDash(link.kind));
         const sDims = cardDims(s), tDims = cardDims(t);
         const sp = clipToRect(s.x, s.y, t.x, t.y, sDims.w / 2 + 2, sDims.h / 2 + 2);
         const tp = clipToRect(t.x, t.y, s.x, s.y, tDims.w / 2 + 2, tDims.h / 2 + 2);
@@ -2673,7 +2800,7 @@
       // Draw nodes
       allNodes.forEach(n => {
         if (!currentVisibleIds.has(n.shortId)) return;
-        const dims = cardDims(n), color = CATEGORY_COLORS[n.category] || "#94a3b8", rgb = hexToRgb(color);
+        const dims = cardDims(n), color = nodeColor(n), rgb = hexToRgb(color);
         ec.save(); ec.globalAlpha = 1;
         const x = n.x - dims.w / 2, y = n.y - dims.h / 2, r = 6;
         ec.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.09)`; ec.strokeStyle = color; ec.lineWidth = 1.5;
@@ -2714,7 +2841,7 @@
         const s = typeof link.source === "object" ? link.source : nodeById[link.source];
         const t = typeof link.target === "object" ? link.target : nodeById[link.target];
         if (!s || !t || !currentVisibleIds.has(s.shortId) || !currentVisibleIds.has(t.shortId) || hiddenEdgeKinds.has(link.kind)) return;
-        const color = EDGE_COLORS[link.kind] || "#94a3b8";
+        const color = EDGE_NEUTRAL;
         const sDims = cardDims(s), tDims = cardDims(t);
         const sp = clipToRect(s.x, s.y, t.x, t.y, sDims.w / 2 + 2, sDims.h / 2 + 2);
         const tp = clipToRect(t.x, t.y, s.x, s.y, tDims.w / 2 + 2, tDims.h / 2 + 2);
@@ -2722,7 +2849,7 @@
         let path;
         if (dist < 1) { path = `M${sp.x},${sp.y}L${tp.x},${tp.y}`; }
         else { const mx = (sp.x + tp.x) / 2, my = (sp.y + tp.y) / 2; path = `M${sp.x},${sp.y}Q${mx - dy / dist * dist * 0.08},${my + dx / dist * dist * 0.08},${tp.x},${tp.y}`; }
-        svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.45"/>\n`;
+        svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.45"${svgDash(link.kind)}/>\n`;
         // Arrow
         if (dist > 10) {
           const mx = (sp.x + tp.x) / 2, my = (sp.y + tp.y) / 2, nx = -dy / dist * dist * 0.08, ny = dx / dist * dist * 0.08;
@@ -2737,7 +2864,7 @@
       // Nodes
       allNodes.forEach(n => {
         if (!currentVisibleIds.has(n.shortId)) return;
-        const dims = cardDims(n), color = CATEGORY_COLORS[n.category] || "#94a3b8", rgb = hexToRgb(color);
+        const dims = cardDims(n), color = nodeColor(n), rgb = hexToRgb(color);
         const x = n.x - dims.w / 2, y = n.y - dims.h / 2;
         svg += `<rect x="${x}" y="${y}" width="${dims.w}" height="${dims.h}" rx="6" fill="rgba(${rgb.r},${rgb.g},${rgb.b},0.09)" stroke="${color}" stroke-width="1.5"/>\n`;
         svg += `<text x="${n.x}" y="${compactMode ? n.y : n.y - 3}" text-anchor="middle" dominant-baseline="central" fill="#f8fafc" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="500">${n._dname}</text>\n`;
@@ -3210,7 +3337,7 @@
         });
         const hx = minX - pad, hy = minY - pad;
         const hw = maxX - minX + pad * 2, hh = maxY - minY + pad * 2;
-        const color = fileColorMap[file] || "#94a3b8";
+        const color = pathColor(file, false);
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(hx, hy, hw, hh, r);
@@ -3253,23 +3380,29 @@
     // ============================================================
     // LEGEND
     // ============================================================
-    function categorySwatch(cat) {
-      const c = CATEGORY_COLORS[cat] || "#94a3b8";
+    function categorySwatch() {
+      const c = NEUTRAL_COLOR;
       return `<div class="legend-card-swatch" style="border-color:${escapeHtml(c)};background:${escapeHtml(c)}18"></div>`;
     }
     function renderLegend() {
       const edgesEl = document.getElementById("legend-edges"); edgesEl.replaceChildren();
       ALL_EDGE_KINDS.forEach(kind => {
-        const color = EDGE_COLORS[kind] || "#94a3b8";
         const row = document.createElement("div"); row.className = "legend-row" + (hiddenEdgeKinds.has(kind) ? " hidden-item" : ""); row.dataset.edgeKind = kind;
-        setSanitizedHtml(row, `<div class="legend-swatch" style="background:${escapeHtml(color)}"></div> ${escapeHtml(kind)}`);
+        setSanitizedHtml(row, `<svg class="legend-line" width="24" height="6" viewBox="0 0 24 6"><line x1="0" y1="3" x2="24" y2="3" stroke="${EDGE_NEUTRAL}" stroke-width="2"${svgDash(kind)}/></svg> ${escapeHtml(kind)}`);
         row.addEventListener("click", () => { hiddenEdgeKinds.has(kind) ? hiddenEdgeKinds.delete(kind) : hiddenEdgeKinds.add(kind); syncDropdownToSet("edge-hide-panel", ALL_EDGE_KINDS, hiddenEdgeKinds); renderLegend(); applyFilters(); });
         edgesEl.appendChild(row);
+      });
+      const modsEl = document.getElementById("legend-modules"); modsEl.replaceChildren();
+      Object.keys(MODULE_COLORS).forEach(mod => {
+        const row = document.createElement("div"); row.className = "legend-row"; row.title = "Change colors from the file tree";
+        const mc = escapeHtml(pathColor(mod, mod !== "."));
+        setSanitizedHtml(row, `<div class="legend-card-swatch" style="border-color:${mc};background:${mc}33"></div> ${escapeHtml(mod === "." ? "(root)" : mod)}`);
+        modsEl.appendChild(row);
       });
       const catsEl = document.getElementById("legend-categories"); catsEl.replaceChildren();
       ALL_CATEGORIES.forEach(cat => {
         const row = document.createElement("div"); row.className = "legend-row" + (hiddenCategories.has(cat) ? " hidden-item" : ""); row.dataset.category = cat;
-        setSanitizedHtml(row, `${categorySwatch(cat)} ${escapeHtml(cat)}`);
+        setSanitizedHtml(row, `${categorySwatch()} ${escapeHtml(cat)}`);
         row.addEventListener("click", () => { hiddenCategories.has(cat) ? hiddenCategories.delete(cat) : hiddenCategories.add(cat); syncDropdownToSet("category-hide-panel", ALL_CATEGORIES, hiddenCategories); renderLegend(); applyFilters(); });
         catsEl.appendChild(row);
       });
@@ -3284,6 +3417,8 @@
       updateMsLabel(document.getElementById(panelId));
     }
 
+    // Repaint every view after a color change without rebuilding layouts.
+    function refreshColors() { renderLegend(); requestDraw(); treemapRender(); matrixRender(); if (groupedActive) grRequestDraw(); chordRender(); }
     function applyFilters() { renderLegend(); renderGraph(); if (treemapActive) treemapRender(); if (matrixActive) matrixRender(); if (groupedActive) groupedRender(); if (chordActive) chordRender(); }
 
     // ============================================================
@@ -3653,7 +3788,7 @@
         mmCtx.globalAlpha = 0.8;
         mmNodes.forEach(n => {
           if (!isGrouped && !currentVisibleIds.has(n.shortId)) return;
-          const color = CATEGORY_COLORS[n.category] || "#94a3b8";
+          const color = nodeColor(n);
           mmCtx.fillStyle = color;
           const dotR = isGrouped && n.isSuper ? Math.max(2, 3 * scale) : Math.max(1.5, 2 * scale);
           mmCtx.beginPath();
@@ -3720,7 +3855,7 @@
     // TREEMAP / SUNBURST VIEW
     // ============================================================
     let tmMode = "treemap"; // "treemap" | "sunburst"
-    let tmColorBy = "category"; // "category" | "coupling" | "depth"
+    let tmColorBy = "module"; // "module" | "coupling" | "depth"
     let tmZoomPath = ""; // "" = root, "pkg/api" = zoomed into that dir
     let tmHoveredNode = null;
     let tmCanvasW = 0, tmCanvasH = 0;
@@ -3799,21 +3934,10 @@
 
     // Color a treemap/sunburst cell
     function tmCellColor(d) {
-      if (tmColorBy === "category") {
-        if (d.data._isSymbol && d.data._symbol) {
-          return CATEGORY_COLORS[d.data._symbol.category] || "#94a3b8";
-        }
-        // For directories/files, blend the categories of children
-        const cats = {};
-        d.leaves().forEach(leaf => {
-          if (leaf.data._symbol) {
-            const c = leaf.data._symbol.category;
-            cats[c] = (cats[c] || 0) + 1;
-          }
-        });
-        const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
-        if (entries.length > 0) return CATEGORY_COLORS[entries[0][0]] || "#94a3b8";
-        return "#475569";
+      if (tmColorBy === "module") {
+        if (d.data._isSymbol && d.data._symbol) return pathColor(d.data._symbol.file, false);
+        if (!d.data.path) return "#475569";
+        return pathColor(d.data.path, !d.data._isFile);
       }
       if (tmColorBy === "coupling") {
         const score = tmCouplingScore(d);
@@ -4838,7 +4962,7 @@
         const isHL = grHoveredNode && (s.id === grHoveredNode || t.id === grHoveredNode);
         const isDimmed = grHoveredNode && !isHL;
         const dominant = Object.entries(link.kinds).sort((a, b) => b[1] - a[1])[0];
-        const color = EDGE_COLORS[dominant[0]] || "#94a3b8";
+        const color = isHL ? EDGE_HIGHLIGHT : EDGE_NEUTRAL;
         c.save();
         c.globalAlpha = isDimmed ? 0.06 : isHL ? 0.9 : 0.35;
         c.strokeStyle = color;
@@ -4847,6 +4971,8 @@
         if (showFlow && !isDimmed) {
           c.setLineDash([8, 12]);
           c.lineDashOffset = -flowOffset;
+        } else {
+          c.setLineDash(edgeDash(dominant[0]));
         }
 
         c.beginPath(); c.moveTo(s.x, s.y); c.lineTo(t.x, t.y); c.stroke();
@@ -4876,7 +5002,7 @@
       // Nodes
       grNodes.forEach(n => {
         const r = grNodeRadius(n);
-        const color = CATEGORY_COLORS[n.category] || "#94a3b8";
+        const color = nodeColor(n);
         const rgb = hexToRgb(color);
         const isHovered = grHoveredNode === n.id;
         const isNeighbor = neighbors && neighbors.has(n.id);
@@ -5015,7 +5141,7 @@
             coupling += (incomingAll[sid] ? incomingAll[sid].size : 0) + (outgoingAll[sid] ? outgoingAll[sid].size : 0);
           });
           groups.push({
-            id: dir,
+            id: dir, isDir: true,
             label: dir.split("/").pop() || dir,
             file: dir,
             category: topCat ? topCat[0] : "meta",
@@ -5254,7 +5380,7 @@
 
           if (row === col) {
             // Diagonal — self
-            const catColor = CATEGORY_COLORS[groups[row].category] || "#94a3b8";
+            const catColor = groupColor(groups[row]);
             const rgb = hexToRgb(catColor);
             c.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)`;
             c.fillRect(cx, cy, cellSize, cellSize);
@@ -5320,7 +5446,7 @@
         const cy = gridY + row * cellSize;
         if (cy + cellSize < labelW || cy > h) continue;
         const isHL = mxHoveredRow === row || mxHoveredCol === row;
-        const catColor = CATEGORY_COLORS[groups[row].category] || "#94a3b8";
+        const catColor = groupColor(groups[row]);
 
         if (isHL) {
           c.fillStyle = "rgba(148,163,184,0.08)";
@@ -5356,7 +5482,7 @@
         const cx = gridX + col * cellSize;
         if (cx + cellSize < labelW || cx > w) continue;
         const isHL = mxHoveredCol === col || mxHoveredRow === col;
-        const catColor = CATEGORY_COLORS[groups[col].category] || "#94a3b8";
+        const catColor = groupColor(groups[col]);
 
         if (isHL) {
           c.fillStyle = "rgba(148,163,184,0.08)";
@@ -5474,7 +5600,7 @@
         Object.keys(byDir).sort().forEach(dir => {
           const d = byDir[dir];
           const topCat = Object.entries(d.cats).sort((a, b) => b[1] - a[1])[0];
-          groups.push({ id: dir, label: dir.split("/").pop() || dir, category: topCat ? topCat[0] : "meta", symbols: d.symbols });
+          groups.push({ id: dir, isDir: true, label: dir.split("/").pop() || dir, category: topCat ? topCat[0] : "meta", symbols: d.symbols });
         });
       }
 
@@ -5657,7 +5783,7 @@
 
       // Draw arcs
       arcAngles.forEach(a => {
-        const color = CATEGORY_COLORS[groups[a.idx].category] || "#94a3b8";
+        const color = groupColor(groups[a.idx]);
         const rgb = hexToRgb(color);
         const isHL = active === a.idx;
         const isDimmed = active !== -1 && !isHL;
