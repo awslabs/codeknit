@@ -1,6 +1,6 @@
 {
   "name": "codeknit",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Extract code structure, analyze dependency graphs, and find duplicate code with codeknit. Installs the codeknit binary on first use.",
   "author": { "name": "Amazon Web Services", "url": "https://github.com/awslabs" },
   "homepage": "https://awslabs.github.io/codeknit",
