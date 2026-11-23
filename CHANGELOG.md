@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-23
+
+### Fixed
+
+- `graph show`: the Grouped layout's top level shows the real modules relative to the project root, and double-click expands them; for absolute input paths it showed one unnamed node that could not be expanded.
+
 ## [0.6.1] - 2026-11-18
 
 ### Added
