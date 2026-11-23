@@ -4473,7 +4473,9 @@
       const allSymsByDir = {};
       GRAPH_DATA.symbols.forEach(s => {
         if (!visible.has(s.shortId)) return;
-        const dir = s.file.includes("/") ? s.file.substring(0, s.file.lastIndexOf("/")) : ".";
+        // Root-relative: absolute paths would make the root segment "" and expanding it recurse forever.
+        const rel = relPath(s.file);
+        const dir = rel.includes("/") ? rel.substring(0, rel.lastIndexOf("/")) : ".";
         if (!allSymsByDir[dir]) allSymsByDir[dir] = [];
         allSymsByDir[dir].push(s);
       });
@@ -4577,7 +4579,7 @@
         const nid = "file:" + filePath;
         const prev = grNodeMap[nid];
         const node = {
-          id: nid, label: filePath.split("/").pop(), dir: filePath.includes("/") ? filePath.substring(0, filePath.lastIndexOf("/")) : ".",
+          id: nid, label: filePath.split("/").pop(), dir: relPath(filePath).includes("/") ? relPath(filePath).replace(/\/[^/]*$/, "") : ".",
           file: filePath, category: topCat ? topCat[0] : "meta",
           isSuper: true, superType: "file",
           symbolCount: syms.length, fileCount: 1,
